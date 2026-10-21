@@ -37,7 +37,7 @@
 </head>
 <body>
 <h1>三大元素と いのち</h1>
-<p class="sub">火素・水素・土素 ／ 約15秒のドット絵（音が出ます）</p>
+<p class="sub">火素・水素・土素 ／ 約24秒のドット絵（音が出ます）</p>
 <div class="stage">
   <canvas id="cv"></canvas>
   <div class="start" id="startBox"><button id="startBtn">▶ 再生する</button></div>
@@ -46,7 +46,7 @@
 <div class="ctrl"><button id="replay" class="hide">↻ もう一度見る</button></div>
 
 <script>
-const W = 180, H = 260, S = 3, SH = 216, DUR = 15;
+const W = 180, H = 260, S = 3, SH = 216, DUR = 15, SLOW = 1.6; // SLOW 倍ゆっくり再生
 const cv = document.getElementById('cv');
 cv.width = W * S; cv.height = H * S;
 const ctx = cv.getContext('2d');
@@ -183,8 +183,8 @@ function captions(t) {
   const a = clamp((t - c[0]) / .15);
   let col = '#f3ead6';
   for (const k in CAP_COL) if (c[2].startsWith(k) || c[2].startsWith(k === '火' ? '心' : k === '水' ? '肺' : '胃')) col = CAP_COL[k];
-  T(c[2], 104, c[3] ? 229 : 237, 9, col, 'center', a);
-  if (c[3]) T(c[3], 104, 246, 8.5, '#f3ead6', 'center', a);
+  T(c[2], 90, c[3] ? 229 : 237, 9, col, 'center', a);
+  if (c[3]) T(c[3], 90, 246, 8.5, '#f3ead6', 'center', a);
 }
 
 // ---------- 場面1：宇宙の三大元素 ----------
@@ -393,7 +393,7 @@ function frame(t) {
 let start = 0, running = false;
 const bar = document.getElementById('barFill'), replay = document.getElementById('replay');
 function loop(now) {
-  const t = Math.min(DUR, (now - start) / 1000);
+  const t = Math.min(DUR, (now - start) / 1000 / SLOW);
   frame(t);
   bar.style.width = (t / DUR * 100) + '%';
   if (t < DUR) requestAnimationFrame(loop);
@@ -402,7 +402,7 @@ function loop(now) {
 // ---------- 音楽と効果音（Web Audio で作る） ----------
 let ac = null;
 function tone(f, at, len, type, vol, f2) {
-  const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + at;
+  const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + at * SLOW;
   o.type = type; o.frequency.setValueAtTime(f, t0);
   if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + len);
   g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .01);
@@ -414,7 +414,7 @@ function noise(at, len, vol) {
   for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
   const s = ac.createBufferSource(), g = ac.createGain(), fl = ac.createBiquadFilter();
   fl.type = 'bandpass'; fl.frequency.value = 900; g.gain.value = vol;
-  s.buffer = b; s.connect(fl).connect(g).connect(ac.destination); s.start(ac.currentTime + at);
+  s.buffer = b; s.connect(fl).connect(g).connect(ac.destination); s.start(ac.currentTime + at * SLOW);
 }
 const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
 function music() {
