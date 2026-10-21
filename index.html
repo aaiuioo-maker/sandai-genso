@@ -24,9 +24,15 @@
   .sub { font-size: 11px; opacity: .6; margin: 0 0 10px; }
   .stage { width: 100%; max-width: 480px; position: relative; }
   canvas { width: 100%; display: block; image-rendering: pixelated; border: 2px solid #2a2540; border-radius: 6px; background: #000; }
-  .bar { height: 6px; background: #1c1930; border-radius: 3px; margin-top: 8px; overflow: hidden; }
-  .bar i { display: block; height: 100%; width: 0; background: var(--accent); }
-  .ctrl { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+  .panel { margin-top: 10px; background: #12101f; border: 2px solid #2a2540; border-radius: 6px; padding: 10px 12px; }
+  .seek { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .seek span { width: 40px; flex-shrink: 0; text-align: center; color: #ffcf8a; }
+  .seek span:last-child { color: #8a84a8; }
+  .seek input { flex: 1; min-width: 0; accent-color: var(--accent); height: 22px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin-top: 8px; }
+  .btns button { font-size: 13px; padding: 6px 12px; border-color: #5a5478; }
+  .btns .snd { color: #6fe0a0; }
+  .btns .snd.off { color: #8a84a8; }
   button { font-family: inherit; font-size: 15px; color: var(--fg); background: #1c1930; border: 2px solid var(--accent);
            border-radius: 6px; padding: 8px 18px; cursor: pointer; }
   button:active { transform: translateY(1px); }
@@ -42,7 +48,14 @@
   <canvas id="cv"></canvas>
   <div class="start" id="startBox"><button id="startBtn">▶ 再生する</button></div>
 </div>
-<div class="stage"><div class="bar"><i id="barFill"></i></div></div>
+<div class="stage panel">
+  <div class="seek"><span id="curT">00:00</span><input type="range" id="seekBar" min="0" max="85" step="0.1" value="0" aria-label="再生位置"><span id="totT">00:00</span></div>
+  <div class="btns">
+    <button id="ppBtn">▶ 再生</button>
+    <button id="rsBtn">🔄 最初から</button>
+    <button id="sndBtn" class="snd">🔊 声・音: ON</button>
+  </div>
+</div>
 
 <script>
 const W = 180, H = 260, S = 3, SH = 216, DUR = 15;
@@ -393,37 +406,57 @@ function frame(t) {
 }
 
 // ---------- 進み方：字幕1つずつ、読み上げが終わってから次へ ----------
-let AT = 0, playStart = 0; // AT：鼓動や粒の動き用の時計（字幕の進みとは別に、いつも同じ速さで進む）
-let running = false, seg = -1, segStart = 0, speaking = false;
-const bar = document.getElementById('barFill');
-const TOTAL = CAPS.reduce((s, c) => s + c.dur, 0);
-let doneBefore = 0;
+let AT = 0; // AT：鼓動や粒の動き用の時計（字幕の進みとは別に、いつも同じ速さで進む）
+let running = false, playing = false, muted = false, seg = 0, pos = 0, lastNow = 0, waitT = 0, speaking = false;
+const STARTS = []; let TOTAL = 0;
+CAPS.forEach(c => { STARTS.push(TOTAL); TOTAL += c.dur; });
+const segAt = p => { let i = 0; while (i < CAPS.length - 1 && p >= STARTS[i + 1]) i++; return i; };
 function loop(now) {
-  AT = (now - playStart) / 1000 / 1.4;
-  const c = CAPS[seg], e = (now - segStart) / 1000;
-  let k = e / c.dur;
-  if (k >= 1) {
-    // 読み上げがまだ続いていたら、終わるまで待つ（声が出ない端末のため 8 秒で打ち切る）
-    if (speaking && e < c.dur + 8) k = .999;
-    else if (seg < CAPS.length - 1) { doneBefore += c.dur; startSeg(seg + 1, now); requestAnimationFrame(loop); return; }
-    else { frame(14.999); bar.style.width = '100%'; finish(); return; }
+  const dt = Math.min(.1, (now - lastNow) / 1000); lastNow = now;
+  if (playing) {
+    AT += dt / 1.4;
+    const end = STARTS[seg] + CAPS[seg].dur;
+    let np = pos + dt;
+    if (np >= end) {
+      // 読み上げがまだ続いていたら、終わるまで待つ（声が出ない端末のため 8 秒で打ち切る）
+      if (speaking && !muted && waitT < 8) { np = end - .001; waitT += dt; }
+      else if (seg < CAPS.length - 1) { np = end; enterSeg(seg + 1, true); }
+      else { np = TOTAL; finish(); }
+    }
+    pos = np;
   }
-  frame(lerp(c[0], Math.min(c[1], 14.999), k));
-  bar.style.width = ((doneBefore + Math.min(e, c.dur)) / TOTAL * 100) + '%';
+  draw();
   requestAnimationFrame(loop);
 }
-function startSeg(i, now) {
-  seg = i; segStart = now;
+function draw() {
+  const i = segAt(Math.min(pos, TOTAL - .001)), c = CAPS[i];
+  const k = pos >= TOTAL ? 1 : clamp((pos - STARTS[i]) / c.dur);
+  frame(lerp(c[0], Math.min(c[1], 14.999), k));
+  if (!seeking) seekBar.value = pos;
+  curT.textContent = mmss(pos);
+}
+// その字幕に入る：声を読み、効果音を鳴らす
+function enterSeg(i, sfx) {
+  seg = i; waitT = 0;
+  if (muted || !playing) { stopSpeak(); return; }
   speak(CAPS[i][4]);
-  if (SFX[i]) try { SFX[i](); } catch (e) {}
+  if (sfx && SFX[i]) try { SFX[i](); } catch (e) {}
 }
 function finish() {
-  running = false;
-  if (bgm) { bgm.gain.setTargetAtTime(0, ac.currentTime, .6); }
-  stopBgm = true;
+  playing = false; stopSpeak(); bgmOn(false);
+  ppBtn.textContent = '▶ もう一度';
 }
+function stopSpeak() { speaking = false; cur = null; try { if (ttsOK) speechSynthesis.cancel(); } catch (e) {} }
 
+// ---------- 操作パネル ----------
+const seekBar = document.getElementById('seekBar'), curT = document.getElementById('curT');
+const ppBtn = document.getElementById('ppBtn'), rsBtn = document.getElementById('rsBtn'), sndBtn = document.getElementById('sndBtn');
+const mmss = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+seekBar.max = TOTAL.toFixed(1);
+document.getElementById('totT').textContent = mmss(TOTAL);
+let seeking = false;
 // ---------- 女性の声で読み上げ（御神書索引と同じしくみ） ----------
+let cur = null;
 const ttsOK = 'speechSynthesis' in window;
 const MALE = ['otoya', 'ichiro', 'keita', 'hattori', 'daichi', 'naoki', 'male'];
 const FEMALE = ['kyoko', 'o-ren', 'oren', 'nanami', 'haruka', 'ayumi', 'sayaka', 'mizuki', 'female', 'google'];
@@ -457,10 +490,9 @@ function speak(text) {
     cur = u; speechSynthesis.speak(u);
   } catch (e) { speaking = false; }
 }
-let cur = null;
 
 // ---------- 音楽と効果音（Web Audio で作る） ----------
-let ac = null, bgm = null, stopBgm = false;
+let ac = null, bgm = null;
 function tone(f, at, len, type, vol, f2, dest) {
   const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + at;
   o.type = type; o.frequency.setValueAtTime(f, t0);
@@ -481,7 +513,7 @@ const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
 const MEL = [72,74,76,79,76,74,72,69, 72,76,79,81,79,76,74,72], BASS = [48,48,45,45,41,41,43,43];
 let beat = 0, nextBeat = 0;
 function bgmTick() {
-  if (!ac || stopBgm) return;
+  if (!ac) return;
   while (nextBeat < ac.currentTime + .6) {
     const at = nextBeat - ac.currentTime;
     tone(NOTE(MEL[beat % 16]), at, .45, 'triangle', .05, 0, bgm);
@@ -502,23 +534,58 @@ const SFX = {
 };
 function startSound() {
   try {
-    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    if (!ac) {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      bgm = ac.createGain(); bgm.gain.value = 0; bgm.connect(ac.destination);
+      nextBeat = ac.currentTime + .1; bgmTick();
+    }
     ac.resume();
-    bgm = ac.createGain(); bgm.gain.value = .7; bgm.connect(ac.destination);
-    stopBgm = false; beat = 0; nextBeat = ac.currentTime + .1; bgmTick();
   } catch (e) {}
 }
+// 背景の音楽を出す・止める（音量を上げ下げする）
+function bgmOn(on) { if (bgm) bgm.gain.setTargetAtTime(on && !muted ? .7 : 0, ac.currentTime, .15); }
 
-function play() {
-  if (running) return;
+// 最初から再生（ボタンを押したその場で声を出す：iPhone は押した瞬間でないと声が出ないため）
+function playFromStart() {
   startSound();
   document.getElementById('startBox').classList.add('hide');
-  running = true; doneBefore = 0;
-  const now = performance.now(); playStart = now;
-  startSeg(0, now);
-  requestAnimationFrame(loop);
+  pos = 0; AT = 0; playing = true; bgmOn(true);
+  ppBtn.textContent = '⏸ 一時停止';
+  enterSeg(0, true);
+  if (!running) { running = true; lastNow = performance.now(); requestAnimationFrame(loop); }
 }
-document.getElementById('startBtn').onclick = play;
+document.getElementById('startBtn').onclick = playFromStart;
+rsBtn.onclick = playFromStart;
+ppBtn.onclick = () => {
+  if (!running || pos >= TOTAL) { playFromStart(); return; }
+  playing = !playing;
+  if (playing) {
+    startSound(); bgmOn(true); ppBtn.textContent = '⏸ 一時停止';
+    enterSeg(segAt(pos), false); // 止めたところの字幕を、もう一度読む
+  } else {
+    stopSpeak(); bgmOn(false); ppBtn.textContent = '▶ 再生';
+  }
+};
+// 再生位置のバー：動かすと好きな場面へ
+seekBar.addEventListener('input', () => {
+  seeking = true; stopSpeak();
+  pos = Math.min(parseFloat(seekBar.value), TOTAL - .01); seg = segAt(pos);
+  if (!running) draw();
+});
+seekBar.addEventListener('change', () => {
+  seeking = false;
+  if (!running) { playFromStart(); pos = parseFloat(seekBar.value); seg = segAt(pos); enterSeg(seg, false); return; }
+  if (pos < TOTAL && !playing && ppBtn.textContent === '▶ もう一度') { playing = true; bgmOn(true); ppBtn.textContent = '⏸ 一時停止'; }
+  if (playing) enterSeg(seg, false);
+});
+// 声・音のオン・オフ
+sndBtn.onclick = () => {
+  muted = !muted;
+  sndBtn.textContent = muted ? '🔇 声・音: OFF' : '🔊 声・音: ON';
+  sndBtn.classList.toggle('off', muted);
+  if (muted) { stopSpeak(); bgmOn(false); }
+  else if (playing) { startSound(); bgmOn(true); enterSeg(seg, false); }
+};
 
 // 最初の一枚（文字の準備ができてから）
 Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]).then(() => { if (!running) frame(0.95); });
