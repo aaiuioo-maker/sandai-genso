@@ -6,8 +6,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="三大元素">
 <title>三大元素といのち</title>
-<link rel="apple-touch-icon" id="appleIcon" href="">
-<link rel="icon" id="favIcon" href="">
+<link rel="apple-touch-icon" href="icon-180.png?v=2">
+<link rel="manifest" href="sandai.webmanifest?v=2">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05040d">
+<link rel="icon" href="icon-180.png?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -34,7 +37,7 @@
 </head>
 <body>
 <h1>三大元素と いのち</h1>
-<p class="sub">火素・水素・土素 ／ 約15秒のドット絵</p>
+<p class="sub">火素・水素・土素 ／ 約15秒のドット絵（音が出ます）</p>
 <div class="stage">
   <canvas id="cv"></canvas>
   <div class="start" id="startBox"><button id="startBtn">▶ 再生する</button></div>
@@ -396,7 +399,47 @@ function loop(now) {
   if (t < DUR) requestAnimationFrame(loop);
   else { running = false; replay.classList.remove("hide"); }
 }
+// ---------- 音楽と効果音（Web Audio で作る） ----------
+let ac = null;
+function tone(f, at, len, type, vol, f2) {
+  const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + at;
+  o.type = type; o.frequency.setValueAtTime(f, t0);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + len);
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .01);
+  g.gain.exponentialRampToValueAtTime(.0001, t0 + len);
+  o.connect(g).connect(ac.destination); o.start(t0); o.stop(t0 + len + .05);
+}
+function noise(at, len, vol) {
+  const b = ac.createBuffer(1, ac.sampleRate * len, ac.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+  const s = ac.createBufferSource(), g = ac.createGain(), fl = ac.createBiquadFilter();
+  fl.type = 'bandpass'; fl.frequency.value = 900; g.gain.value = vol;
+  s.buffer = b; s.connect(fl).connect(g).connect(ac.destination); s.start(ac.currentTime + at);
+}
+const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
+function music() {
+  // メロディ（ペンタトニック、1拍 = 0.25秒）
+  const mel = [72,74,76,79,76,74,72,69, 72,76,79,81,79,76,74,72];
+  const bass = [48,48,45,45,41,41,43,43];
+  for (let i = 0; i < 60; i++) tone(NOTE(mel[i % 16] + (i >= 52 ? 12 : 0)), i * .25, .22, 'square', .045);
+  for (let i = 0; i < 30; i++) tone(NOTE(bass[i % 8]), i * .5, .45, 'triangle', .12);
+  // 場面ごとの効果音
+  [3.5, 7, 10].forEach(t => { tone(1320, t, .25, 'sine', .12); tone(1760, t + .08, .3, 'sine', .1); });
+  tone(200, .3, .8, 'sawtooth', .05, 900);   // 火素がのぼる
+  noise(7.4, .6, .5); noise(8.2, .6, .4);     // 発熱のゴォー
+  tone(880, 10.3, 1.5, 'sine', .08, 220);     // 元素の帰還
+  [72, 76, 79, 84].forEach((n, i) => tone(NOTE(n), 13 + i * .15, .6, 'square', .07)); // ファンファーレ
+  tone(NOTE(84), 13.6, 1.3, 'triangle', .12);
+}
+function startSound() {
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    ac.resume(); tone(880, 0, .08, 'square', .06); music();
+  } catch (e) {}
+}
+
 function play() {
+  startSound();
   document.getElementById('startBox').classList.add('hide');
   replay.classList.add('hide');
   running = true; start = performance.now(); requestAnimationFrame(loop);
@@ -426,7 +469,7 @@ Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]).then
   [2, 4, 7, 9].forEach(x => rr(x, 6, 1, 2, oc));
   rr(3, 1, 1, 1, '#1a1612'); rr(8, 1, 1, 1, '#1a1612');
   const url = c.toDataURL('image/png');
-  document.getElementById('appleIcon').href = url; document.getElementById('favIcon').href = url;
+  void url;
 })();
 </script>
 <!-- 更新した日時（GitHub に反映した日時が自動で出る）。オープニングの「タップして…」の下にだけ小さく出す。オープニングがなければ出さない -->
