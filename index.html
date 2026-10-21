@@ -188,9 +188,11 @@ const CAPS = [
   [11.0, 12.0, '火素（精霊）は霊界へ', '水素は 空気界へ', 'かそ、せいれいは、れいかいへ。すいそは、くうきかいへ。'],
   [12.0, 13.0, '肉体は 土素として', '土へ 還る', '肉体は、どそとして、土へかえります。'],
   [13.0, 15.0, '見えるものと 見えないもの', '結びついて いのちとなる', '見えるものと、見えないものが、結びついて、いのちとなるのです。'],
+  [15.0, 17.0, "― おわり ―", "", "おわり。"],
 ];
 // 1つの字幕を見せる時間（秒）。読み上げの長さに合わせ、ゆっくり読めるように長めにとる
 CAPS.forEach(c => { c.dur = Math.max(3.8, c[4].replace(/[、。\s]/g, '').length * 0.2 + 2.0); });
+CAPS[CAPS.length - 1].dur = 5.5; // 最後の「おわり」はゆっくり余韻をとる
 const CAP_COL = { 火: '#ffb04a', 水: '#7dc8ff', 土: '#d9a35a' };
 function captions(t) {
   R(0, SH, W, H - SH, '#0d0b18'); R(0, SH, W, 1, '#3a3358');
@@ -401,8 +403,15 @@ function frame(t) {
   // 場面の切りかわり（黒くフェード）
   const d = Math.min(t - sc[0] + (sc[0] === 0 ? 9 : 0), sc[1] - t + (sc[1] === DUR ? 9 : 0));
   if (d < .05) A(1 - d / .05, () => R(0, 0, W, SH, '#000'));
+  // 終わり：ゆっくり暗くして「おわり」
+  if (t > 15) {
+    const e = t - 15;
+    A(clamp(e / 1.2) * .8, () => R(0, 0, W, SH, "#000"));
+    T("おわり", 90, 96, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
+    T("ご覧いただき ありがとうございました", 90, 124, 7, "#f3ead6", "center", clamp((e - 1) / .8) * .85);
+  }
   captions(t);
-  mascot(5, 232, AT, t >= 13 ? 'jump' : 'talk');
+  mascot(5, 232, AT, t >= 15 ? "walk" : t >= 13 ? "jump" : "talk");
 }
 
 // ---------- 進み方：字幕1つずつ、読み上げが終わってから次へ ----------
@@ -431,7 +440,7 @@ function loop(now) {
 function draw() {
   const i = segAt(Math.min(pos, TOTAL - .001)), c = CAPS[i];
   const k = pos >= TOTAL ? 1 : clamp((pos - STARTS[i]) / c.dur);
-  frame(lerp(c[0], Math.min(c[1], 14.999), k));
+  frame(lerp(c[0], c[1] - .001, k));
   if (!seeking) seekBar.value = pos;
   curT.textContent = mmss(pos);
 }
@@ -531,6 +540,7 @@ const SFX = {
   9: () => noise(.2, .7, .35),
   11: () => { chime(); tone(880, .3, 1.8, 'sine', .07, 220); }, // 元素の帰還
   14: () => { [72, 76, 79, 84].forEach((n, i) => tone(NOTE(n), i * .18, .7, 'square', .05)); tone(NOTE(84), .7, 1.6, 'triangle', .1); },
+  15: () => { bgm.gain.setTargetAtTime(0, ac.currentTime, 1.2); [60, 64, 67, 72].forEach((n, i) => tone(NOTE(n), i * .25, 3.5 - i * .25, "triangle", .07)); }, // 終わりの和音と音楽のフェードアウト
 };
 function startSound() {
   try {
