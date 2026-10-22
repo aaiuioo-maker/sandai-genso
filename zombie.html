@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ゾンビへ変身</title>
+<meta name="theme-color" content="#05040d">
+<link rel="icon" href="icon-180.png?v=2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; --zombie:#3cc8c8; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  body { font-family: "DotGothic16", sans-serif; padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); }
+  h1 { font-size: 18px; font-weight: 400; margin: 0 0 4px; letter-spacing: .08em; text-align: center; }
+  .sub { font-size: 11px; opacity: .6; margin: 0 0 12px; text-align: center; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; max-width: 820px; margin: 0 auto; }
+  .card { background: #12101f; border: 2px solid #2a2540; border-radius: 6px; padding: 6px; cursor: pointer; }
+  .card:active { transform: translateY(1px); }
+  canvas { width: 100%; display: block; image-rendering: pixelated; border-radius: 4px; background: #000; }
+  .no { color: var(--accent); font-size: 12px; margin-top: 6px; }
+  .name { font-size: 14px; color: var(--zombie); }
+  .how { font-size: 11px; opacity: .65; margin-top: 2px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<h1>Claude Code の キャラクター → ゾンビ</h1>
+<p class="sub">10 とおりの変身 ／ カードをタップすると最初から</p>
+<div class="grid" id="grid"></div>
+
+<script>
+const G = 48, S = 5, LOOP = 5.5, GROUND = 42, CS = 2; // 画面の大きさ・ループの長さ・地面の高さ・1マスの大きさ
+
+// ---------- 2人の形（マス目） ----------
+// Claude Code のキャラクター（index.html の案内役と同じ形）
+const MASCOT = (() => {
+  const c = '#d97757', cells = [];
+  for (let y = 0; y < 6; y++) for (let x = 2; x < 10; x++) cells.push({ x, y, c });
+  [[0, 2], [1, 2], [0, 3], [1, 3], [10, 2], [11, 2], [10, 3], [11, 3]].forEach(([x, y]) => cells.push({ x, y, c }));
+  [2, 4, 7, 9].forEach(x => { cells.push({ x, y: 6, c }); cells.push({ x, y: 7, c }); });
+  cells.forEach(e => { if ((e.x === 3 || e.x === 8) && e.y === 1) e.c = '#1a1612'; });
+  return { w: 12, h: 8, cells };
+})();
+// マインクラフトのゾンビ（緑の顔・水色のシャツ・青いズボン）
+const ZOMBIE = (() => {
+  const rows = [
+    '..HHHHHHHH..', '..HGGGGGGH..', '..GGGGGGGG..', '..GKKGGKKG..', '..GGGNNGGG..', '..GGGGGGGG..', '..GGMMMMGG..', '..GGGGGGGG..',
+    '.CCCCCCCCCC.', '.CCCCCCCCCC.', '.GGCCCCCCGG.', '.GGCCCCCCGG.', '.GGCCCCCCGG.', '.GGPPPPPPGG.',
+    '...PPPPPP...', '...PPdPPP...', '...PPdPPP...', '...PPdPPP...', '...SSSSSS...',
+  ];
+  const pal = {
+    H: ['#2f5a24', '#38692b'], G: ['#5f9a45', '#4f8a3a', '#6aa84f', '#578f40'], K: ['#101010'], N: ['#3f7030'], M: ['#2b4a20'],
+    C: ['#2aa8a8', '#239090', '#33b8b8'], P: ['#3a3fa0', '#2e3388', '#4248b0'], d: ['#22266a'], S: ['#6b6b6b', '#5a5a5a'],
+  };
+  let s = 21; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  const cells = [];
+  rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') { const p = pal[ch]; cells.push({ x, y, c: p[(r() * p.length) | 0], k: ch }); } }));
+  return { w: 12, h: rows.length, cells };
+})();
+const isArm = e => e.y >= 8 && (e.x <= 2 || e.x >= 9);
+const isLeftLeg = e => e.y >= 14 && e.x <= 5;
+
+// ---------- 描画の道具 ----------
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const ease = k => { k = clamp(k); return k * k * (3 - 2 * k); };
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+function mix(c1, c2, k) {
+  const a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16);
+  const ch = s => Math.round(lerp((a >> s) & 255, (b >> s) & 255, clamp(k)));
+  return '#' + [16, 8, 0].map(s => ch(s).toString(16).padStart(2, '0')).join('');
+}
+function hash(n) { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+
+function makeG(ctx) {
+  const g = {
+    R(x, y, w, h, c, a = 1) { ctx.globalAlpha = clamp(a); ctx.fillStyle = c; ctx.fillRect(Math.round(x * S), Math.round(y * S), Math.round(w * S), Math.round(h * S)); ctx.globalAlpha = 1; },
+    disc(cx, cy, r, c, a = 1) { for (let y = -r; y <= r; y++) { const w = Math.floor(Math.sqrt(r * r - y * y) + .3); g.R(cx - w, cy + y, w * 2 + 1, 1, c, a); } },
+    T(s, x, y, size, c, a = 1) {
+      ctx.globalAlpha = clamp(a); ctx.font = `${size * S}px "DotGothic16", monospace`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = S * 1.2; ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#000'; ctx.strokeText(s, x * S, y * S); ctx.fillStyle = c; ctx.fillText(s, x * S, y * S); ctx.globalAlpha = 1;
+    },
+    // 足もとの中心 (cx, by) を基準に、横 sx・縦 sy 倍で描く。col で色を差し替え、show でマスを選び、off でマスをずらす
+    sprite(sp, cx, by, o = {}) {
+      const sx = o.sx ?? 1, sy = o.sy ?? 1, a = o.a ?? 1;
+      for (const e of sp.cells) {
+        if (o.show && !o.show(e)) continue;
+        const c = o.col ? o.col(e) : e.c, [dx, dy] = o.off ? o.off(e) : [0, 0];
+        g.R(cx + (e.x - sp.w / 2) * CS * sx + dx, by - (sp.h - e.y) * CS * sy + dy, CS * sx + .01, CS * sy + .01, c, a);
+      }
+    },
+    clip(x, y, w, h, fn) { ctx.save(); ctx.beginPath(); ctx.rect(x * S, y * S, w * S, h * S); ctx.clip(); fn(); ctx.restore(); },
+    shake(dx, dy, fn) { ctx.save(); ctx.translate(Math.round(dx) * S, Math.round(dy) * S); fn(); ctx.restore(); },
+  };
+  return g;
+}
+
+// 背景：夜空と草ブロックの地面
+function scene(g, t) {
+  g.R(0, 0, G, G, '#0b0a1a');
+  for (let i = 0; i < 14; i++) { const b = .4 + .6 * Math.abs(Math.sin(t * 1.5 + i)); g.R((hash(i) * G) | 0, (hash(i + 50) * 30) | 0, 1, 1, '#ffffff', b * .7); }
+  g.R(0, GROUND, G, G - GROUND, '#7a5230');
+  g.R(0, GROUND, G, 2, '#4f9a3a'); g.R(0, GROUND, G, 1, '#6cc04a');
+  for (let x = 1; x < G; x += 5) g.R(x, GROUND + 3 + (x % 3), 1, 1, '#5e3e22');
+}
+// 待っている間の動き
+const bob = t => (Math.floor(t * 4) % 2 ? -1 : 0);
+function mascotIdle(g, t, o = {}) { g.sprite(MASCOT, 24, GROUND + bob(t), o); }
+// ゾンビは うでを ゆらゆら、足を かわりばんこに
+function zombieStep(t) {
+  const f = Math.floor(t * 3) % 2;
+  return e => isArm(e) && e.y >= 10 ? [0, f ? -1 : 0] : e.y >= 14 ? [0, (isLeftLeg(e) ? f : 1 - f) ? -1 : 0] : [0, 0];
+}
+function zombieAt(g, t, cx, o = {}) { g.sprite(ZOMBIE, cx, GROUND, { off: zombieStep(t), ...o }); }
+function zombieIdle(g, t, o = {}) { zombieAt(g, t, 24, o); }
+function walkFrame(t) { return Math.floor(t * 6) % 2 ? -1 : 0; }
+
+// ---------- 10 とおりの変身 ----------
+const PATTERNS = [
+  { name: 'お墓から よみがえる', how: '地面にもぐると 墓の前から ゾンビがはい出てくる',
+    draw(g, t) {
+      // 石のお墓
+      g.R(35, 30, 8, 12, '#7d7d86'); g.R(36, 29, 6, 1, '#7d7d86'); g.R(36, 31, 6, 1, '#9a9aa4'); g.R(38, 33, 2, 6, '#5a5a62'); g.R(36, 35, 6, 2, '#5a5a62');
+      const sink = ease(seg(t, 0.9, 1.5));
+      g.clip(0, 0, G, GROUND, () => g.sprite(MASCOT, 20, GROUND + sink * 18 + (t < .9 ? bob(t) : 0)));
+      const hand = seg(t, 1.6, 2.0), rise = ease(seg(t, 2.0, 3.0));
+      if (hand > 0 && rise <= 0) { const hh = Math.round(hand * 6); g.R(17, GROUND - hh, 3, hh, '#5f9a45'); g.R(16, GROUND - hh, 1, 2, '#5f9a45'); g.R(20, GROUND - hh, 1, 2, '#5f9a45'); }
+      if (rise > 0) g.clip(0, 0, G, GROUND, () => g.sprite(ZOMBIE, 20, GROUND + (1 - rise) * 40, { off: zombieStep(t) }));
+      const d = seg(t, 2.0, 2.8);
+      if (d > 0 && d < 1) for (let i = 0; i < 8; i++) { const an = Math.PI * (1.1 + .8 * i / 7); g.R(20 + Math.cos(an) * d * 14, GROUND - 1 + Math.sin(an) * d * 10 + d * d * 8, 2, 2, '#7a5230', 1 - d); }
+    } },
+  { name: '満月の夜', how: '大きな月が のぼって 月の光をあびると',
+    draw(g, t) {
+      const up = ease(seg(t, 0.6, 1.6)), glow = seg(t, 1.6, 2.4), sw = seg(t, 2.2, 2.9);
+      g.R(0, 0, G, GROUND, '#060418', up * .6);
+      const my = lerp(48, 9, up);
+      g.disc(10, my, 8, '#fff6c0', .25 + .15 * Math.sin(t * 6));
+      g.disc(10, my, 6, '#efe9c9'); g.R(7, my - 2, 2, 2, '#d8d0aa'); g.R(12, my + 1, 2, 2, '#d8d0aa');
+      if (glow > 0) g.R(14, 10, 20, GROUND - 10, '#fff6c0', Math.sin(glow * Math.PI) * .25);
+      if (sw < 1) mascotIdle(g, t, { a: 1 - sw, col: e => e.c === '#1a1612' ? e.c : mix(e.c, '#5f9a45', glow) });
+      if (sw > 0) zombieIdle(g, t, { a: sw });
+    } },
+  { name: '緑のくすりを ばしゃっ', how: 'びんが落ちてきて 上から緑に そまっていく',
+    draw(g, t) {
+      const fall = seg(t, 1.0, 1.5), paint = seg(t, 1.5, 2.1), sw = ease(seg(t, 2.1, 2.8));
+      if (fall > 0 && fall < 1) { const y = lerp(-6, 25, fall * fall); g.R(22, y, 4, 5, '#3fbf4a'); g.R(23, y - 2, 2, 2, '#b0e8ff'); g.R(23, y - 3, 2, 1, '#8a5a30'); g.R(22, y + 1, 1, 2, '#9ff0a0'); }
+      if (paint > 0 && paint < 1) for (let i = 0; i < 12; i++) {
+        const an = Math.PI * (1 + i / 11), d = paint * (8 + hash(i) * 8);
+        g.R(24 + Math.cos(an) * d, 28 + Math.sin(an) * d + paint * paint * 14, 1, 2, '#6fe07a', 1 - paint);
+      }
+      const line = lerp(26, GROUND, paint);
+      if (sw < 1) {
+        const o = { a: 1 - sw };
+        g.clip(0, line, G, G, () => mascotIdle(g, t, o));
+        g.clip(0, 0, G, line, () => mascotIdle(g, t, { ...o, col: e => e.c === '#1a1612' ? e.c : '#4f8a3a' }));
+      }
+      if (sw > 0) zombieIdle(g, t, { a: sw, sy: lerp(.5, 1, sw) });
+    } },
+  { name: 'かみなり ドーン', how: '空がピカッと光って 雷が落ちる',
+    draw(g, t) {
+      const fl = t > 1.0 && t < 1.4 && Math.sin(t * 60) > .3;
+      if (fl) g.R(0, 0, G, GROUND, '#3a3a70', .6);
+      const hit = seg(t, 1.4, 1.75), sm = seg(t, 1.75, 3.0);
+      const sh = hit > 0 && hit < 1 ? (hash(Math.floor(t * 40)) - .5) * 3 : 0;
+      g.shake(sh, 0, () => { if (t < 1.55) mascotIdle(g, t); else zombieIdle(g, t); });
+      if (hit > 0 && hit < 1) {
+        let x = 26;
+        for (let y = 0; y < 30; y += 3) { const nx = x + (Math.floor(y / 3) % 2 ? -3 : 3); g.R(Math.min(x, nx), y, Math.abs(nx - x) + 1, 1, '#fff9b0'); g.R(nx, y, 1, 3, '#fff9b0'); x = nx; }
+        g.R(0, 0, G, G, '#ffffff', 1 - hit * 1.4);
+      }
+      if (sm > 0 && sm < 1) for (let i = 0; i < 5; i++) g.disc(20 + i * 2, 16 - sm * 10 - i, 2, '#8a8898', (1 - sm) * .7);
+    } },
+  { name: 'ふらふら 入れかわり', how: '右へ歩いていって 左から ゾンビが歩いてくる',
+    draw(g, t) {
+      const out = seg(t, 0.6, 1.8), inn = ease(seg(t, 2.0, 3.2));
+      if (out < 1) g.sprite(MASCOT, lerp(24, 62, out), GROUND + (out > 0 ? walkFrame(t) : bob(t)));
+      if (inn > 0) zombieAt(g, t, lerp(-14, 24, inn), { off: e => { const [dx, dy] = zombieStep(t)(e); return [dx + (inn < 1 && Math.floor(t * 3) % 2 ? 1 : 0), dy]; } });
+      if (inn > .6) g.T('ウ〜', 40, 6, 5, '#9fe08a', seg(t, 2.6, 3.0) - seg(t, 3.8, 4.2));
+    } },
+  { name: 'ドアの向こうで', how: 'ドアに入って ガタガタ… 出てきたのは',
+    draw(g, t) {
+      const open1 = seg(t, 0.4, 0.7) - seg(t, 1.4, 1.6), open2 = seg(t, 2.3, 2.5);
+      const open = Math.max(open1, open2);
+      const rattle = t > 1.7 && t < 2.3 ? (Math.floor(t * 20) % 2 ? 1 : -1) : 0;
+      g.R(14, 2, 20, GROUND - 2, '#1a1410'); // 入り口の暗がり
+      if (t < 1.5) {
+        const w = seg(t, 0.6, 1.3), fade = seg(t, 1.2, 1.5);
+        g.sprite(MASCOT, lerp(4, 24, w), GROUND + (w > 0 && w < 1 ? walkFrame(t) : bob(t)), { a: 1 - fade * .9, col: e => mix(e.c, '#1a1410', fade) });
+      }
+      const zin = seg(t, 2.4, 2.8);
+      if (zin > 0) zombieIdle(g, t, { col: e => mix('#1a1410', e.c, zin) });
+      // ドア（開くと細くなる）
+      const dw = Math.round(lerp(20, 3, open));
+      g.shake(rattle, 0, () => {
+        g.R(14, 2, dw, GROUND - 2, '#9a6a3c');
+        if (dw > 8) { g.R(16, 5, dw - 4, 8, '#5e3e22'); g.R(17, 6, dw - 6, 6, '#3a5a7a'); g.R(14 + dw - 4, 24, 2, 2, '#3a2a18'); }
+        g.R(14, 2, dw, 1, '#b8844c');
+      });
+      g.R(13, 1, 22, 1, '#5e3e22'); g.R(13, 1, 1, GROUND - 1, '#5e3e22'); g.R(34, 1, 1, GROUND - 1, '#5e3e22');
+      if (rattle) g.T('ガタガタ', 24, 8, 5, '#ffd84a');
+    } },
+  { name: 'ねむって 目がさめたら', how: 'Zzz… 夜がふけて 起きたら ゾンビに',
+    draw(g, t) {
+      const z = seg(t, 0.8, 2.0), dark = seg(t, 1.6, 2.1) - seg(t, 2.3, 2.9);
+      if (t < 2.2) g.sprite(MASCOT, 24, GROUND, { sy: lerp(1, .85, seg(t, .8, 1.2)), sx: lerp(1, 1.08, seg(t, .8, 1.2)), col: e => e.c === '#1a1612' && t > 1.0 ? '#d97757' : e.c });
+      else zombieIdle(g, t);
+      if (t < 2.2) for (let i = 0; i < 3; i++) { const k = (z * 3 - i); if (k > 0 && k < 1.6) g.T('Z', 32 + i * 4 + k * 2, 26 - i * 5 - k * 3, 4 + i, '#c8c0ff', 1 - k / 1.6); }
+      g.R(0, 0, G, G, '#000000', dark * .9);
+      if (t > 2.6) g.T('ウ〜…', 40, 6, 5, '#9fe08a', seg(t, 2.6, 3.0));
+    } },
+  { name: 'ポンポン 組み立て', how: '消えたあと 足・体・頭の じゅんに ポン！',
+    draw(g, t) {
+      const gone = seg(t, 1.0, 1.3);
+      if (gone < 1) g.sprite(MASCOT, 24, GROUND + (t < 1 ? bob(t) : 0), { sx: 1 - gone, sy: 1 + gone * .3 });
+      if (gone > 0 && gone < 1) for (let i = 0; i < 6; i++) { const an = i / 6 * Math.PI * 2; g.R(24 + Math.cos(an) * gone * 10, 34 + Math.sin(an) * gone * 8, 2, 2, '#ffffff', 1 - gone); }
+      const parts = [[e => e.y >= 14, 1.4, 38], [e => e.y >= 8 && e.y < 14, 1.8, 26], [e => e.y < 8, 2.2, 12]];
+      parts.forEach(([sel, st, ty]) => {
+        const k = seg(t, st, st + .3); if (k <= 0) return;
+        const sc = k < 1 ? Math.sin(k * Math.PI * .5) * (1 + .3 * Math.sin(k * Math.PI)) : 1;
+        const cy = { 38: GROUND - 5, 26: GROUND - 16, 12: GROUND - 30 }[ty];
+        for (const e of ZOMBIE.cells) {
+          if (!sel(e)) continue;
+          const x = 24 + (e.x - ZOMBIE.w / 2) * CS, y = GROUND - (ZOMBIE.h - e.y) * CS;
+          g.R(24 + (x - 24) * sc, cy + (y - cy) * sc, CS * sc + .01, CS * sc + .01, e.c);
+        }
+        if (k < 1) g.T('ポン', 40, ty, 5, '#ffffff', 1 - k);
+      });
+    } },
+  { name: 'パネルが くるっ', how: '看板が くるりと回って うらがえると',
+    draw(g, t) {
+      const k = ease(seg(t, 1.1, 2.6)), cs = Math.cos(k * Math.PI * 3), w = Math.abs(cs);
+      const showZ = cs < 0; // 3回半まわって うら面（ゾンビ）で止まる
+      g.R(24 - 15 * w - .5, 0, 30 * w + 1, GROUND, showZ ? '#5e3e22' : '#7a5230');
+      g.R(24 - 14 * w, 1, 28 * w, GROUND - 2, showZ ? '#2a2420' : '#1c1930');
+      g.R(23, GROUND - 1, 2, 1, '#3a2a18');
+      if (showZ) zombieIdle(g, t, { sx: w }); else g.sprite(MASCOT, 24, GROUND - 6 + (t < 1.1 ? bob(t) : 0), { sx: w });
+    } },
+  { name: 'のびる かげ', how: 'かげが のびて 立ち上がり 色がついていく',
+    draw(g, t) {
+      const grow = ease(seg(t, 0.8, 1.6)), stand = ease(seg(t, 1.6, 2.3)), fade = seg(t, 2.0, 2.4), move = ease(seg(t, 2.3, 2.8)), color = seg(t, 2.6, 3.2);
+      if (stand <= 0) g.R(24 - 6, GROUND, 12 + grow * 20, 2, '#05040d', .8);
+      if (fade < 1) mascotIdle(g, t, { a: 1 - fade });
+      if (stand > 0) {
+        const cx = lerp(34, 24, move);
+        zombieAt(g, t, cx, { sy: Math.max(.08, stand), col: e => mix('#2a2440', e.c, color) });
+      }
+    } },
+];
+
+// ---------- カードを並べて動かす ----------
+const grid = document.getElementById('grid'), cards = [];
+PATTERNS.forEach((p, i) => {
+  const card = document.createElement('div'); card.className = 'card';
+  const cv = document.createElement('canvas'); cv.width = cv.height = G * S;
+  card.append(cv);
+  card.insertAdjacentHTML('beforeend', `<div class="no">パターン ${i + 1}</div><div class="name">${p.name}</div><div class="how">${p.how}</div>`);
+  grid.append(card);
+  const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
+  const c = { p, g: makeG(ctx), t0: performance.now() / 1000 - i * .25 };
+  card.addEventListener('click', () => { c.t0 = performance.now() / 1000; });
+  cards.push(c);
+});
+function frame(now) {
+  for (const c of cards) {
+    const t = (now / 1000 - c.t0) % LOOP;
+    scene(c.g, t);
+    c.p.draw(c.g, t);
+    // 最後は 少し暗くして ループ
+    const fade = seg(t, LOOP - .4, LOOP);
+    if (fade > 0) c.g.R(0, 0, G, G, '#000000', fade);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
