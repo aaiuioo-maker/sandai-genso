@@ -46,7 +46,6 @@
 <p class="sub">火素・水素・土素 ／ 約1分半のドット絵（声と音が出ます）</p>
 <div class="stage">
   <canvas id="cv"></canvas>
-  <svg class="cc-anim" viewBox="0 -7 34 23" aria-hidden="true" style="position:absolute;left:1.7%;top:87.9%;width:9.4%;pointer-events:none;shape-rendering:crispEdges;overflow:visible"></svg>
   <div class="start" id="startBox"><button id="startBtn">▶ 再生する</button></div>
 </div>
 <div class="stage panel">
@@ -155,6 +154,20 @@ function stomach(a = 1, glow = 0) {
     if (glow) A(a * glow * .4, () => disc(90, 121, 9, '#ffcf6a'));
     R(82, 116, 16, 10, '#d9973a'); R(80, 118, 2, 6, '#d9973a'); R(98, 117, 2, 6, '#d9973a'); R(83, 117, 6, 2, '#f2c17a');
   });
+}
+
+// ---------- Claude Code のキャラクター（字幕の左にいる案内役） ----------
+function mascot(ox, oy, t, mode = 'walk') {
+  const p = 1, c = '#d97757', f = Math.floor(t * 6) % 4;
+  const hop = mode === 'jump' ? -Math.abs(Math.sin(t * 7)) * 4 : (f % 2 ? -1 : 0);
+  const up = [f === 1, f === 3, f === 3, f === 1];
+  [2, 4, 7, 9].forEach((x, i) => R(ox + x * p, oy + 6 * p, p, (up[i] && mode === 'walk' ? 1 : 2) * p, c));
+  const y0 = oy + hop;
+  R(ox + 2 * p, y0, 8 * p, 6 * p, c);
+  const wave = mode === 'talk' && Math.sin(t * 10) > 0 ? -1 : 0;
+  R(ox, y0 + 2 * p + wave, 2 * p, 2 * p, c); R(ox + 10 * p, y0 + 2 * p - wave, 2 * p, 2 * p, c);
+  const blink = (t % 3) > 2.85;
+  R(ox + 3 * p, y0 + p + (blink ? .6 : 0), p, blink ? .4 : p, '#1a1612'); R(ox + 8 * p, y0 + p + (blink ? .6 : 0), p, blink ? .4 : p, '#1a1612');
 }
 
 // ---------- 字幕 ----------
@@ -399,6 +412,7 @@ function frame(t) {
     T("ございました", 90, 128, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
   }
   captions(t);
+  mascot(5, 232, AT, t >= 15 ? "walk" : t >= 13 ? "jump" : "talk");
 }
 
 // ---------- 進み方：字幕1つずつ、読み上げが終わってから次へ ----------
@@ -610,8 +624,6 @@ Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]).then
 })();
 </script>
 <!-- 更新した日時（GitHub に反映した日時が自動で出る）。オープニングの「タップして…」の下にだけ小さく出す。オープニングがなければ出さない -->
-<script src="cc-henshin.js"></script>
-<script src="cc-mascot.js"></script>
 <script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
 var e=document.createElement('div');e.id='appVer';e.textContent='更新 '+d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
 e.style.cssText='display:block;width:100%;text-align:center;font:11px/1.4 sans-serif;color:inherit;opacity:.6;margin-top:8px;pointer-events:none;';
