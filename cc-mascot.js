@@ -1,6 +1,6 @@
 // =============================================================
-// キャラクターのいろいろな動き（マイクラふう 120個。見本は minecraft-ugoki.html と同じもの）
-//   window.CC_EXTRA に 01〜120 の動きが入っている。.seq が [コマの絵, 長さ(ミリ秒)] の並び
+// キャラクターのいろいろな動き（マイクラふう 120個。見本は minecraft-ugoki.html と同じもの。いまは 150個 ＋ クリーパー・ゾンビへの変身 20個）
+//   window.CC_EXTRA に 01〜170 の動きが入っている。.seq が [コマの絵, 長さ(ミリ秒)] の並び
 // =============================================================
 (function ccExtraMoves() {
 // --- グローバル変数・共通描画関数 ---
@@ -1255,7 +1255,8 @@ return MOVES.map(m => ({ ...m, grid: G[m.grid], vb: '-12 -18 48 40' }));
 })();
 
 
-window.CC_EXTRA = [...BLOCKS, ...MOBS, ...MC2, ...MC3, ...MC4, ...MC5];
+// 151〜170 は cc-henshin.js のクリーパー・ゾンビへの変身（先に読み込んでおく）
+window.CC_EXTRA = [...BLOCKS, ...MOBS, ...MC2, ...MC3, ...MC4, ...MC5, ...(window.CC_HENSHIN_MOVES || [])];
 })();
 (function ccTyping() {
   const svgs = Array.from(document.querySelectorAll('svg.cc-anim'));
@@ -1292,14 +1293,14 @@ window.CC_EXTRA = [...BLOCKS, ...MOBS, ...MC2, ...MC3, ...MC4, ...MC5];
       rect(6, s * 2 + 3, 2, 1, COLOR.K) + rect(16, s * 2 + 3, 2, 1, COLOR.K) +
       zee(22, -1 - k) + (k >= 2 ? zee(26, -6 - (k - 2)) : '') + '</g>');
   }
-  // 朝7時〜夜0時は、最初にパソコンを1回打ったあとは、マイクラふうの 01〜120 の動きからずっとランダムに出す。動き（見本ページの番号）からランダムに1つを1回だけ入れる
+  // 朝7時〜夜0時は、最初にパソコンを1回打ったあとは、マイクラふうの 01〜170 の動きからずっとランダムに出す。動き（見本ページの番号）からランダムに1つを1回だけ入れる
   const TYPE_MS = total * 1000 / 30, EVERY = 1;
   let mv = null, typeOff = 0, nextAt = TYPE_MS * EVERY, done = 0, last = -1;
   const RUN = Infinity;   // 最初にパソコンを1回打ったあとは、ずっとランダムな動きを続ける
   // 一度出た動きは、ぜんぶ一周するまで出さない（混ぜた順番で1つずつ出す。一周したら、また混ぜなおす）
   //   残りの順番はこの端末に覚えておくので、アプリを閉じて開き直しても続きから出る
   let bag = [];
-  try { const b = JSON.parse(localStorage.getItem('ccMoveBagMC150') || '[]'); if (Array.isArray(b) && b.every(i => Number.isInteger(i) && i >= 0 && i < window.CC_EXTRA.length)) bag = b; } catch (e) {}
+  try { const b = JSON.parse(localStorage.getItem('ccMoveBagMC170') || '[]'); if (Array.isArray(b) && b.every(i => Number.isInteger(i) && i >= 0 && i < window.CC_EXTRA.length)) bag = b; } catch (e) {}
   function nextPick() {
     if (!bag.length) {
       bag = window.CC_EXTRA.map((_, i) => i);
@@ -1307,7 +1308,7 @@ window.CC_EXTRA = [...BLOCKS, ...MOBS, ...MC2, ...MC3, ...MC4, ...MC5];
       if (bag.length > 1 && bag[bag.length - 1] === last) [bag[0], bag[bag.length - 1]] = [bag[bag.length - 1], bag[0]];   // 一周のつなぎ目でも同じ動きを続けない
     }
     last = bag.pop();
-    try { localStorage.setItem('ccMoveBagMC150', JSON.stringify(bag)); } catch (e) {}
+    try { localStorage.setItem('ccMoveBagMC170', JSON.stringify(bag)); } catch (e) {}
     return last;
   }
   function extraFrame(now) {
