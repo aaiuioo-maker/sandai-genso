@@ -452,7 +452,7 @@ function enterSeg(i, sfx) {
   seg = i; waitT = 0;
   if (muted || !playing) { stopSpeak(); return; }
   speak(i);
-  if (sfx && SFX[i]) try { SFX[i](); } catch (e) {}
+  if (sfx && SFX[i]) try { wakeAudio(); SFX[i](); } catch (e) {}
 }
 function finish() {
   playing = false; stopSpeak(); bgmOn(false);
@@ -552,6 +552,14 @@ function bgmTick() {
   setTimeout(bgmTick, 200);
 }
 const chime = () => { tone(1320, 0, .25, 'sine', .1); tone(1760, .08, .3, 'sine', .08); };
+// 雷の音（ゴロッ・ピシャッ）：前の版の発熱の音。いきなり大きく鳴って、だんだん消える
+function thunder(at, len, vol) {
+  const b = ac.createBuffer(1, ac.sampleRate * len, ac.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+  const s = ac.createBufferSource(), g = ac.createGain(), fl = ac.createBiquadFilter();
+  fl.type = "bandpass"; fl.frequency.value = 900; g.gain.value = vol;
+  s.buffer = b; s.connect(fl).connect(g).connect(ac.destination); s.start(ac.currentTime + at);
+}
 // 心臓の音（ドクン）：低い音を2つ続ける
 // iPhone のスピーカーは低い音が出にくいので、少し高めの音を重ねる
 const thump = at => { tone(170, at, .16, "triangle", .4, 70); tone(80, at, .18, "sine", .4, 40); tone(140, at + .2, .14, "triangle", .3, 60); };
@@ -565,11 +573,11 @@ const SFX = {
   5: () => { thump(.3); thump(1.1); thump(1.9); },                                                      // 心臓：ドクン・ドクン
   6: () => { noise(.3, 1.2, .3, 1200, 'bandpass', .7, .7); noise(1.6, 1.2, .25, 900, 'bandpass', .2, .7); }, // 肺：スーッ・ハーッ
   7: () => [0, .3, .6].forEach(d => tone(330, .3 + d, .12, 'square', .06, 160)),                         // 胃：もぐもぐ
-  8: () => {                                                                                           // 発熱：ゴォーッと熱が上がる＋速い鼓動
-    chime(); noise(.3, 2.4, .5, 700, "bandpass", .5, .6); tone(110, .3, 2.4, 'sawtooth', .05, 330);
+  8: () => {                                                                                           // 発熱：雷のゴロッ・ピシャッ（前の版の音）＋速い鼓動
+    chime(); thunder(.4, .7, .5); thunder(1.4, .9, .4);
     for (let k = 0; k < 6; k++) thump(.5 + k * .45);
   },
-  9: () => { for (let k = 0; k < 8; k++) thump(.1 + k * .38); noise(.1, 2.5, .35, 700, "bandpass", .3, .6); }, // 鼓動を早めて：ドクドクドク
+  9: () => { thunder(.2, .7, .35); for (let k = 0; k < 8; k++) thump(.1 + k * .38); }, // 鼓動を早めて：ドクドクドク
   10: () => { noise(.3, 1.6, .3, 4000, 'highpass', .2); tone(900, .4, 1.6, 'sine', .07, 200); },          // 毒素が溶ける：シュワ〜
   11: () => { chime(); tone(880, .3, 1.8, 'sine', .07, 220); },                                          // 元素の帰還
   12: () => { tone(400, .3, 1.6, 'sine', .07, 1600); noise(.6, 1.4, .25, 1500, 'bandpass', .5, .8); },    // 霊界へのぼる・空気界へ流れる
@@ -579,16 +587,17 @@ const SFX = {
 };
 function startSound() {
   try {
-    // iPhone の消音スイッチが入っていても声と音が出るようにする（対応している iPhone のみ）
-    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
     if (!ac) {
       ac = new (window.AudioContext || window.webkitAudioContext)();
+      ac.onstatechange = () => { if (playing && !muted) wakeAudio(); };
       bgm = ac.createGain(); bgm.gain.value = 0; bgm.connect(ac.destination);
       nextBeat = ac.currentTime + .1; bgmTick();
     }
     ac.resume();
   } catch (e) {}
 }
+// iPhone で声の読み上げなどのあと音が止まっていたら、また鳴るようにする
+function wakeAudio() { try { if (ac && ac.state !== "running") ac.resume(); } catch (e) {} }
 // 背景の音楽を出す・止める（音量を上げ下げする）
 function bgmOn(on) { if (bgm) bgm.gain.setTargetAtTime(on && !muted ? .7 : 0, ac.currentTime, .15); }
 
