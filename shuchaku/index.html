@@ -62,7 +62,8 @@
     <button id="sndBtn" class="snd">🔊 声・音 ON</button>
   </div>
   <div class="voices"><span>声</span>
-    <button data-v="0" class="on">めたん</button>
+    <button data-v="3" class="on">まぜる</button>
+    <button data-v="0">めたん</button>
     <button data-v="1">つむぎ</button>
     <button data-v="2">はう</button>
   </div>
@@ -474,33 +475,43 @@ function speakTTS(text, token) {
   } catch (e) { speaking = false; }
 }
 
-// ---------- ナレーション：VOICEVOX で作った声（3人から選べる。各フォルダに 00.wav〜13.wav）を流す ----------
+// ---------- ナレーション：VOICEVOX で作った声（3人。各フォルダに 00.wav〜13.wav）を流す ----------
+// 「まぜる」のときは、字幕1つごとに3人のだれかがランダムに読む（同じ人が2回続かないように）。
 // iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
 // 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
 const KOE_V = 1;
 const VOICES = [['koe', '四国めたん'], ['koe-tsumugi', '春日部つむぎ'], ['koe-hau', '雨晴はう']];
-let koeOK, koeRaw, koeBuf;
+const MIX = 3; // 「まぜる」
+const koeOK = [[], [], []], koeRaw = [], koeBuf = [[], [], []]; // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
 function loadVoice(v) {
-  koeOK = []; koeBuf = []; // koeOK[i] が false：その字幕の録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
-  koeRaw = CAPS.map((c, i) => fetch(VOICES[v][0] + '/' + String(i).padStart(2, '0') + '.wav?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[i] = !!ab; return ab; }));
-  if (ac) CAPS.forEach((c, i) => koeDecode(i));
+  if (koeRaw[v]) return;
+  koeRaw[v] = CAPS.map((c, i) => fetch(VOICES[v][0] + '/' + String(i).padStart(2, '0') + '.wav?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[v][i] = !!ab; return ab; }));
+  if (ac) CAPS.forEach((c, i) => koeDecode(v, i));
 }
-let voiceNo = 0;
-try { voiceNo = Math.min(2, parseInt(localStorage.getItem('shuchakuVoice')) || 0); } catch (e) {}
-function koeDecode(i) {
-  const raw = koeRaw[i], buf = koeBuf;
-  if (!buf[i]) buf[i] = raw.then(ab => ab && new Promise(res => {
+let voiceNo = MIX;
+try { const n = parseInt(localStorage.getItem('shuchakuVoice2')); if (n >= 0 && n <= MIX) voiceNo = n; } catch (e) {}
+// 字幕ごとの読み手（「まぜる」のとき）。再生するたびに決め直す
+let segVoice = [];
+function shuffleVoices() {
+  segVoice = []; let prev = -1;
+  CAPS.forEach(() => { let v; do { v = Math.floor(Math.random() * 3); } while (v === prev); segVoice.push(prev = v); });
+}
+shuffleVoices();
+const voiceOf = i => voiceNo === MIX ? segVoice[i] : voiceNo;
+function koeDecode(v, i) {
+  if (!koeBuf[v][i]) koeBuf[v][i] = koeRaw[v][i].then(ab => ab && new Promise(res => {
     try { ac.decodeAudioData(ab.slice(0), b => res(b), () => res(null)); } catch (e) { res(null); }
   }));
-  return buf[i];
+  return koeBuf[v][i];
 }
 let koeSrc = null;
 function speak(i) {
   stopSpeak();
   speaking = true;
   const token = {}; cur = token;
-  if (!ac || koeOK[i] === false) { speakTTS(CAPS[i][4], token); return; }
-  koeDecode(i).then(b => {
+  const v = voiceOf(i);
+  if (!ac || koeOK[v][i] === false) { speakTTS(CAPS[i][4], token); return; }
+  koeDecode(v, i).then(b => {
     if (cur !== token) return; // もう別の字幕に進んだ・止めた
     if (!b) { speakTTS(CAPS[i][4], token); return; }
     const s = ac.createBufferSource(); s.buffer = b;
@@ -582,7 +593,7 @@ function startSound() {
       ac.onstatechange = () => { if (playing && !muted) wakeAudio(); };
       bgm = ac.createGain(); bgm.gain.value = 0; bgm.connect(ac.destination);
       nextBeat = ac.currentTime + .1; bgmTick();
-      CAPS.forEach((c, i) => koeDecode(i)); // 録音の声を先に準備しておく
+      koeRaw.forEach((r, v) => r && CAPS.forEach((c, i) => koeDecode(v, i))); // 録音の声を先に準備しておく
     }
     ac.resume();
   } catch (e) {}
@@ -598,6 +609,7 @@ function playFromStart() {
   document.getElementById('startBox').classList.add('hide');
   pos = 0; AT = 0; playing = true; bgmOn(true);
   ppBtn.textContent = '⏸ 一時停止';
+  shuffleVoices();
   enterSeg(0, true);
   if (!running) { running = true; lastNow = performance.now(); requestAnimationFrame(loop); }
 }
@@ -638,15 +650,15 @@ sndBtn.onclick = () => {
 const vBtns = document.querySelectorAll('.voices button');
 function showVoice() {
   vBtns.forEach(b => b.classList.toggle('on', +b.dataset.v === voiceNo));
-  document.getElementById('credit').textContent = '声：VOICEVOX:' + VOICES[voiceNo][1];
+  document.getElementById('credit').textContent = '声：VOICEVOX:' + (voiceNo === MIX ? VOICES : [VOICES[voiceNo]]).map(v => v[1]).join('・');
 }
 vBtns.forEach(b => b.onclick = () => {
   voiceNo = +b.dataset.v; showVoice();
-  try { localStorage.setItem('shuchakuVoice', voiceNo); } catch (e) {}
-  stopSpeak(); loadVoice(voiceNo);
+  try { localStorage.setItem('shuchakuVoice2', voiceNo); } catch (e) {}
+  stopSpeak(); (voiceNo === MIX ? [0, 1, 2] : [voiceNo]).forEach(loadVoice);
   if (playing && !muted) { startSound(); enterSeg(seg, false); }
 });
-showVoice(); loadVoice(voiceNo);
+showVoice(); (voiceNo === MIX ? [0, 1, 2] : [voiceNo]).forEach(loadVoice);
 
 // 最初の一枚（文字の準備ができてから）
 Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]).then(() => { if (!running) frame(0.95); });
