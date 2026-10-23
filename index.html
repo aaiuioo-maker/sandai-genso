@@ -507,14 +507,32 @@ function speakTTS(text, token) {
   } catch (e) { speaking = false; }
 }
 
-// ---------- ナレーション：端末の女性の声で読み上げる（iPhone とパソコンで声が少しちがう） ----------
-// ※ Haruka の声で録音した版の音は koe/ に残してある（今は使っていない）
+// ---------- ナレーション：パソコンの Haruka の声で録音した音（koe/00.wav〜）を流す ----------
+// iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
+// 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら録音し直すこと
+const KOE_V = 1;
+const koeRaw = CAPS.map((c, i) => fetch('koe/' + String(i).padStart(2, '0') + '.wav?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null));
+const koeBuf = [];
+function koeDecode(i) {
+  if (!koeBuf[i]) koeBuf[i] = koeRaw[i].then(ab => ab && new Promise(res => {
+    try { ac.decodeAudioData(ab, b => res(b), () => res(null)); } catch (e) { res(null); }
+  }));
+  return koeBuf[i];
+}
 let koeSrc = null;
 function speak(i) {
   stopSpeak();
   speaking = true;
   const token = {}; cur = token;
-  speakTTS(CAPS[i][4], token);
+  if (!ac) { speakTTS(CAPS[i][4], token); return; }
+  koeDecode(i).then(b => {
+    if (cur !== token) return; // もう別の字幕に進んだ・止めた
+    if (!b) { speakTTS(CAPS[i][4], token); return; }
+    const s = ac.createBufferSource(); s.buffer = b;
+    s.connect(ac.destination);
+    s.onended = () => { if (cur === token) speaking = false; };
+    koeSrc = s; s.start();
+  });
 }
 
 // ---------- 音楽と効果音（Web Audio で作る） ----------
@@ -587,11 +605,14 @@ const SFX = {
 };
 function startSound() {
   try {
+    // iPhone の消音スイッチが入っていても声と音が出るようにする（声も音もすべて Web Audio で鳴らすので使える）
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
     if (!ac) {
       ac = new (window.AudioContext || window.webkitAudioContext)();
       ac.onstatechange = () => { if (playing && !muted) wakeAudio(); };
       bgm = ac.createGain(); bgm.gain.value = 0; bgm.connect(ac.destination);
       nextBeat = ac.currentTime + .1; bgmTick();
+      CAPS.forEach((c, i) => koeDecode(i)); // 録音の声を先に準備しておく
     }
     ac.resume();
   } catch (e) {}
