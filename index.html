@@ -414,7 +414,7 @@ function frame(t) {
     T("ございました", 90, 128, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
   }
   captions(t);
-  mascot(6, 230.67, AT, t >= 15 ? "walk" : t >= 13 ? "jump" : "talk", 4 / 3); // 案内役：1ドット4画素の大きさで、字幕の左に
+  mascot(11, 232, AT, t >= 15 ? "walk" : t >= 13 ? "jump" : "talk", 1); // 案内役：1ドット3画素の大きさで、字幕の左に
 }
 
 // ---------- 進み方：字幕1つずつ、読み上げが終わってから次へ ----------
@@ -527,12 +527,15 @@ function tone(f, at, len, type, vol, f2, dest) {
   g.gain.exponentialRampToValueAtTime(.0001, t0 + len);
   o.connect(g).connect(dest || ac.destination); o.start(t0); o.stop(t0 + len + .05);
 }
-function noise(at, len, vol) {
+// ざわざわした音（ゴォー・シュワー・息など）。type と freq で音色、up で「だんだん大きく」
+function noise(at, len, vol, freq = 900, type = 'bandpass', up = 0, q = 1) {
   const b = ac.createBuffer(1, ac.sampleRate * len, ac.sampleRate), d = b.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
-  const s = ac.createBufferSource(), g = ac.createGain(), fl = ac.createBiquadFilter();
-  fl.type = 'bandpass'; fl.frequency.value = 900; g.gain.value = vol;
-  s.buffer = b; s.connect(fl).connect(g).connect(ac.destination); s.start(ac.currentTime + at);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const s = ac.createBufferSource(), g = ac.createGain(), fl = ac.createBiquadFilter(), t0 = ac.currentTime + at;
+  fl.type = type; fl.frequency.value = freq; fl.Q.value = q;
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .02 + up * len);
+  g.gain.linearRampToValueAtTime(0, t0 + len);
+  s.buffer = b; s.connect(fl).connect(g).connect(ac.destination); s.start(t0);
 }
 const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
 // 背景の音楽：声が聞こえるように小さく、ゆっくり（1拍 = 0.5秒）
@@ -549,13 +552,28 @@ function bgmTick() {
   setTimeout(bgmTick, 200);
 }
 const chime = () => { tone(1320, 0, .25, 'sine', .1); tone(1760, .08, .3, 'sine', .08); };
-// 字幕の番号ごとの効果音
+// 心臓の音（ドクン）：低い音を2つ続ける
+// iPhone のスピーカーは低い音が出にくいので、少し高めの音を重ねる
+const thump = at => { tone(170, at, .16, "triangle", .4, 70); tone(80, at, .18, "sine", .4, 40); tone(140, at + .2, .14, "triangle", .3, 60); };
+// 字幕の番号ごとの効果音（場面に合わせて1回ずつ）
 const SFX = {
-  1: () => tone(200, .2, .8, 'sawtooth', .04, 900),          // 火素が降りる
-  4: chime,
-  8: () => { chime(); noise(.4, .7, .45); },                   // 発熱のゴォー
-  9: () => noise(.2, .7, .35),
-  11: () => { chime(); tone(880, .3, 1.8, 'sine', .07, 220); }, // 元素の帰還
+  0: () => [84, 88, 91, 96, 91, 96].forEach((n, i) => tone(NOTE(n), .3 + i * .12, .5, 'sine', .05)),   // 宇宙：キラキラ
+  1: () => { tone(200, .2, .9, 'sawtooth', .05, 900); noise(.2, 1, .25, 2500, 'highpass', .6); },       // 火素：ボウッと燃える
+  2: () => [0, .25, .5, .75].forEach((d, i) => tone(500 + i * 120, .3 + d, .18, 'sine', .09, 900 + i * 150)), // 水素：ポコポコと流れる
+  3: () => { tone(180, .3, .5, "triangle", .3, 60); tone(90, .3, .6, "sine", .4, 45); noise(.3, .5, .3, 600, "lowpass"); },                    // 土素：ドスン
+  4: chime,                                                                                            // 小宇宙
+  5: () => { thump(.3); thump(1.1); thump(1.9); },                                                      // 心臓：ドクン・ドクン
+  6: () => { noise(.3, 1.2, .3, 1200, 'bandpass', .7, .7); noise(1.6, 1.2, .25, 900, 'bandpass', .2, .7); }, // 肺：スーッ・ハーッ
+  7: () => [0, .3, .6].forEach(d => tone(330, .3 + d, .12, 'square', .06, 160)),                         // 胃：もぐもぐ
+  8: () => {                                                                                           // 発熱：ゴォーッと熱が上がる＋速い鼓動
+    chime(); noise(.3, 2.4, .5, 700, "bandpass", .5, .6); tone(110, .3, 2.4, 'sawtooth', .05, 330);
+    for (let k = 0; k < 6; k++) thump(.5 + k * .45);
+  },
+  9: () => { for (let k = 0; k < 8; k++) thump(.1 + k * .38); noise(.1, 2.5, .35, 700, "bandpass", .3, .6); }, // 鼓動を早めて：ドクドクドク
+  10: () => { noise(.3, 1.6, .3, 4000, 'highpass', .2); tone(900, .4, 1.6, 'sine', .07, 200); },          // 毒素が溶ける：シュワ〜
+  11: () => { chime(); tone(880, .3, 1.8, 'sine', .07, 220); },                                          // 元素の帰還
+  12: () => { tone(400, .3, 1.6, 'sine', .07, 1600); noise(.6, 1.4, .25, 1500, 'bandpass', .5, .8); },    // 霊界へのぼる・空気界へ流れる
+  13: () => { [0, .35, .7].forEach((d, i) => tone(200 - i * 25, .4 + d, .25, "triangle", .3, 80)); noise(.4, 1, .25, 600, "lowpass"); }, // 土へ：トン・トン・トン
   14: () => { [72, 76, 79, 84].forEach((n, i) => tone(NOTE(n), i * .18, .7, 'square', .05)); tone(NOTE(84), .7, 1.6, 'triangle', .1); },
   15: () => { bgm.gain.setTargetAtTime(0, ac.currentTime, 1.2); [60, 64, 67, 72].forEach((n, i) => tone(NOTE(n), i * .25, 3.5 - i * .25, "triangle", .07)); }, // 終わりの和音と音楽のフェードアウト
 };
