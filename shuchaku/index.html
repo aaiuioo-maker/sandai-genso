@@ -43,7 +43,7 @@
 </head>
 <body>
 <h1>我と執着</h1>
-<p class="sub">争いのもと・霊的成長・機を待つ ／ 約1分半のドット絵（声と音が出ます）</p>
+<p class="sub">争いのもと・霊的成長・機を待つ ／ 約1分半のドット絵（声と音が出ます）<br>声：VOICEVOX:四国めたん</p>
 <div class="stage">
   <canvas id="cv"></canvas>
   <div class="start" id="startBox"><button id="startBtn">▶ 再生する</button></div>
@@ -463,9 +463,9 @@ function speakTTS(text, token) {
   } catch (e) { speaking = false; }
 }
 
-// ---------- ナレーション：録音した声（koe/00.wav〜）があれば流す ----------
-// まだ録音がないので、いまは端末の女性の声で読み上げる（iPhone では読む間、音楽・効果音が止まる）。
-// 三大元素と同じように Haruka の声で koe/00.wav〜13.wav を入れれば、声・音楽・効果音がいっしょに鳴る
+// ---------- ナレーション：VOICEVOX（四国めたん・ノーマル）で作った声（koe/00.wav〜13.wav）を流す ----------
+// iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
+// 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
 const KOE_V = 1;
 const koeOK = []; // false：その字幕の録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
 const koeRaw = CAPS.map((c, i) => fetch('koe/' + String(i).padStart(2, '0') + '.wav?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[i] = !!ab; return ab; }));
