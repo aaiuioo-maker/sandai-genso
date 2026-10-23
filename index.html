@@ -158,6 +158,8 @@ function stomach(a = 1, glow = 0) {
 
 // ---------- Claude Code のキャラクター（字幕の左にいる案内役） ----------
 function mascot(ox, oy, t, mode = "walk", p = 1) {
+  // ox, oy, p は画面の1マス（3画素）単位。p は小数でもよい（画素単位で描くので、にじまない）
+  const R = (x, y, w, h, c) => { const q = (v) => Math.round(v * S); ctx.fillStyle = c; ctx.fillRect(q(x), q(y), q(x + w) - q(x), q(y + h) - q(y)); };
   const c = '#d97757', f = Math.floor(t * 6) % 4;
   const hop = (mode === "jump" ? -Math.abs(Math.sin(t * 7)) * 4 : (f % 2 ? -1 : 0)) * p;
   const up = [f === 1, f === 3, f === 3, f === 1];
@@ -412,7 +414,7 @@ function frame(t) {
     T("ございました", 90, 128, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
   }
   captions(t);
-  mascot(12, 228, AT, t >= 15 ? "walk" : t >= 13 ? "jump" : "talk", 2); // 案内役：2倍の大きさで、字幕の左に
+  mascot(14, 229.3, AT, t >= 15 ? "walk" : t >= 13 ? "jump" : "talk", 5 / 3); // 案内役：1ドット5画素の大きさで、字幕の左に
 }
 
 // ---------- 進み方：字幕1つずつ、読み上げが終わってから次へ ----------
