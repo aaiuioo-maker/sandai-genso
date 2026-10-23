@@ -202,8 +202,8 @@ function captions(t) {
   const a = clamp((t - c[0]) / .15);
   let col = '#f3ead6';
   for (const k in CAP_COL) if (c[2].startsWith(k) || c[2].startsWith(k === '火' ? '心' : k === '水' ? '肺' : '胃')) col = CAP_COL[k];
-  T(c[2], 104, c[3] ? 229 : 237, 9, col, 'center', a);
-  if (c[3]) T(c[3], 104, 246, 8.5, '#f3ead6', 'center', a);
+  T(c[2], 90, c[3] ? 229 : 237, 9, col, 'center', a);
+  if (c[3]) T(c[3], 90, 246, 8.5, '#f3ead6', 'center', a);
 }
 
 // ---------- 場面1：宇宙の三大元素 ----------
@@ -414,7 +414,7 @@ function frame(t) {
     T("ございました", 90, 128, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
   }
   captions(t);
-  mascot(16, 230.67, AT, t >= 15 ? "walk" : t >= 13 ? "jump" : "talk", 4 / 3); // 案内役：1ドット4画素の大きさで、字幕の左に
+  mascot(6, 230.67, AT, t >= 15 ? "walk" : t >= 13 ? "jump" : "talk", 4 / 3); // 案内役：1ドット4画素の大きさで、字幕の左に
 }
 
 // ---------- 進み方：字幕1つずつ、読み上げが終わってから次へ ----------
