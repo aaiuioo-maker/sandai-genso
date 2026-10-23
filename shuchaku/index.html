@@ -33,6 +33,11 @@
   .btns button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 7px 2px; border-color: #5a5478; }
   .btns .snd { color: #6fe0a0; flex-grow: 1.25; }
   .btns .snd.off { color: #8a84a8; }
+  /* 声の選びかた（3人） */
+  .voices { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; }
+  .voices span { flex-shrink: 0; color: #8a84a8; }
+  .voices button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 5px 2px; border-color: #3a3358; color: #8a84a8; }
+  .voices button.on { border-color: var(--accent); color: var(--fg); }
   button { font-family: inherit; font-size: 15px; color: var(--fg); background: #1c1930; border: 2px solid var(--accent);
            border-radius: 6px; padding: 8px 18px; cursor: pointer; }
   button:active { transform: translateY(1px); }
@@ -43,7 +48,7 @@
 </head>
 <body>
 <h1>我と執着</h1>
-<p class="sub">争いのもと・霊的成長・機を待つ ／ 約1分半のドット絵（声と音が出ます）<br>声：VOICEVOX:四国めたん</p>
+<p class="sub">争いのもと・霊的成長・機を待つ（約1分半・声と音が出ます）<br><span id="credit">声：VOICEVOX:四国めたん</span></p>
 <div class="stage">
   <canvas id="cv"></canvas>
   <div class="start" id="startBox"><button id="startBtn">▶ 再生する</button></div>
@@ -54,6 +59,11 @@
     <button id="rsBtn">🔄 最初から</button>
     <button id="ppBtn">▶ 再生</button>
     <button id="sndBtn" class="snd">🔊 声・音 ON</button>
+  </div>
+  <div class="voices"><span>声</span>
+    <button data-v="0" class="on">めたん</button>
+    <button data-v="1">つむぎ</button>
+    <button data-v="2">はう</button>
   </div>
 </div>
 
@@ -463,18 +473,25 @@ function speakTTS(text, token) {
   } catch (e) { speaking = false; }
 }
 
-// ---------- ナレーション：VOICEVOX（四国めたん・ノーマル）で作った声（koe/00.wav〜13.wav）を流す ----------
+// ---------- ナレーション：VOICEVOX で作った声（3人から選べる。各フォルダに 00.wav〜13.wav）を流す ----------
 // iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
 // 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
 const KOE_V = 1;
-const koeOK = []; // false：その字幕の録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
-const koeRaw = CAPS.map((c, i) => fetch('koe/' + String(i).padStart(2, '0') + '.wav?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[i] = !!ab; return ab; }));
-const koeBuf = [];
+const VOICES = [['koe', '四国めたん'], ['koe-tsumugi', '春日部つむぎ'], ['koe-hau', '雨晴はう']];
+let koeOK, koeRaw, koeBuf;
+function loadVoice(v) {
+  koeOK = []; koeBuf = []; // koeOK[i] が false：その字幕の録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
+  koeRaw = CAPS.map((c, i) => fetch(VOICES[v][0] + '/' + String(i).padStart(2, '0') + '.wav?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[i] = !!ab; return ab; }));
+  if (ac) CAPS.forEach((c, i) => koeDecode(i));
+}
+let voiceNo = 0;
+try { voiceNo = Math.min(2, parseInt(localStorage.getItem('shuchakuVoice')) || 0); } catch (e) {}
 function koeDecode(i) {
-  if (!koeBuf[i]) koeBuf[i] = koeRaw[i].then(ab => ab && new Promise(res => {
-    try { ac.decodeAudioData(ab, b => res(b), () => res(null)); } catch (e) { res(null); }
+  const raw = koeRaw[i], buf = koeBuf;
+  if (!buf[i]) buf[i] = raw.then(ab => ab && new Promise(res => {
+    try { ac.decodeAudioData(ab.slice(0), b => res(b), () => res(null)); } catch (e) { res(null); }
   }));
-  return koeBuf[i];
+  return buf[i];
 }
 let koeSrc = null;
 function speak(i) {
@@ -615,6 +632,20 @@ sndBtn.onclick = () => {
   if (muted) { stopSpeak(); bgmOn(false); }
   else if (playing) { startSound(); bgmOn(true); enterSeg(seg, false); }
 };
+
+// 声を選ぶ：選んだ声で、いまの字幕から読み直す
+const vBtns = document.querySelectorAll('.voices button');
+function showVoice() {
+  vBtns.forEach(b => b.classList.toggle('on', +b.dataset.v === voiceNo));
+  document.getElementById('credit').textContent = '声：VOICEVOX:' + VOICES[voiceNo][1];
+}
+vBtns.forEach(b => b.onclick = () => {
+  voiceNo = +b.dataset.v; showVoice();
+  try { localStorage.setItem('shuchakuVoice', voiceNo); } catch (e) {}
+  stopSpeak(); loadVoice(voiceNo);
+  if (playing && !muted) { startSound(); enterSeg(seg, false); }
+});
+showVoice(); loadVoice(voiceNo);
 
 // 最初の一枚（文字の準備ができてから）
 Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]).then(() => { if (!running) frame(0.95); });
