@@ -449,14 +449,18 @@ function draw() {
 function enterSeg(i, sfx) {
   seg = i; waitT = 0;
   if (muted || !playing) { stopSpeak(); return; }
-  speak(CAPS[i][4]);
+  speak(i);
   if (sfx && SFX[i]) try { SFX[i](); } catch (e) {}
 }
 function finish() {
   playing = false; stopSpeak(); bgmOn(false);
   ppBtn.textContent = '▶ もう一度';
 }
-function stopSpeak() { speaking = false; cur = null; try { if (ttsOK) speechSynthesis.cancel(); } catch (e) {} }
+function stopSpeak() {
+  speaking = false; cur = null;
+  if (koeSrc) { try { koeSrc.onended = null; koeSrc.stop(); } catch (e) {} koeSrc = null; }
+  try { if (ttsOK) speechSynthesis.cancel(); } catch (e) {}
+}
 
 // ---------- 操作パネル ----------
 const seekBar = document.getElementById('seekBar'), curT = document.getElementById('curT');
@@ -488,17 +492,42 @@ function pickVoice() {
 }
 let voice = null;
 if (ttsOK) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => { voice = pickVoice(); }; } catch (e) {} }
-function speak(text) {
+function speakTTS(text, token) {
   if (!ttsOK) { speaking = false; return; }
   try {
-    speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'ja-JP'; u.rate = 0.9; u.pitch = 1.1; u.volume = 1;
     voice = voice || pickVoice(); if (voice) u.voice = voice;
-    speaking = true;
-    u.onend = u.onerror = () => { if (u === cur) speaking = false; };
-    cur = u; speechSynthesis.speak(u);
+    u.onend = u.onerror = () => { if (cur === token) speaking = false; };
+    speechSynthesis.speak(u);
   } catch (e) { speaking = false; }
+}
+
+// ---------- ナレーション：パソコンの Haruka の声で録音した音（koe/00.wav〜）を流す ----------
+// iPhone でもパソコンと同じなめらかな声になる。録音が読めないときだけ、端末の声で読み上げる
+const KOE_V = 1;
+const koeRaw = CAPS.map((c, i) => fetch('koe/' + String(i).padStart(2, '0') + '.wav?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null));
+const koeBuf = [];
+function koeDecode(i) {
+  if (!koeBuf[i]) koeBuf[i] = koeRaw[i].then(ab => ab && new Promise(res => {
+    try { ac.decodeAudioData(ab, b => res(b), () => res(null)); } catch (e) { res(null); }
+  }));
+  return koeBuf[i];
+}
+let koeSrc = null;
+function speak(i) {
+  stopSpeak();
+  speaking = true;
+  const token = {}; cur = token;
+  if (!ac) { speakTTS(CAPS[i][4], token); return; }
+  koeDecode(i).then(b => {
+    if (cur !== token) return; // もう別の字幕に進んだ・止めた
+    if (!b) { speakTTS(CAPS[i][4], token); return; }
+    const s = ac.createBufferSource(); s.buffer = b;
+    s.connect(ac.destination);
+    s.onended = () => { if (cur === token) speaking = false; };
+    koeSrc = s; s.start();
+  });
 }
 
 // ---------- 音楽と効果音（Web Audio で作る） ----------
@@ -545,10 +574,13 @@ const SFX = {
 };
 function startSound() {
   try {
+    // iPhone の消音スイッチが入っていても声と音が出るようにする（対応している iPhone のみ）
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
     if (!ac) {
       ac = new (window.AudioContext || window.webkitAudioContext)();
       bgm = ac.createGain(); bgm.gain.value = 0; bgm.connect(ac.destination);
       nextBeat = ac.currentTime + .1; bgmTick();
+      CAPS.forEach((c, i) => koeDecode(i)); // 録音の声を先に準備しておく
     }
     ac.resume();
   } catch (e) {}
