@@ -32,7 +32,7 @@
   /* 左から「最初から・再生・声と音」を横一列に。画面の幅に合わせて文字の大きさを変える */
   .btns { display: flex; flex-wrap: nowrap; gap: 6px; margin-top: 8px; }
   .btns button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 7px 2px; border-color: #5a5478; }
-  .btns .snd { color: #6fe0a0; }
+  .btns .snd { color: #6fe0a0; flex-grow: 1.25; }
   .btns .snd.off { color: #8a84a8; }
   button { font-family: inherit; font-size: 15px; color: var(--fg); background: #1c1930; border: 2px solid var(--accent);
            border-radius: 6px; padding: 8px 18px; cursor: pointer; }
@@ -54,7 +54,7 @@
   <div class="btns">
     <button id="rsBtn">🔄 最初から</button>
     <button id="ppBtn">▶ 再生</button>
-    <button id="sndBtn" class="snd">🔊 声・音: ON</button>
+    <button id="sndBtn" class="snd">🔊 声・音 ON</button>
   </div>
 </div>
 
@@ -659,7 +659,7 @@ seekBar.addEventListener('change', () => {
 // 声・音のオン・オフ
 sndBtn.onclick = () => {
   muted = !muted;
-  sndBtn.textContent = muted ? '🔇 声・音: OFF' : '🔊 声・音: ON';
+  sndBtn.textContent = muted ? '🔇 声・音 OFF' : '🔊 声・音 ON';
   sndBtn.classList.toggle('off', muted);
   if (muted) { stopSpeak(); bgmOn(false); }
   else if (playing) { startSound(); bgmOn(true); enterSeg(seg, false); }
