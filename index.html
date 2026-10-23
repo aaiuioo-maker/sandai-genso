@@ -655,12 +655,10 @@ Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]).then
   void url;
 })();
 </script>
-<!-- 更新した日時（GitHub に反映した日時が自動で出る）。オープニングの「タップして…」の下にだけ小さく出す。オープニングがなければ出さない -->
+<!-- 更新した日時（GitHub に反映した日時が自動で出る）。画面のいちばん下（操作パネルの下）に小さく出す -->
 <script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
 var e=document.createElement('div');e.id='appVer';e.textContent='更新 '+d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
-e.style.cssText='display:block;width:100%;text-align:center;font:11px/1.4 sans-serif;color:inherit;opacity:.6;margin-top:8px;pointer-events:none;';
-var t=document.querySelector('#opgo,#op-press,#op-start,#tapHint,#opPressText,#startBtn,.op-press-text');
-if(t){t.insertAdjacentElement('afterend',e);return;}
-var o=document.querySelector('#opening,#openingScreen,#startBox');if(o)o.appendChild(e);})();</script>
+e.style.cssText='display:block;width:100%;text-align:center;font:11px/1.4 sans-serif;color:inherit;opacity:.6;margin-top:10px;pointer-events:none;';
+document.body.appendChild(e);})();</script>
 </body>
 </html>
