@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&text=%E7%A8%8B%E4%BA%BA%E9%96%93%E4%B8%87%E4%BA%8B%E3%81%93%E3%81%AE%E4%B8%80%E5%AD%97%E3%81%AB%E3%81%82%E3%82%8A&display=swap" rel="stylesheet">
 <style>
   :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; }
   * { box-sizing: border-box; }
@@ -91,6 +92,12 @@ function T(s, x, y, size, c, align = 'center', a = 1) {
   ctx.strokeText(s, x * S, y * S);
   ctx.fillStyle = c; ctx.fillText(s, x * S, y * S);
   ctx.globalAlpha = 1;
+}
+// 筆文字（額の書）：縁取りなしで細く読みやすく
+function B(s, x, y, size, c) {
+  ctx.font = `${size * S}px "Yuji Syuku", serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = c; ctx.fillText(s, x * S, y * S);
 }
 function A(a, fn) { ctx.globalAlpha = Math.max(0, Math.min(1, a)); fn(); ctx.globalAlpha = 1; }
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -236,9 +243,9 @@ function scroll(glow) {
   if (glow > 0) A(glow * .35, () => disc(90, 78, 52, '#fff1b0'));
   R(58, 14, 64, 3, '#6a4a2a'); R(60, 17, 60, 122, '#6a4a2a'); R(62, 19, 56, 118, '#f3ead6'); R(58, 139, 64, 3, '#6a4a2a');
   P(89, 10, '#6a4a2a', 2); R(80, 11, 20, 1, '#6a4a2a');
-  T('程', 84, 72, 34, '#1a1612');
+  B('程', 84, 72, 36, '#1a1612');
   const s = '人間万事この一字にあり';
-  [...s].forEach((ch, i) => T(ch, 111, 28 + i * 9.5, 6, '#5a3a20'));
+  [...s].forEach((ch, i) => B(ch, 110, 27 + i * 9, 7, '#3a2814'));
   R(66, 124, 6, 6, '#d94a3a');
 }
 function scene1(lt, t) {
@@ -652,7 +659,7 @@ vBtns.forEach(b => b.onclick = () => {
 showVoice(); (voiceNo === MIX ? [0, 1, 2] : [voiceNo]).forEach(loadVoice);
 
 // 最初の一枚（文字の準備ができてから）
-Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]).then(() => { if (!running) frame(0.95); });
+Promise.race([Promise.all([document.fonts.ready, document.fonts.load('20px "Yuji Syuku"', '程人')]), new Promise(r => setTimeout(r, 1500))]).then(() => { if (!running) frame(0.95); });
 </script>
 <!-- 更新した日時（GitHub に反映した日時が自動で出る）。画面のいちばん下（操作パネルの下）に小さく出す -->
 <script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
