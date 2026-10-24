@@ -472,7 +472,7 @@ function frame(t) {
   captions(t);
   // 字幕の左：いま読んでいる人（めたん・つむぎ・はう・小夜）がしゃべる。オレンジのキャラクターはタイトルの左
   const ci = CAPS.findIndex(c => t >= c[0] && t < c[1]), si = ci < 0 ? CAPS.length - 1 : ci;
-  speakerDot(voiceOf(si), 9, 227, AT, playing && speaking && si === seg);
+  speakerDot(voiceOf(si), 8, 227, AT, playing && speaking && si === seg); // 「きわめて自由（民主的自由主義）」にかからないよう、ほかより1つ左
 }
 
 // ---------- 進み方：字幕1つずつ、読み上げが終わってから次へ ----------
