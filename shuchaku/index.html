@@ -34,7 +34,7 @@
   .btns button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 7px 2px; border-color: #5a5478; }
   .btns .snd { color: #6fe0a0; flex-grow: 1.25; }
   .btns .snd.off { color: #8a84a8; }
-  /* 声の選びかた（3人） */
+  /* 声の選びかた（4人） */
   .voices { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; }
   .voices span { flex-shrink: 0; color: #8a84a8; }
   .voices button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 5px 2px; border-color: #3a3358; color: #8a84a8; }
@@ -62,10 +62,11 @@
     <button id="sndBtn" class="snd">🔊 声・音 ON</button>
   </div>
   <div class="voices"><span>声</span>
-    <button data-v="3" class="on">まぜる</button>
+    <button data-v="4" class="on">順番</button>
     <button data-v="0">めたん</button>
     <button data-v="1">つむぎ</button>
     <button data-v="2">はう</button>
+    <button data-v="3">小夜</button>
   </div>
 </div>
 
@@ -499,26 +500,26 @@ function speakTTS(text, token) {
   } catch (e) { speaking = false; }
 }
 
-// ---------- ナレーション：VOICEVOX で作った声（3人。各フォルダに 00.wav〜13.wav）を流す ----------
-// 「まぜる」のときは、字幕1つごとに3人のだれかがランダムに読む（同じ人が2回続かないように）。
+// ---------- ナレーション：VOICEVOX で作った声（4人：めたん・つむぎ・はう・小夜。各フォルダに 00.wav〜13.wav）を流す ----------
+// 「順番」のときは、字幕1つごとに めたん→つむぎ→はう→小夜 の順番で読む（ランダムではない）。
 // iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
 // 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
 const KOE_V = 1;
-const VOICES = [['koe', '四国めたん'], ['koe-tsumugi', '春日部つむぎ'], ['koe-hau', '雨晴はう']];
-const MIX = 3; // 「まぜる」
-const koeOK = [[], [], []], koeRaw = [], koeBuf = [[], [], []]; // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
+const VOICES = [['koe', '四国めたん'], ['koe-tsumugi', '春日部つむぎ'], ['koe-hau', '雨晴はう'], ['koe-sayo', '小夜/SAYO']];
+const MIX = 4; // 「順番」
+const koeOK = [[], [], [], []], koeRaw = [], koeBuf = [[], [], [], []]; // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
 function loadVoice(v) {
   if (koeRaw[v]) return;
   koeRaw[v] = CAPS.map((c, i) => fetch(VOICES[v][0] + '/' + String(i).padStart(2, '0') + '.wav?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[v][i] = !!ab; return ab; }));
   if (ac) CAPS.forEach((c, i) => koeDecode(v, i));
 }
 let voiceNo = MIX;
-try { const n = parseInt(localStorage.getItem('shuchakuVoice2')); if (n >= 0 && n <= MIX) voiceNo = n; } catch (e) {}
-// 字幕ごとの読み手（「まぜる」のとき）。再生するたびに決め直す
+try { const n = parseInt(localStorage.getItem('shuchakuVoice24')); if (n >= 0 && n <= MIX) voiceNo = n; } catch (e) {}
+// 字幕ごとの読み手（「順番」のとき）
 let segVoice = [];
 function shuffleVoices() {
-  segVoice = []; let prev = -1;
-  CAPS.forEach(() => { let v; do { v = Math.floor(Math.random() * 3); } while (v === prev); segVoice.push(prev = v); });
+  segVoice = [];
+  CAPS.forEach((c, i) => segVoice.push(i % 4)); // めたん→つむぎ→はう→小夜 の順番でくり返す（ランダムではない）
 }
 shuffleVoices();
 const voiceOf = i => voiceNo === MIX ? segVoice[i] : voiceNo;
@@ -678,11 +679,11 @@ function showVoice() {
 }
 vBtns.forEach(b => b.onclick = () => {
   voiceNo = +b.dataset.v; showVoice();
-  try { localStorage.setItem('shuchakuVoice2', voiceNo); } catch (e) {}
-  stopSpeak(); (voiceNo === MIX ? [0, 1, 2] : [voiceNo]).forEach(loadVoice);
+  try { localStorage.setItem('shuchakuVoice24', voiceNo); } catch (e) {}
+  stopSpeak(); (voiceNo === MIX ? [0, 1, 2, 3] : [voiceNo]).forEach(loadVoice);
   if (playing && !muted) { startSound(); enterSeg(seg, false); }
 });
-showVoice(); (voiceNo === MIX ? [0, 1, 2] : [voiceNo]).forEach(loadVoice);
+showVoice(); (voiceNo === MIX ? [0, 1, 2, 3] : [voiceNo]).forEach(loadVoice);
 
 // 最初の一枚（文字の準備ができてから）
 Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]).then(() => { if (!running) frame(0.95); });
