@@ -20,8 +20,9 @@
   html, body { margin: 0; background: var(--bg); color: var(--fg); }
   body { font-family: "DotGothic16", sans-serif; display: flex; flex-direction: column; align-items: center;
          padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); min-height: 100vh; }
-  h1 { font-size: 18px; font-weight: 400; margin: 0 0 4px; letter-spacing: .08em; display: flex; align-items: center; justify-content: center; gap: 8px; }
-  #ccTitle { width: 36px; height: 39px; image-rendering: pixelated; flex-shrink: 0; border: none; border-radius: 0; background: transparent; }
+  /* タイトルは真ん中。オレンジのキャラクターは左はしに小さく */
+  h1 { font-size: 18px; font-weight: 400; margin: 0 0 4px; letter-spacing: .08em; position: relative; width: 100%; max-width: 480px; text-align: center; }
+  #ccTitle { position: absolute; left: 0; top: 50%; transform: translateY(-58%); width: 24px; height: 26px; image-rendering: pixelated; border: none; border-radius: 0; background: transparent; }
   .sub { font-size: 11px; opacity: .6; margin: 0 0 10px; }
   .stage { width: 100%; max-width: 480px; position: relative; }
   canvas { width: 100%; display: block; image-rendering: pixelated; border: 2px solid #2a2540; border-radius: 6px; background: #000; }
@@ -508,7 +509,7 @@ function frame(t) {
   captions(t);
   // 字幕の左：いま読んでいる人（めたん・つむぎ・はう・小夜）がしゃべる（前はオレンジのキャラクター）
   const ci = CAPS.findIndex(c => t >= c[0] && t < c[1]), si = ci < 0 ? CAPS.length - 1 : ci;
-  speakerDot(voiceOf(si), 6, 225, AT, playing && speaking && si === seg); // ドット絵（立ち絵の版は img/ に残してある）
+  speakerDot(voiceOf(si), 6, 227, AT, playing && speaking && si === seg); // ドット絵（立ち絵の版は img/ に残してある）
 }
 
 // ---------- 進み方：字幕1つずつ、読み上げが終わってから次へ ----------
