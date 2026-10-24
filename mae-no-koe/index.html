@@ -170,6 +170,28 @@ function mascot(ox, oy, t, mode = 'walk') {
   R(ox + 3 * p, y0 + p + (blink ? .6 : 0), p, blink ? .4 : p, '#1a1612'); R(ox + 8 * p, y0 + p + (blink ? .6 : 0), p, blink ? .4 : p, '#1a1612');
 }
 
+// 案内役の動きに合わせた効果音（声のじゃまにならないよう小さく鳴らす）
+// しゃべる：手をふるたびに「ぴょこ」／ジャンプ：とび上がるたびに「ぴょん」／歩く：一歩ごとに「とこ」／まばたき：「ぱち」
+// 動きが変わったとき：しゃべる→ジャンプ「ポロロン↑」、ジャンプ→歩く「ポロン↓」
+let mPrevT = -1, mPrevMode = '';
+function mascotSfx(t, mode) {
+  const pt = mPrevT, pm = mPrevMode; mPrevT = t; mPrevMode = mode;
+  if (!ac || !playing || muted || seeking || pt < 0 || t <= pt || t - pt > .2) return;
+  try {
+    if (mode !== pm) {
+      if (mode === 'jump') [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .07, .18, 'square', .03));
+      else if (mode === 'walk') [784, 587, 392].forEach((f, i) => tone(f, i * .09, .25, 'triangle', .07));
+      else [880, 1175].forEach((f, i) => tone(f, i * .08, .2, 'sine', .05));
+      return;
+    }
+    const cross = k => Math.floor(t * k) !== Math.floor(pt * k); // t*k が次の整数に進んだ
+    if (mode === 'talk' && Math.sin(t * 10) > 0 && Math.sin(pt * 10) <= 0) tone(620 + Math.random() * 120, 0, .08, 'sine', .035, 980);
+    if (mode === 'jump' && cross(7 / Math.PI)) { tone(140, 0, .06, 'triangle', .12, 90); tone(330, .02, .2, 'square', .025, 900); }
+    if (mode === 'walk' && cross(6) && Math.floor(t * 6) % 2 === 0) tone(Math.floor(t * 6) % 4 ? 440 : 520, 0, .05, 'triangle', .08, 260);
+    if ((t % 3) > 2.85 && (pt % 3) <= 2.85) tone(2200, 0, .03, 'sine', .02, 1600);
+  } catch (e) {}
+}
+
 // ---------- 字幕 ----------
 // [始まり, 終わり, 1行目, 2行目, 読み上げる文（読みにくい言葉はひらがな）]
 const CAPS = [
@@ -412,7 +434,9 @@ function frame(t) {
     T("ございました", 90, 128, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
   }
   captions(t);
-  mascot(5, 232, AT, t >= 15 ? "walk" : t >= 13 ? "jump" : "talk");
+  const mMode = t >= 15 ? "walk" : t >= 13 ? "jump" : "talk";
+  mascot(5, 232, AT, mMode);
+  mascotSfx(AT, mMode);
 }
 
 // ---------- 進み方：字幕1つずつ、読み上げが終わってから次へ ----------
