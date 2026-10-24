@@ -45,6 +45,15 @@
   .start { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   .start button { font-size: 18px; padding: 12px 26px; background: rgba(28,25,48,.9); }
   .hide { display: none !important; }
+  /* ほかの動画へのリンク */
+  .links { margin-top: 10px; font-size: 12px; }
+  .links a + a { margin-top: 6px; }
+  .links a { display: flex; align-items: center; gap: 10px; color: var(--fg); text-decoration: none; background: #12101f;
+             border: 2px solid #2a2540; border-radius: 6px; padding: 8px 12px; }
+  .links a:active { transform: translateY(1px); }
+  .links img { width: 36px; height: 36px; image-rendering: pixelated; border-radius: 6px; flex-shrink: 0; }
+  .links b { font-weight: 400; font-size: 15px; color: #ffe8b0; }
+  .links small { display: block; font-size: 11px; opacity: .6; }
 </style>
 </head>
 <body>
@@ -67,6 +76,10 @@
     <button data-v="1">つむぎ</button>
     <button data-v="2">はう</button>
   </div>
+</div>
+<div class="stage links">
+  <a href="taiyo/"><img src="taiyo/icon-180.png" alt=""><span><b>太陽の救い ▶</b><small>常識と自由の「超宗教」（約1分半）</small></span></a>
+  <a href="hodo/"><img src="hodo/icon-180.png" alt=""><span><b>程（ほど） ▶</b><small>人間万事 この一字にあり（約1分半）</small></span></a>
 </div>
 
 <script>
