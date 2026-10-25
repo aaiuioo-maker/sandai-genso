@@ -71,6 +71,8 @@
   #opening { position: fixed; inset: 0; z-index: 10; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center;
              padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom); cursor: pointer; transition: opacity .5s; }
   #opening.out { opacity: 0; pointer-events: none; }
+  /* オープニングの左上にも Claude Code のキャラクター（タイトルの左と同じ大きさ・同じ動き） */
+  #opCc { position: absolute; left: 20px; top: calc(16px + env(safe-area-inset-top)); width: 24px; height: 26px; image-rendering: pixelated; }
   #opCv { width: 240px; height: 180px; image-rendering: pixelated; }
   #opening h2 { font-size: 34px; font-weight: 400; letter-spacing: .15em; margin: 14px 0 4px; color: var(--fg); }
   #opening .opsub { font-size: 13px; color: var(--gold); letter-spacing: .1em; }
@@ -80,13 +82,14 @@
 </head>
 <body>
 <div id="opening" role="button" aria-label="はじめる">
+  <canvas id="opCc" class="cc" width="48" height="52" aria-hidden="true"></canvas>
   <canvas id="opCv" width="240" height="180" aria-hidden="true"></canvas>
   <h2>代引計算</h2>
   <div class="opsub">ゆうパック 代金引換</div>
   <div id="opgo">▶ タップしてはじめる</div>
 </div>
 <main>
-  <h1><canvas id="ccTitle" width="48" height="52" aria-hidden="true"></canvas>代引計算</h1>
+  <h1><canvas id="ccTitle" class="cc" width="48" height="52" aria-hidden="true"></canvas>代引計算</h1>
   <p class="sub">商品代金と送料を入れると、用紙の ④①②③ がそのまま出ます</p>
   <div class="tools"><button id="sndBtn">🔊 操作音 ON</button></div>
 
@@ -281,9 +284,8 @@
     });
   })();
 
-  // ---------- タイトルの左のオレンジのキャラクター（ほかのアプリと同じ。歩く） ----------
-  (function titleMascot() {
-    const c = $('ccTitle'); if (!c) return;
+  // ---------- Claude Code のオレンジのキャラクター（タイトルの左と、オープニングの左上。ほかのアプリと同じ。歩く） ----------
+  document.querySelectorAll('canvas.cc').forEach(function titleMascot(c) {
     const g = c.getContext('2d'), q = 4, oy = 5;
     function draw(now) {
       const t = now / 1000 / 1.4;
@@ -301,7 +303,7 @@
       requestAnimationFrame(draw);
     }
     requestAnimationFrame(draw);
-  })();
+  });
 </script>
 <!-- 更新した日時（GitHub に反映した日時が自動で出る）。オープニングの「タップして…」の下にだけ小さく出す -->
 <script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
