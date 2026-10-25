@@ -17,11 +17,14 @@
   .card { background: var(--card); border: 2px solid var(--blue); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
   label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
   .yen { display: flex; align-items: center; gap: 6px; }
-  input[type=text] { width: 100%; font-size: 24px; padding: 8px 10px; border: 1px solid #aaa; border-radius: 6px; text-align: right; font-variant-numeric: tabular-nums; }
+  input[type=text] { width: 100%; font-size: 22px; padding: 8px 10px; border: 1px solid #aaa; border-radius: 6px; text-align: right; font-variant-numeric: tabular-nums; }
   .tax { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .tax label { font-weight: 400; font-size: 13px; display: flex; align-items: center; gap: 4px; margin: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; }
-  #taxManualWrap { margin-top: 8px; display: none; }
-  #taxManualWrap input { font-size: 18px; }
+  .item { padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px dashed var(--line); }
+  .item .tax { margin-top: 6px; }
+  .sum { margin-top: 10px; font-size: 13px; line-height: 1.7; font-variant-numeric: tabular-nums; }
+  .sum div { display: flex; justify-content: space-between; }
+  .sum .total { font-weight: 700; font-size: 15px; border-top: 1px solid var(--line); margin-top: 4px; padding-top: 4px; }
   .row { padding: 10px 0; border-top: 1px dashed var(--line); }
   .row:first-child { border-top: none; padding-top: 0; }
   .head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
@@ -45,17 +48,24 @@
   <h1>ゆうパック 代金引換 計算</h1>
 
   <div class="card">
-    <label for="amount">① 引換金額（A）＝ お客さまから受け取る金額</label>
-    <div class="yen"><input id="amount" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span></div>
-    <div class="tax" id="taxModes">
-      <label><input type="radio" name="tax" value="10" checked>税込 10%</label>
-      <label><input type="radio" name="tax" value="8">税込 8%（軽減）</label>
-      <label><input type="radio" name="tax" value="0">消費税なし</label>
-      <label><input type="radio" name="tax" value="manual">税額を自分で入力</label>
+    <div class="item"><label for="goods">商品代金</label>
+      <div class="yen"><input id="goods" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span></div>
+      <div class="tax">
+        <label><input type="radio" name="goodsRate" value="10" checked>10%</label>
+        <label><input type="radio" name="goodsRate" value="8">8%（食品など軽減税率）</label>
+      </div>
     </div>
-    <div id="taxManualWrap">
-      <div class="yen"><input id="taxManual" type="text" inputmode="numeric" placeholder="② 消費税額等" autocomplete="off"><span>円</span></div>
+    <div class="item"><label for="ship">送料</label>
+      <div class="yen"><input id="ship" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span></div>
     </div>
+    <div class="item"><label for="fee">代引き手数料</label>
+      <div class="yen"><input id="fee" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span></div>
+    </div>
+    <div class="tax">
+      <label><input type="radio" name="incl" value="ex" checked>上の金額は税抜（消費税を足す）</label>
+      <label><input type="radio" name="incl" value="in">上の金額は税込</label>
+    </div>
+    <div class="sum" id="sum"></div>
   </div>
 
   <div class="card" id="result">
@@ -79,9 +89,10 @@
   </div>
 
   <div class="note">
-    <p>・消費税額は 税込金額 ×10/110（8%なら ×8/108）を計算し、1円未満は切り捨てています。</p>
+    <p>・消費税は 商品代金・送料・代引き手数料の合計に対して税率ごとに計算し、1円未満は切り捨てています（税抜なら ×10%、税込なら ×10/110）。送料と代引き手数料は 10% です。</p>
+    <p>・①引換金額 ＝ 商品代金＋送料＋代引き手数料＋消費税（税込入力のときは消費税を足しません）。</p>
     <p>・印紙代は「①－②」が 5万円以上なら 200円、100万円を超えると 400円 です（5万円未満は 0円）。</p>
-    <p>・④送金額 ＝ ①引換金額 －③印紙代。代引手数料は送金額から差し引かれません。</p>
+    <p>・④送金額 ＝ ①引換金額 －③印紙代。郵便局に払う代引手数料は送金額から差し引かれません。</p>
     <p>・引換金額の上限は 30万円（セキュリティゆうパックは 200万円）です。</p>
   </div>
 </main>
@@ -111,24 +122,40 @@
   }
 
   function calc() {
-    const A = toNum($('amount').value);
-    const mode = document.querySelector('input[name=tax]:checked').value;
-    $('taxManualWrap').style.display = mode === 'manual' ? 'block' : 'none';
+    const goods = toNum($('goods').value) || 0;
+    const ship = toNum($('ship').value) || 0;
+    const fee = toNum($('fee').value) || 0;
+    const goodsRate = parseInt(document.querySelector('input[name=goodsRate]:checked').value, 10);
+    const incl = document.querySelector('input[name=incl]:checked').value === 'in';
     const warn = [];
 
-    if (A == null) {
+    if (!goods && !ship && !fee) {
       ['vSend','vA','vTax','vB'].forEach(id => $(id).textContent = '');
       ['bSend','bA','bTax'].forEach(id => boxes($(id), null));
       $('stamp').innerHTML = '';
       $('warn').textContent = '';
+      $('sum').innerHTML = '';
       return;
     }
 
-    let tax;
-    if (mode === 'manual') tax = toNum($('taxManual').value) || 0;
-    else if (mode === '0') tax = 0;
-    else { const r = parseInt(mode, 10); tax = Math.floor(A * r / (100 + r)); }
-    if (tax > A) warn.push('消費税額が引換金額より大きくなっています。');
+    // 税率ごとにまとめて消費税を出す（1円未満切り捨て）。送料・手数料は10%
+    const groups = {};
+    groups[goodsRate] = (groups[goodsRate] || 0) + goods;
+    groups[10] = (groups[10] || 0) + ship + fee;
+    let tax = 0;
+    const taxLines = [];
+    for (const r of Object.keys(groups).map(Number).sort((a, b) => b - a)) {
+      const amt = groups[r];
+      if (!amt) continue;
+      const t = incl ? Math.floor(amt * r / (100 + r)) : Math.floor(amt * r / 100);
+      tax += t;
+      taxLines.push([`消費税（${r}%${incl ? '・内税' : ''}）`, t]);
+    }
+    const A = incl ? goods + ship + fee : goods + ship + fee + tax;
+
+    const lines = [['商品代金', goods], ['送料', ship], ['代引き手数料', fee], ...taxLines];
+    $('sum').innerHTML = lines.map(([k, v]) => `<div><span>${k}</span><span>${fmt(v)}</span></div>`).join('')
+      + `<div class="total"><span>合計 ＝ ①引換金額</span><span>${fmt(A)}</span></div>`;
 
     const base = A - tax;
     const B = base > 1000000 ? 400 : base >= 50000 ? 200 : 0;
@@ -148,9 +175,8 @@
     $('warn').textContent = warn.join(' ');
   }
 
-  commaInput($('amount'));
-  commaInput($('taxManual'));
-  document.querySelectorAll('input[name=tax]').forEach(r => r.addEventListener('change', calc));
+  ['goods', 'ship', 'fee'].forEach(id => commaInput($(id)));
+  document.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', calc));
   calc();
 </script>
 </body>
