@@ -36,6 +36,17 @@
   .dest label { flex: 1; text-align: center; font-size: 13px; color: var(--mute); padding: 7px 4px; border: 2px solid #3a3358; border-radius: 6px; cursor: pointer; }
   .dest input { display: none; }
   .dest label:has(input:checked) { border-color: var(--accent); color: var(--fg); }
+  .clr { flex: 0 0 auto; width: 34px; height: 34px; font-family: inherit; font-size: 15px; color: var(--mute); background: #1c1930; border: 2px solid #3a3358; border-radius: 6px; cursor: pointer; padding: 0; }
+  .clr:active, .clrAll:active { transform: translateY(1px); }
+  .clrAll { width: 100%; margin-top: 8px; font-family: inherit; font-size: 12px; color: var(--mute); background: #1c1930; border: 2px solid #3a3358; border-radius: 6px; padding: 5px; cursor: pointer; }
+  /* ①−② と 5万円との比べ */
+  .base { display: none; margin-top: 10px; background: var(--panel); border: 2px solid #3a3358; border-radius: 6px; padding: 8px 12px; }
+  .base .t { font-size: 12px; color: #8fd3ff; }
+  .base .v { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px; }
+  .base .n { font-size: 24px; font-variant-numeric: tabular-nums; }
+  .base .tag { font-size: 13px; padding: 4px 8px; border-radius: 6px; border: 2px solid; white-space: nowrap; }
+  .base .tag.over { color: #ffcf8a; border-color: var(--accent); background: #2a1a14; }
+  .base .tag.under { color: #6fe0a0; border-color: #3a7a5a; background: #102018; }
   .hint { font-size: 11px; color: var(--mute); margin-top: 6px; }
 
   /* ---------- 代金引換の用紙と同じ形（④①②③） ---------- */
@@ -110,16 +121,18 @@
   <div class="tools"><button id="tutBtn">📖 使い方を声で聞く</button><button id="sndBtn">🔊 操作音 ON</button></div>
 
   <div class="card">
-    <div class="field" id="fGoods"><label for="goods">商品代金</label><input id="goods" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span></div>
-    <div class="field" id="fShip"><label for="ship">送料</label><input id="ship" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span></div>
+    <div class="field" id="fGoods"><label for="goods">商品代金</label><input id="goods" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span><button class="clr" data-for="goods" aria-label="消す">✕</button></div>
+    <div class="field" id="fShip"><label for="ship">送料</label><input id="ship" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span><button class="clr" data-for="ship" aria-label="消す">✕</button></div>
     <div class="dest" id="fDest">
       <label><input type="radio" name="dest" value="yucho" checked>ゆうちょ口座へ送金</label>
       <label><input type="radio" name="dest" value="bank">他の銀行へ送金</label>
     </div>
+    <button id="clrAll" class="clrAll">✕ 商品代金と送料を両方消す</button>
     <div class="hint">商品代金・送料は税抜の金額。消費税と代引き手数料は自動で足します。</div>
   </div>
 
   <div class="form" id="form"></div>
+  <div class="base" id="baseBox"></div>
 
   <div class="card detail" id="detail"></div>
   <div class="warn" id="warn"></div>
@@ -174,7 +187,7 @@
     const goods = toNum($('goods').value) || 0;
     const ship = toNum($('ship').value) || 0;
     const dest = document.querySelector('input[name=dest]:checked').value;
-    if (!goods && !ship) { drawForm(null); $('detail').style.display = 'none'; $('warn').textContent = ''; return; }
+    if (!goods && !ship) { drawForm(null); $('baseBox').style.display = 'none'; $('detail').style.display = 'none'; $('warn').textContent = ''; return; }
 
     const a = goods + ship;                       // ア
     const i = Math.floor(a * 10 / 100);           // イ
@@ -191,6 +204,11 @@
     r.send = r.A - r.B;
     drawForm(r);
     resultSound(r);
+
+    // ①−②（引換金額から消費税を引いた額）が 5万円未満か以上か
+    $('baseBox').style.display = 'block';
+    $('baseBox').innerHTML = `<div class="t">①−② 引換金額から消費税を引いた額</div><div class="v"><span class="n">${yen(base)}</span>`
+      + (base >= 50000 ? `<span class="tag over">5万円以上 → 印紙 ${r.B}円</span>` : `<span class="tag under">5万円未満 → 印紙いらない</span>`) + `</div>`;
 
     $('detail').style.display = '';
     $('detail').innerHTML = [
@@ -214,6 +232,16 @@
     e.target.value = n == null ? '' : n.toLocaleString('ja-JP');
     calc();
   }));
+  // ✕ ボタンで金額を消す
+  function clearField(id) { $(id).value = ''; calc(); }
+  document.querySelectorAll('.clr').forEach(b => b.onclick = () => {
+    sfx(() => tone(700, 0, .08, 'triangle', .07, 350));
+    clearField(b.dataset.for); $(b.dataset.for).focus();
+  });
+  $('clrAll').onclick = () => {
+    sfx(() => [784, 523, 392].forEach((f, i) => tone(f, i * .06, .1, 'triangle', .07)));
+    $('goods').value = ''; $('ship').value = ''; calc(); $('goods').focus();
+  };
   document.querySelectorAll('input[name=dest]').forEach(r => r.addEventListener('change', () => {
     sfx(() => [660, 880].forEach((f, i) => tone(f, i * .07, .12, 'triangle', .08)));
     calc();
