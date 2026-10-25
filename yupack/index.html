@@ -22,6 +22,8 @@
   .tax label { font-weight: 400; font-size: 13px; display: flex; align-items: center; gap: 4px; margin: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; }
   .item { padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px dashed var(--line); }
   .item .tax { margin-top: 6px; }
+  .item .note { margin-top: 4px; }
+  #fee[readonly] { background: #f0f3fb; }
   .sum { margin-top: 10px; font-size: 13px; line-height: 1.7; font-variant-numeric: tabular-nums; }
   .sum div { display: flex; justify-content: space-between; }
   .sum .total { font-weight: 700; font-size: 15px; border-top: 1px solid var(--line); margin-top: 4px; padding-top: 4px; }
@@ -59,7 +61,13 @@
       <div class="yen"><input id="ship" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span></div>
     </div>
     <div class="item"><label for="fee">代引き手数料</label>
+      <div class="tax" style="margin:0 0 6px">
+        <label><input type="radio" name="dest" value="yucho" checked>ゆうちょ口座へ送金</label>
+        <label><input type="radio" name="dest" value="bank">他の銀行へ送金</label>
+        <label><input type="radio" name="dest" value="manual">自分で入力</label>
+      </div>
       <div class="yen"><input id="fee" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span></div>
+      <div class="note" id="feeNote"></div>
     </div>
     <div class="tax">
       <label><input type="radio" name="incl" value="ex" checked>上の金額は税抜（消費税を足す）</label>
@@ -85,6 +93,10 @@
       <div class="head"><b>③ 印紙代（B）</b><span class="val" id="vB"></span></div>
       <div class="stamp" id="stamp"></div>
     </div>
+    <div class="row" id="netRow">
+      <div class="head"><b>手取りの目安</b><span class="val" id="vNet"></span></div>
+      <div class="note">④送金額 － 送金料金 － 代金引換料（送料は含めていません）</div>
+    </div>
     <div class="warn" id="warn"></div>
   </div>
 
@@ -93,6 +105,7 @@
     <p>・①引換金額 ＝ 商品代金＋送料＋代引き手数料＋消費税（税込入力のときは消費税を足しません）。</p>
     <p>・印紙代は「①－②」が 5万円以上なら 200円、100万円を超えると 400円 です（5万円未満は 0円）。</p>
     <p>・④送金額 ＝ ①引換金額 －③印紙代。郵便局に払う代引手数料は送金額から差し引かれません。</p>
+    <p>・代引き手数料（自動）＝ 代金引換料 290円 ＋ 送金料金（ゆうちょ 203円／417円、他の銀行 220円／440円。引換金額 5万円未満／以上）。税込の金額として扱います。</p>
     <p>・引換金額の上限は 30万円（セキュリティゆうパックは 200万円）です。</p>
   </div>
 </main>
@@ -121,39 +134,72 @@
     });
   }
 
+  // 日本郵便の代金引換料（1個）と送金料金（税込）。送金料金は引換金額 5万円未満／以上で変わる
+  const DAIBIKI_FEE = 290;
+  const SOKIN_FEE = { yucho: [203, 417], bank: [220, 440] };
+  const sokinFee = (dest, A) => SOKIN_FEE[dest][A >= 50000 ? 1 : 0];
+
+  // 税率・税込/税抜ごとにまとめて消費税を出す（1円未満切り捨て）
+  function total(items) {
+    const groups = {};
+    for (const it of items) {
+      const k = it.rate + (it.incl ? 'in' : 'ex');
+      groups[k] = groups[k] || { rate: it.rate, incl: it.incl, amt: 0 };
+      groups[k].amt += it.amt;
+    }
+    const taxByRate = {};
+    let A = 0;
+    for (const g of Object.values(groups)) {
+      const t = g.incl ? Math.floor(g.amt * g.rate / (100 + g.rate)) : Math.floor(g.amt * g.rate / 100);
+      taxByRate[g.rate] = (taxByRate[g.rate] || 0) + t;
+      A += g.incl ? g.amt : g.amt + t;
+    }
+    const tax = Object.values(taxByRate).reduce((a, b) => a + b, 0);
+    return { A, tax, taxByRate };
+  }
+
   function calc() {
     const goods = toNum($('goods').value) || 0;
     const ship = toNum($('ship').value) || 0;
-    const fee = toNum($('fee').value) || 0;
     const goodsRate = parseInt(document.querySelector('input[name=goodsRate]:checked').value, 10);
     const incl = document.querySelector('input[name=incl]:checked').value === 'in';
+    const dest = document.querySelector('input[name=dest]:checked').value;
+    const auto = dest !== 'manual';
+    $('fee').readOnly = auto;
     const warn = [];
 
-    if (!goods && !ship && !fee) {
+    // 自動のときの手数料は郵便局に払う額そのもの（税込）なので、内税として扱う
+    const build = fee => total([
+      { amt: goods, rate: goodsRate, incl },
+      { amt: ship, rate: 10, incl },
+      { amt: fee, rate: 10, incl: auto || incl },
+    ]);
+    let fee, sokin = 0;
+    if (auto) {
+      sokin = sokinFee(dest, build(DAIBIKI_FEE + SOKIN_FEE[dest][0]).A);
+      fee = DAIBIKI_FEE + sokin;
+      $('fee').value = fee.toLocaleString('ja-JP');
+      $('feeNote').textContent = `代金引換料 ${DAIBIKI_FEE}円 ＋ 送金料金 ${sokin}円（引換金額 5万円${sokin === SOKIN_FEE[dest][0] ? '未満' : '以上'}）・税込`;
+    } else {
+      fee = toNum($('fee').value) || 0;
+      $('feeNote').textContent = '';
+    }
+
+    if (!goods && !ship) {
       ['vSend','vA','vTax','vB'].forEach(id => $(id).textContent = '');
       ['bSend','bA','bTax'].forEach(id => boxes($(id), null));
       $('stamp').innerHTML = '';
       $('warn').textContent = '';
       $('sum').innerHTML = '';
+      $('netRow').style.display = 'none';
       return;
     }
 
-    // 税率ごとにまとめて消費税を出す（1円未満切り捨て）。送料・手数料は10%
-    const groups = {};
-    groups[goodsRate] = (groups[goodsRate] || 0) + goods;
-    groups[10] = (groups[10] || 0) + ship + fee;
-    let tax = 0;
-    const taxLines = [];
-    for (const r of Object.keys(groups).map(Number).sort((a, b) => b - a)) {
-      const amt = groups[r];
-      if (!amt) continue;
-      const t = incl ? Math.floor(amt * r / (100 + r)) : Math.floor(amt * r / 100);
-      tax += t;
-      taxLines.push([`消費税（${r}%${incl ? '・内税' : ''}）`, t]);
-    }
-    const A = incl ? goods + ship + fee : goods + ship + fee + tax;
+    const { A, tax, taxByRate } = build(fee);
+    const taxLines = Object.keys(taxByRate).map(Number).sort((a, b) => b - a)
+      .filter(r => taxByRate[r]).map(r => [`消費税（${r}%）`, taxByRate[r]]);
 
-    const lines = [['商品代金', goods], ['送料', ship], ['代引き手数料', fee], ...taxLines];
+    const lines = [['商品代金', goods], ['送料', ship], [`代引き手数料${auto ? '（税込）' : ''}`, fee], ...taxLines];
     $('sum').innerHTML = lines.map(([k, v]) => `<div><span>${k}</span><span>${fmt(v)}</span></div>`).join('')
       + `<div class="total"><span>合計 ＝ ①引換金額</span><span>${fmt(A)}</span></div>`;
 
@@ -165,6 +211,8 @@
     $('vTax').textContent = fmt(tax); boxes($('bTax'), tax);
     $('vB').textContent = fmt(B);
     $('vSend').textContent = fmt(send); boxes($('bSend'), Math.max(send, 0));
+    $('vNet').textContent = auto ? fmt(send - sokin - DAIBIKI_FEE) : '';
+    $('netRow').style.display = auto ? '' : 'none';
     $('stamp').innerHTML = B === 0
       ? '<span class="chk"></span>（①－② が 5万円未満なので レ印 は不要）'
       : `<span class="chk">✓</span>${B}円 にレ印（①－② ＝ ${base.toLocaleString('ja-JP')}円）`;
