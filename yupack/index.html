@@ -16,7 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 <style>
   :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; --panel:#12101f; --line:#2a2540; --mute:#8a84a8; --gold:#ffcf8a;
-          --paper:#fbf5e6; --blue:#2c4fa8; --blue2:#9fb2e0; --red:#d0312d; --ink:#1a1a1a; }
+          --paper:#fbf5e6; --num: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif; --blue:#2c4fa8; --blue2:#9fb2e0; --red:#d0312d; --ink:#1a1a1a; }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--fg); }
   body { font-family: "DotGothic16", sans-serif; display: flex; flex-direction: column; align-items: center;
@@ -30,7 +30,7 @@
   .field { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
   .field label { flex: 0 0 64px; font-size: 14px; color: var(--gold); }
   .field span { font-size: 14px; }
-  input[type=text] { flex: 1; min-width: 0; font-family: inherit; font-size: 24px; padding: 6px 10px; color: var(--fg); background: #1c1930; border: 2px solid #5a5478; border-radius: 6px; text-align: right; font-variant-numeric: tabular-nums; }
+  input[type=text] { flex: 1; min-width: 0; font-family: var(--num); font-weight: 600; font-size: 24px; padding: 6px 10px; color: var(--fg); background: #1c1930; border: 2px solid #5a5478; border-radius: 6px; text-align: right; font-variant-numeric: tabular-nums; }
   input[type=text]:focus { outline: none; border-color: var(--accent); }
   .dest { display: flex; gap: 6px; }
   .dest label { flex: 1; text-align: center; font-size: 13px; color: var(--mute); padding: 7px 4px; border: 2px solid #3a3358; border-radius: 6px; cursor: pointer; }
@@ -43,7 +43,7 @@
   .base { display: none; margin-top: 10px; background: var(--panel); border: 2px solid #3a3358; border-radius: 6px; padding: 8px 12px; }
   .base .t { font-size: 12px; color: #8fd3ff; }
   .base .v { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px; }
-  .base .n { font-size: 24px; font-variant-numeric: tabular-nums; }
+  .base .n { font-family: var(--num); font-weight: 600; font-size: 24px; font-variant-numeric: tabular-nums; }
   .base .tag { font-size: 13px; padding: 4px 8px; border-radius: 6px; border: 2px solid; white-space: nowrap; }
   .base .tag.over { color: #ffcf8a; border-color: var(--accent); background: #2a1a14; }
   .base .tag.under { color: #6fe0a0; border-color: #3a7a5a; background: #102018; }
@@ -55,7 +55,7 @@
   .form .r:first-child { border-top: none; }
   .form .lab { color: var(--blue); font-size: 11.5px; white-space: nowrap; overflow: hidden; line-height: 1.25; padding: 6px 4px 6px 6px; border-right: 2px solid var(--blue); display: flex; flex-direction: column; justify-content: center; }
   .form .lab small { display: block; font-size: 10px; }
-  .form .d { text-align: center; font-size: 26px; line-height: 44px; height: 44px; font-variant-numeric: tabular-nums; border-left: 1px dashed var(--blue2); font-family: "DotGothic16", monospace; }
+  .form .d { text-align: center; font-size: 26px; line-height: 44px; height: 44px; font-variant-numeric: tabular-nums; border-left: 1px dashed var(--blue2); font-family: var(--num); font-weight: 500; }
   .form .lab + .d { border-left: none; }
   .form .d.k { border-left: 1px solid var(--blue); }   /* 千と百万のところは実線（用紙と同じ） */
   .form .top .d { font-size: 11px; line-height: 18px; height: 18px; color: var(--blue); font-family: inherit; }
@@ -69,6 +69,8 @@
 
   .detail { margin-top: 10px; font-size: 13px; line-height: 1.8; font-variant-numeric: tabular-nums; }
   .detail div { display: flex; justify-content: space-between; }
+  /* 金額はドット文字ではなく、ふつうのゴシック */
+  .detail div span:last-child, .form .stamp .txt { font-family: var(--num); }
   .detail .em { color: var(--gold); }
   .warn { color: var(--accent); font-size: 13px; margin-top: 8px; }
   .note { font-size: 11px; color: var(--mute); line-height: 1.6; }
