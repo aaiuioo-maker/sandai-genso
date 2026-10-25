@@ -67,6 +67,12 @@
   .tools button { font-family: inherit; font-size: 12px; color: #6fe0a0; background: #1c1930; border: 2px solid #5a5478; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
   .tools button.off { color: var(--mute); }
   .detail .key { color: #8fd3ff; }
+  /* ①②④ の計算の内容 */
+  .detail .calc { display: block; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #3a3358; }
+  .detail .calc .c { display: flex; flex-direction: column; justify-content: flex-start; margin-bottom: 4px; }
+  .detail .calc .h { color: var(--gold); }
+  .detail .calc .c > span:last-child { text-align: right; }
+  .detail .calc b { font-weight: 400; color: var(--fg); font-size: 15px; }
 
   /* ---------- 使い方（めたん→つむぎ→はう→小夜 の順番に声で説明） ---------- */
   body.tut main { padding-bottom: 170px; }
@@ -170,6 +176,10 @@
       + `</div></div>`;
   }
 
+  // 計算の内容を1つ出す：「①引換金額 ＝ ア＋イ＋ウ」の下に「10,000＋1,000＋493 ＝ 11,493 円」
+  const calcRow = (name, how, nums, op, ans) =>
+    `<div class="c"><span class="h">${name} ＝ ${how}</span><span>${nums.map(n => n.toLocaleString('ja-JP')).join(` ${op} `)} ＝ <b>${yen(ans)}</b></span></div>`;
+
   function calc() {
     const goods = toNum($('goods').value) || 0;
     const ship = toNum($('ship').value) || 0;
@@ -200,7 +210,13 @@
       ['エ 手数料の中の消費税', r.e],
     ].map(([k, v]) => `<div><span>${k}</span><span>${yen(v)}</span></div>`).join('')
       + `<div class="key"><span>①−② 引換金額から消費税を引いた額</span><span>${yen(base)}</span></div>`
-      + `<div class="em"><span>手取りの目安（④−ウ）</span><span>${yen(r.send - r.u)}</span></div>`;
+      + `<div class="em"><span>手取りの目安（④−ウ）</span><span>${yen(r.send - r.u)}</span></div>`
+      // ①②④ の計算の内容（どの数字を足し引きしたか）
+      + `<div class="calc">`
+      + calcRow('①引換金額', 'ア＋イ＋ウ', [a, i, r.u], '＋', r.A)
+      + calcRow('②消費税額等', 'イ＋エ', [i, r.e], '＋', r.tax)
+      + calcRow('④送金額', '①−③', [r.A, r.B], '−', r.send)
+      + `</div>`;
 
     const warn = [];
     if (r.A > 2000000) warn.push('引換金額の上限（200万円）を超えています。');
