@@ -53,7 +53,8 @@
   .form .stamp { display: grid; grid-template-columns: 30% 1fr; border-top: 1px solid var(--blue); }
   .form .stamp .txt { font-size: 11px; color: var(--blue); padding: 6px 8px; display: flex; align-items: center; gap: 8px; }
   .form .chk { flex: 0 0 auto; width: 26px; height: 26px; border: 2px solid var(--blue); background: #f2dfb0; color: var(--red); font-size: 22px; line-height: 22px; text-align: center; font-weight: 700; }
-  .form .stamp b { font-size: 15px; color: var(--ink); }
+  .form .stamp b { font-size: 15px; color: var(--ink); white-space: nowrap; }
+  .form .stamp .txt > span:last-child { line-height: 1.5; }
 
   .detail { margin-top: 10px; font-size: 13px; line-height: 1.8; font-variant-numeric: tabular-nums; }
   .detail div { display: flex; justify-content: space-between; }
@@ -61,12 +62,33 @@
   .warn { color: var(--accent); font-size: 13px; margin-top: 8px; }
   .note { font-size: 11px; color: var(--mute); line-height: 1.6; }
   .note p { margin: 4px 0; }
+  .tools { display: flex; justify-content: flex-end; margin: -2px 0 8px; }
+  .tools button { font-family: inherit; font-size: 12px; color: #6fe0a0; background: #1c1930; border: 2px solid #5a5478; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+  .tools button.off { color: var(--mute); }
+  .detail .key { color: #8fd3ff; }
+
+  /* ---------- オープニング ---------- */
+  #opening { position: fixed; inset: 0; z-index: 10; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center;
+             padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom); cursor: pointer; transition: opacity .5s; }
+  #opening.out { opacity: 0; pointer-events: none; }
+  #opCv { width: 240px; height: 180px; image-rendering: pixelated; }
+  #opening h2 { font-size: 34px; font-weight: 400; letter-spacing: .15em; margin: 14px 0 4px; color: var(--fg); }
+  #opening .opsub { font-size: 13px; color: var(--gold); letter-spacing: .1em; }
+  #opgo { margin-top: 34px; font-size: 16px; color: var(--accent); animation: blink 1.2s steps(2, start) infinite; }
+  @keyframes blink { to { visibility: hidden; } }
 </style>
 </head>
 <body>
+<div id="opening" role="button" aria-label="はじめる">
+  <canvas id="opCv" width="240" height="180" aria-hidden="true"></canvas>
+  <h2>代引計算</h2>
+  <div class="opsub">ゆうパック 代金引換</div>
+  <div id="opgo">▶ タップしてはじめる</div>
+</div>
 <main>
   <h1><canvas id="ccTitle" width="48" height="52" aria-hidden="true"></canvas>代引計算</h1>
   <p class="sub">商品代金と送料を入れると、用紙の ④①②③ がそのまま出ます</p>
+  <div class="tools"><button id="sndBtn">🔊 操作音 ON</button></div>
 
   <div class="card">
     <div class="field"><label for="goods">商品代金</label><input id="goods" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span></div>
@@ -119,8 +141,8 @@
       + row('', '②引換金額に<small>含む消費税額等</small>', r && r.tax)
       + `<div class="stamp"><div class="lab">③印紙代<small>（B）</small></div><div class="txt">`
       + (r == null ? '<span class="chk"></span>'
-        : B ? `<span class="chk">✓</span><b>${B}円</b>にレ印（①−②が5万円以上）`
-        : `<span class="chk"></span>レ印なし（①−②が5万円未満）`)
+        : B ? `<span class="chk">✓</span><span><b>${B}円</b> にレ印<br>①−②＝${r.base.toLocaleString('ja-JP')}円（5万円以上）</span>`
+        : `<span class="chk"></span><span>レ印なし<br>①−②＝${r.base.toLocaleString('ja-JP')}円（5万円未満）</span>`)
       + `</div></div>`;
   }
 
@@ -140,10 +162,11 @@
     let sokin = SOKIN_FEE[dest][0];
     let r = build(sokin);
     if (r.A >= 50000) { sokin = SOKIN_FEE[dest][1]; r = build(sokin); }
-    const base = r.A - r.tax;
+    const base = r.base = r.A - r.tax;
     r.B = base > 1000000 ? 400 : base >= 50000 ? 200 : 0;
     r.send = r.A - r.B;
     drawForm(r);
+    resultSound(r);
 
     $('detail').style.display = '';
     $('detail').innerHTML = [
@@ -152,6 +175,7 @@
       [`ウ 代引き手数料（290＋${sokin}）`, r.u],
       ['エ 手数料の中の消費税', r.e],
     ].map(([k, v]) => `<div><span>${k}</span><span>${yen(v)}</span></div>`).join('')
+      + `<div class="key"><span>①−② 引換金額から消費税を引いた額</span><span>${yen(base)}</span></div>`
       + `<div class="em"><span>手取りの目安（④−ウ）</span><span>${yen(r.send - r.u)}</span></div>`;
 
     const warn = [];
@@ -161,12 +185,101 @@
   }
 
   ['goods', 'ship'].forEach(id => $(id).addEventListener('input', e => {
+    keySound(e.inputType === 'deleteContentBackward');
     const n = toNum(e.target.value);
     e.target.value = n == null ? '' : n.toLocaleString('ja-JP');
     calc();
   }));
-  document.querySelectorAll('input[name=dest]').forEach(r => r.addEventListener('change', calc));
+  document.querySelectorAll('input[name=dest]').forEach(r => r.addEventListener('change', () => {
+    sfx(() => [660, 880].forEach((f, i) => tone(f, i * .07, .12, 'triangle', .08)));
+    calc();
+  }));
+  ['goods', 'ship'].forEach(id => $(id).addEventListener('focus', () => sfx(() => tone(520, 0, .06, 'sine', .05, 700))));
   calc();
+
+  // ---------- 音（ほかのアプリと同じく Web Audio で鳴らす） ----------
+  let ac = null, muted = false;
+  try { muted = localStorage.getItem('yupackMute') === '1'; } catch (e) {}
+  function startSound() {
+    try {
+      // iPhone の消音スイッチが入っていても音が出るようにする
+      try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+      if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+      ac.resume();
+    } catch (e) {}
+  }
+  function tone(f, at, len, type, vol, f2) {
+    const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + at;
+    o.type = type; o.frequency.setValueAtTime(f, t0);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + len);
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .01);
+    g.gain.exponentialRampToValueAtTime(.0001, t0 + len);
+    o.connect(g).connect(ac.destination); o.start(t0); o.stop(t0 + len + .05);
+  }
+  const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
+  // 音を出してよいときだけ鳴らす
+  function sfx(fn) { if (!ac || muted) return; try { if (ac.state !== 'running') ac.resume(); fn(); } catch (e) {} }
+  // 数字を打つたびに「ポチ」、消すときは少し低く「ポッ」
+  function keySound(del) { sfx(() => tone(del ? 600 : 1100 + Math.random() * 200, 0, .04, 'square', .025, del ? 400 : 0)); }
+  // 計算が終わったら「ピロン」。印紙がいるようになったときは「キラッ」
+  let lastA = null, lastB = 0, resTimer = 0;
+  function resultSound(r) {
+    clearTimeout(resTimer);
+    resTimer = setTimeout(() => {
+      if (r.A === lastA) return;
+      const needStamp = r.B && !lastB;
+      lastA = r.A; lastB = r.B;
+      sfx(() => {
+        [76, 83].forEach((n, i) => tone(NOTE(n), i * .08, .22, 'triangle', .06));
+        if (needStamp) [84, 88, 91, 96].forEach((n, i) => tone(NOTE(n), .25 + i * .06, .25, 'square', .03));
+      });
+    }, 450);
+  }
+  function showSnd() { $('sndBtn').textContent = muted ? '🔇 操作音 OFF' : '🔊 操作音 ON'; $('sndBtn').classList.toggle('off', muted); }
+  $('sndBtn').onclick = () => {
+    muted = !muted; showSnd();
+    try { localStorage.setItem('yupackMute', muted ? '1' : '0'); } catch (e) {}
+    startSound(); sfx(() => [72, 79].forEach((n, i) => tone(NOTE(n), i * .08, .15, 'triangle', .07)));
+  };
+  showSnd();
+
+  // ---------- オープニング（タップすると音が出るようになって、計算の画面へ） ----------
+  (function opening() {
+    const op = $('opening'), c = $('opCv'), g = c.getContext('2d');
+    let open = true;
+    function draw(now) {
+      if (!open) return;
+      const t = now / 1000, q = 8;
+      const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x * q), Math.round(y * q), Math.round(w * q), Math.round(h * q)); };
+      g.clearRect(0, 0, c.width, c.height);
+      R(0, 20, 30, 2, '#2a2540');                                 // 地面
+      const f = Math.floor(t * 6) % 4, hop = f % 2 ? -.5 : 0;
+      const x0 = 3 + Math.sin(t * .9) * 1.5;                      // 少し左右に歩く
+      // オレンジのキャラクターが荷物（伝票つき）を持って歩く
+      const col = '#d97757', y0 = 11 + hop;
+      [2, 4, 7, 9].forEach((x, i) => R(x0 + x, 17, 1, [f === 1, f === 3, f === 3, f === 1][i] ? 2 : 3, col));
+      R(x0 + 2, y0, 8, 6, col); R(x0, y0 + 2, 2, 2, col);
+      const blink = (t % 3) > 2.85;
+      R(x0 + 3, y0 + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612'); R(x0 + 8, y0 + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612');
+      const bx = x0 + 11, by = 7 + hop;
+      R(bx, by, 12, 9, '#c8955a'); R(bx, by, 12, 2, '#a8763f'); R(bx + 5.5, by, 1, 9, '#e8c08a');
+      R(bx + 1.5, by + 4, 4, 3.5, '#f3ead6'); R(bx + 2, by + 4.5, 1.5, .6, '#d0312d'); R(bx + 2, by + 5.8, 3, .5, '#5a5478');
+      R(x0 + 10, y0 + 2, 2, 2, col);                              // 荷物を持つ手
+      // きらきら
+      const tw = (k) => (Math.sin(t * 3 + k) + 1) / 2;
+      [[24, 2, 0], [27, 6, 2], [21, 0, 4]].forEach(([x, y, k]) => { g.globalAlpha = tw(k); R(x, y - 1, 1, 3, '#ffcf8a'); R(x - 1, y, 3, 1, '#ffcf8a'); g.globalAlpha = 1; });
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+    op.addEventListener('click', () => {
+      if (!open) return;
+      startSound();
+      // はじまりの音「ポロロン♪」
+      sfx(() => { [67, 72, 76, 79].forEach((n, i) => tone(NOTE(n), i * .09, .35, 'square', .04)); tone(NOTE(84), .4, .7, 'triangle', .08); });
+      op.classList.add('out');
+      setTimeout(() => { open = false; op.style.display = 'none'; }, 550);
+    });
+  })();
 
   // ---------- タイトルの左のオレンジのキャラクター（ほかのアプリと同じ。歩く） ----------
   (function titleMascot() {
@@ -190,10 +303,10 @@
     requestAnimationFrame(draw);
   })();
 </script>
-<!-- 更新した日時（GitHub に反映した日時が自動で出る）。画面のいちばん下に小さく出す -->
+<!-- 更新した日時（GitHub に反映した日時が自動で出る）。オープニングの「タップして…」の下にだけ小さく出す -->
 <script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
 var e=document.createElement('div');e.id='appVer';e.textContent='更新 '+d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
-e.style.cssText='display:block;width:100%;text-align:center;font:11px/1.4 sans-serif;color:inherit;opacity:.6;margin-top:10px;pointer-events:none;';
-document.body.appendChild(e);})();</script>
+e.style.cssText='display:block;width:100%;text-align:center;font:11px/1.4 sans-serif;color:inherit;opacity:.6;margin-top:8px;pointer-events:none;';
+var t=document.querySelector('#opgo');if(t)t.insertAdjacentElement('afterend',e);})();</script>
 </body>
 </html>
