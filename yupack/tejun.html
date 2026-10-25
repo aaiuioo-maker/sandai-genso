@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>代引の書き方 手順書</title>
+<style>
+  @page { size: A4; margin: 10mm 12mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "IPAGothic", "IPAゴシック", sans-serif; color: #111; font-size: 10.5pt; line-height: 1.45; }
+  h1 { font-size: 17pt; margin: 0 0 1mm; border-bottom: 2.5px solid #111; padding-bottom: 1mm; }
+  h1 small { font-size: 10pt; font-weight: 400; margin-left: 4mm; }
+  h2 { font-size: 11.5pt; margin: 2.5mm 0 1.2mm; background: #111; color: #fff; padding: .6mm 2mm; }
+  .step { display: flex; gap: 2.5mm; margin: 1.1mm 0; align-items: flex-start; }
+  .no { flex: 0 0 7mm; height: 7mm; border: 2px solid #111; border-radius: 50%; text-align: center; line-height: 6mm; font-weight: 700; font-size: 11pt; }
+  .step b { font-size: 11pt; }
+  .calc { display: inline-block; border: 1px solid #555; padding: 0 2mm; margin-top: .5mm; background: #f2f2f2; }
+  table { border-collapse: collapse; }
+  td, th { border: 1px solid #333; padding: .6mm 2mm; text-align: center; }
+  th { background: #e6e6e6; }
+  .two { display: flex; gap: 5mm; }
+  .two > div { flex: 1; }
+  .ex td:first-child, .ex th:first-child { text-align: left; white-space: nowrap; font-size: 9.5pt; }
+  .ex td:last-child { text-align: right; }
+  .sheet td, .sheet th { height: 6.6mm; }
+  .sheet td:first-child, .sheet th { text-align: left; width: 100mm; white-space: nowrap; }
+  .sheet td:last-child { width: 10mm; border-left: none; } .sheet td:nth-child(2) { border-right: none; }
+  .note { font-size: 9pt; }
+  .hl { font-weight: 700; text-decoration: underline; }
+</style>
+</head>
+<body>
+<h1>ゆうパック 代金引換 用紙の書き方 <small>①〜④の計算手順</small></h1>
+
+<h2>手順（上から順に計算して、用紙の①〜④に書く）</h2>
+
+<div class="step"><div class="no">1</div><div>
+  <b>商品代金と送料を足す</b>（どちらも税抜の金額）<br>
+  <span class="calc">商品代金 ＋ 送料 ＝ ア</span>
+</div></div>
+
+<div class="step"><div class="no">2</div><div>
+  <b>アの消費税を出す</b>（1円未満は切り捨て）<br>
+  <span class="calc">ア × 0.1 ＝ イ</span>　※食品など軽減税率の商品は、商品代金 × 0.08 で別に計算して足す
+</div></div>
+
+<div class="step"><div class="no">3</div><div>
+  <b>代引き手数料を決める</b>（郵便局に払う額。税込なので消費税は足さない）<br>
+  <span class="calc">代金引換料 290円 ＋ 送金料金 ＝ ウ</span>　送金料金は下の表を見る
+</div></div>
+
+<div class="step"><div class="no">4</div><div>
+  <b>手数料の中の消費税を出す</b>（1円未満は切り捨て）<br>
+  <span class="calc">ウ × 10 ÷ 110 ＝ エ</span>　（例：493円 → 44円、510円 → 46円）
+</div></div>
+
+<div class="step"><div class="no">5</div><div>
+  <b>用紙の ①引換金額（A）</b>　<span class="calc">ア ＋ イ ＋ ウ ＝ ①</span>
+</div></div>
+
+<div class="step"><div class="no">6</div><div>
+  <b>用紙の ②引換金額に含む消費税額等</b>　<span class="calc">イ ＋ エ ＝ ②</span>
+</div></div>
+
+<div class="step"><div class="no">7</div><div>
+  <b>用紙の ③印紙代（B）</b>　<span class="calc">① − ② を計算する</span><br>
+  ・5万円未満 → <span class="hl">何も書かない（0円）</span>　・5万円以上 → <span class="hl">200円にレ印</span>　・100万円を超える → 400円
+</div></div>
+
+<div class="step"><div class="no">8</div><div>
+  <b>用紙の ④送金額（A−B）</b>　<span class="calc">① − ③ ＝ ④</span>　（印紙がいらないときは ① と同じ金額）
+</div></div>
+
+<div class="two">
+  <div>
+    <h2>送金料金（手順3で使う）</h2>
+    <table>
+      <tr><th>送金先</th><th>①が5万円未満</th><th>①が5万円以上</th></tr>
+      <tr><td>ゆうちょ口座</td><td>203円</td><td>417円</td></tr>
+      <tr><td>他の銀行</td><td>220円</td><td>440円</td></tr>
+    </table>
+    <p class="note">代引き手数料（ウ）の合計：
+    ゆうちょ 493円／707円、他の銀行 510円／730円<br>
+    ※ ① が5万円近くのときは、5万円を超えないか確かめる（超えたら右の列の料金で計算しなおす）。</p>
+  </div>
+  <div>
+    <h2>計算の例</h2>
+    <table class="ex">
+      <tr><td>商品代金 10,000円＋送料 1,000円（ア）</td><td>11,000</td></tr>
+      <tr><td>消費税 11,000×0.1（イ）</td><td>1,100</td></tr>
+      <tr><td>代引き手数料 290＋203（ウ・ゆうちょ）</td><td>493</td></tr>
+      <tr><td>手数料の中の消費税 493×10÷110（エ）</td><td>44</td></tr>
+      <tr><th>① 引換金額 11,000＋1,100＋493</th><th>12,593</th></tr>
+      <tr><th>② 消費税額等 1,100＋44</th><th>1,144</th></tr>
+      <tr><th>③ 印紙代（①−②＝11,449で5万円未満）</th><th>0</th></tr>
+      <tr><th>④ 送金額 12,593−0</th><th>12,593</th></tr>
+    </table>
+  </div>
+</div>
+
+<h2>書き込み欄（毎回ここで計算する）</h2>
+<table class="sheet" style="width:100%">
+  <tr><td>ア　商品代金 ＋ 送料</td><td></td><td>円</td></tr>
+  <tr><td>イ　消費税（ア × 0.1、切り捨て）</td><td></td><td>円</td></tr>
+  <tr><td>ウ　代引き手数料（290 ＋ 送金料金）</td><td></td><td>円</td></tr>
+  <tr><td>エ　手数料の中の消費税（ウ × 10 ÷ 110）</td><td></td><td>円</td></tr>
+  <tr><th style="text-align:left">① 引換金額（ア＋イ＋ウ）</th><td></td><td>円</td></tr>
+  <tr><th style="text-align:left">② 消費税額等（イ＋エ）</th><td></td><td>円</td></tr>
+  <tr><th style="text-align:left">③ 印紙代（①−② が5万円以上なら200）</th><td></td><td>円</td></tr>
+  <tr><th style="text-align:left">④ 送金額（①−③）</th><td></td><td>円</td></tr>
+</table>
+<p class="note">・数字は用紙のマスに右づめで書く。④送金額から郵便局の手数料は引かない。・引換金額の上限は30万円（セキュリティゆうパックは200万円）。<br>
+・料金は2026年10月時点で調べた金額です。変わることがあるので、気になるときは郵便局の窓口で確かめてください。</p>
+</body>
+</html>
