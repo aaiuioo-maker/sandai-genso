@@ -62,10 +62,26 @@
   .warn { color: var(--accent); font-size: 13px; margin-top: 8px; }
   .note { font-size: 11px; color: var(--mute); line-height: 1.6; }
   .note p { margin: 4px 0; }
-  .tools { display: flex; justify-content: flex-end; margin: -2px 0 8px; }
+  .tools { display: flex; justify-content: space-between; gap: 8px; margin: -2px 0 8px; }
+  .tools #tutBtn { color: var(--gold); border-color: var(--accent); }
   .tools button { font-family: inherit; font-size: 12px; color: #6fe0a0; background: #1c1930; border: 2px solid #5a5478; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
   .tools button.off { color: var(--mute); }
   .detail .key { color: #8fd3ff; }
+
+  /* ---------- 使い方（めたん→つむぎ→はう→小夜 の順番に声で説明） ---------- */
+  body.tut main { padding-bottom: 170px; }
+  .hl { outline: 3px solid var(--accent) !important; outline-offset: 3px; border-radius: 6px; box-shadow: 0 0 18px rgba(217,119,87,.7); transition: outline-color .2s; }
+  #tut { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: none; justify-content: center; padding: 0 10px calc(10px + env(safe-area-inset-bottom)); pointer-events: none; }
+  body.tut #tut { display: flex; }
+  #tut .box { pointer-events: auto; width: 100%; max-width: 480px; background: #12101f; border: 2px solid var(--accent); border-radius: 8px; padding: 8px 10px; box-shadow: 0 -4px 20px rgba(0,0,0,.6); }
+  #tut .row1 { display: flex; gap: 10px; align-items: center; }
+  #tut .who { flex: 0 0 auto; text-align: center; font-size: 11px; color: #ffe8b0; }
+  #tutFace { display: block; width: 42px; height: 48px; image-rendering: pixelated; }
+  #tutCap { flex: 1; font-size: 15px; line-height: 1.5; min-height: 3em; }
+  #tut .row2 { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+  #tut .row2 button { flex: 1; font-family: inherit; font-size: 13px; color: var(--fg); background: #1c1930; border: 2px solid #5a5478; border-radius: 6px; padding: 5px 2px; cursor: pointer; }
+  #tut .row2 #tutNo { flex: 0 0 auto; font-size: 11px; color: var(--mute); padding: 0 4px; }
+  #tut .credit { font-size: 10px; color: var(--mute); margin-top: 4px; text-align: right; }
 
   /* ---------- オープニング ---------- */
   #opening { position: fixed; inset: 0; z-index: 10; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -91,12 +107,12 @@
 <main>
   <h1><canvas id="ccTitle" class="cc" width="48" height="52" aria-hidden="true"></canvas>代引計算</h1>
   <p class="sub">商品代金と送料を入れると、用紙の ④①②③ がそのまま出ます</p>
-  <div class="tools"><button id="sndBtn">🔊 操作音 ON</button></div>
+  <div class="tools"><button id="tutBtn">📖 使い方を声で聞く</button><button id="sndBtn">🔊 操作音 ON</button></div>
 
   <div class="card">
-    <div class="field"><label for="goods">商品代金</label><input id="goods" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span></div>
-    <div class="field"><label for="ship">送料</label><input id="ship" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span></div>
-    <div class="dest">
+    <div class="field" id="fGoods"><label for="goods">商品代金</label><input id="goods" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span></div>
+    <div class="field" id="fShip"><label for="ship">送料</label><input id="ship" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>円</span></div>
+    <div class="dest" id="fDest">
       <label><input type="radio" name="dest" value="yucho" checked>ゆうちょ口座へ送金</label>
       <label><input type="radio" name="dest" value="bank">他の銀行へ送金</label>
     </div>
@@ -115,6 +131,11 @@
     <p>・引換金額の上限は 30万円（セキュリティゆうパックは 200万円）。料金は2026年10月時点で調べた金額です。</p>
   </div>
 </main>
+<div id="tut"><div class="box">
+  <div class="row1"><div class="who"><canvas id="tutFace" width="56" height="64" aria-hidden="true"></canvas><span id="tutName"></span></div><div id="tutCap"></div></div>
+  <div class="row2"><button id="tutPrev">◀ 前</button><button id="tutPlay">⏸ 止める</button><button id="tutNext">次 ▶</button><button id="tutEnd">✕ おわる</button><span id="tutNo"></span></div>
+  <div class="credit">声：VOICEVOX:四国めたん・春日部つむぎ・雨晴はう・小夜/SAYO</div>
+</div></div>
 <script>
   const PLACES = ['百','十','万','千','百','十','円'];
   const $ = id => document.getElementById(id);
@@ -245,6 +266,146 @@
     startSound(); sfx(() => [72, 79].forEach((n, i) => tone(NOTE(n), i * .08, .15, 'triangle', .07)));
   };
   showSnd();
+
+  // ---------- 使い方（めたん→つむぎ→はう→小夜 の順番に、声で説明する） ----------
+  // 1文字＝1ドット（横14×縦16）。S＝はだ、E＝目（ほかのアプリと同じ4人）
+  const SPK = [
+    { name: 'めたん', pal: { H: '#e04b8f', D: '#c43a7a', d: '#f07ab0', S: '#ffe2cc', E: '#d9a020', K: '#2b2733', W: '#f4f0f0' }, map: [
+      '....HHHHHH....', '..HHHHHHHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+      'DHHSSHSSHSSHHD', 'dHSSSSSSSSSSHd', 'DHSEESSSSEESHD', 'dHSEESSSSEESHd',
+      'DDSSSSSSSSSSDD', 'dd.SSSSSSSS.dd', 'DD..SSSSSS..DD', '.dd.KWWWWK.dd.',
+      '.DD.KKWWKK.DD.', '..d.KKKKKK.d..', '...KKKKKKKK...', '...KKKKKKKK...'] },
+    { name: 'つむぎ', pal: { H: '#f2c740', h: '#ffe08a', S: '#ffe2cc', E: '#7a4a2a', W: '#f4f4f4', R: '#e04848' }, map: [
+      '.....HHHH.....', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+      'HHHSSHHSSHSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+      'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HHH.WWRRWW.HHH',
+      'HHH.WWRRWW.HHH', '.HH.WWWWWW.HH.', '...WWWWWWWW...', '...WWWWWWWW...'] },
+    { name: 'はう', pal: { H: '#9ccbe8', C: '#ffffff', X: '#e04848', S: '#ffe2cc', E: '#4a7ab0', W: '#ffffff', P: '#f6b8c8' }, map: [
+      '...CCCCCCCC...', '..CCCCXCCCCC..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+      'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+      '.HSSSSSSSSSSH.', '.H.SSSSSSSS.H.', '....SSSSSS....', '...PWWWWWWP...',
+      '..PPWWWWWWPP..', '..PPWWWWWWPP..', '..PPPWWWWPPP..', '..PPPWWWWPPP..'] },
+    { name: '小夜', pal: { H: '#8a5a3a', I: '#f2a0b0', S: '#ffe2cc', E: '#3a8a5a', G: '#e8d070', K: '#b04040' }, map: [
+      '.HH........HH.', '.HIH......HIH.', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+      'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+      'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...GGGGGGGG...',
+      '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..'] },
+  ];
+  // [字幕, 光らせる所, その場面でする操作]。声は koe-tut/番号.wav（i 番目は SPK[i % 4] が読む）
+  // 字幕を変えたら声も作り直すこと（KOE_V を1つ上げる）
+  const KOE_V = 1;
+  const STEPS = [
+    ['こんにちは。代引計算アプリの使い方を説明します。', null],
+    ['まず「商品代金」を入れます。消費税を入れる前の、税抜きの金額です。', 'fGoods', () => typeIn('goods', '50000')],
+    ['次に「送料」を入れます。こちらも税抜きの金額です。', 'fShip', () => typeIn('ship', '1000')],
+    ['お金を受け取る口座を選びます。ゆうちょ口座か、ほかの銀行かで、手数料が変わります。', 'fDest'],
+    ['消費税と代引き手数料は、アプリが自動で足します。代引き手数料＝代金引換料 290円＋送金料金です。', 'detail'],
+    ['計算の結果は、代金引換の用紙と同じ形で出ます。', 'form'],
+    ['いちばん上の赤い数字が ④送金額 です。', 'form'],
+    ['その下が ①引換金額 と ②消費税額等。マスに右づめで書き写してください。', 'form'],
+    ['③印紙代は「①−②」（引換金額から消費税を引いた額）が5万円以上のときだけ、200円にレ印をつけます。', 'form'],
+    ['下の内訳には、計算のとちゅうと、手取りの目安も出ます。', 'detail'],
+    ['右上のボタンで、操作音を消すこともできます。', 'sndBtn'],
+    ['説明は以上です。ご利用ありがとうございました。', null],
+  ];
+  const koe = [];   // 声（デコード済み）。読めなかったときは端末の声で読む
+  function loadKoe() {
+    if (koe.length) return;
+    STEPS.forEach((st, i) => koe[i] = fetch('koe-tut/' + String(i).padStart(2, '0') + '.wav?v=' + KOE_V)
+      .then(r => r.ok ? r.arrayBuffer() : null).catch(() => null)
+      .then(ab => ab && new Promise(res => { try { ac.decodeAudioData(ab, b => res(b), () => res(null)); } catch (e) { res(null); } })));
+  }
+  let tutOn = false, tutI = 0, tutPlaying = false, tutToken = null, tutSrc = null, talking = false, saved = null;
+  // 数字を1けたずつ打ちこむ（打つ音つき）
+  function typeIn(id, digits) {
+    const el = $(id); el.value = '';
+    [...digits].forEach((ch, k) => setTimeout(() => {
+      if (!tutOn) return;
+      el.value = (el.value + ch); el.dispatchEvent(new Event('input'));
+    }, 250 + k * 130));
+  }
+  function stopVoice() {
+    tutToken = null; talking = false;
+    if (tutSrc) { try { tutSrc.onended = null; tutSrc.stop(); } catch (e) {} tutSrc = null; }
+    try { speechSynthesis.cancel(); } catch (e) {}
+  }
+  function showStep(i) {
+    tutI = i;
+    const st = STEPS[i], sp = SPK[i % 4];
+    $('tutCap').textContent = st[0];
+    $('tutName').textContent = sp.name;
+    $('tutNo').textContent = (i + 1) + '/' + STEPS.length;
+    document.querySelectorAll('.hl').forEach(e => e.classList.remove('hl'));
+    if (st[1]) { const el = $(st[1]); el.classList.add('hl'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    else window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (st[2]) st[2]();
+  }
+  function playStep(i) {
+    stopVoice(); showStep(i);
+    if (!tutPlaying) return;
+    const token = tutToken = {};
+    const next = () => { if (tutToken !== token) return; talking = false;
+      setTimeout(() => { if (tutToken !== token) return; if (tutI < STEPS.length - 1) playStep(tutI + 1); else { tutPlaying = false; showPlay(); } }, 700); };
+    talking = true;
+    koe[i].then(b => {
+      if (tutToken !== token) return;
+      if (b) {
+        try { if (ac.state !== 'running') ac.resume(); } catch (e) {}
+        const s = ac.createBufferSource(); s.buffer = b; s.connect(ac.destination);
+        s.onended = next; tutSrc = s; s.start();
+      } else {
+        // 録音が読めないときは端末の声で読む
+        try {
+          const u = new SpeechSynthesisUtterance(STEPS[i][0].replace(/[①-④]/g, m => '①②③④'.indexOf(m) + 1 + '番の'));
+          u.lang = 'ja-JP'; u.onend = next; speechSynthesis.speak(u);
+        } catch (e) { setTimeout(next, 3000); }
+      }
+    });
+  }
+  function showPlay() { $('tutPlay').textContent = tutPlaying ? '⏸ 止める' : '▶ 聞く'; }
+  function startTut() {
+    startSound(); loadKoe();
+    saved = { goods: $('goods').value, ship: $('ship').value, dest: document.querySelector('input[name=dest]:checked').value };
+    document.querySelector('input[name=dest][value=yucho]').checked = true;
+    $('goods').value = ''; $('ship').value = ''; calc();
+    tutOn = true; tutPlaying = true; document.body.classList.add('tut'); showPlay();
+    sfx(() => [72, 76, 79].forEach((n, i) => tone(NOTE(n), i * .07, .2, 'triangle', .07)));
+    playStep(0);
+  }
+  function endTut() {
+    stopVoice(); tutOn = false; tutPlaying = false;
+    document.body.classList.remove('tut');
+    document.querySelectorAll('.hl').forEach(e => e.classList.remove('hl'));
+    // 説明の前に入れていた金額にもどす
+    if (saved) { $('goods').value = saved.goods; $('ship').value = saved.ship; document.querySelector(`input[name=dest][value=${saved.dest}]`).checked = true; calc(); }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  $('tutBtn').onclick = startTut;
+  $('tutEnd').onclick = endTut;
+  $('tutPlay').onclick = () => { startSound(); tutPlaying = !tutPlaying; showPlay(); if (tutPlaying) playStep(tutI); else stopVoice(); };
+  $('tutPrev').onclick = () => { startSound(); if (tutI > 0) { tutPlaying ? playStep(tutI - 1) : showStep(tutI - 1); } };
+  $('tutNext').onclick = () => { startSound(); if (tutI < STEPS.length - 1) { tutPlaying ? playStep(tutI + 1) : showStep(tutI + 1); } };
+  // 読んでいる人の顔（しゃべっている間は口がパクパク・体がはずむ）
+  (function face() {
+    const c = $('tutFace'), g = c.getContext('2d'), q = 4;
+    const P = (x, y, col) => { g.fillStyle = col; g.fillRect(x * q, y * q, q, q); };
+    function draw(now) {
+      requestAnimationFrame(draw);
+      if (!tutOn) return;
+      const t = now / 1000, sp = SPK[tutI % 4];
+      const bob = talking && Math.floor(t * 4) % 2 ? -1 : 0, blink = (t % 3.2) > 3.05;
+      g.clearRect(0, 0, c.width, c.height);
+      sp.map.forEach((row, y) => [...row].forEach((ch, x) => {
+        if (ch === '.') return;
+        if (ch === 'E' && blink) { if (y === 7) P(x, y + bob, '#5a3a3a'); return; }
+        P(x, y + bob, sp.pal[ch]);
+      }));
+      const open = talking && Math.floor(t * 9) % 3 !== 0;
+      if (open) { P(6, 9 + bob, '#8a2a3a'); P(7, 9 + bob, '#8a2a3a'); P(6, 10 + bob, '#e07080'); P(7, 10 + bob, '#8a2a3a'); }
+      else { P(6, 9 + bob, '#c0505a'); P(7, 9 + bob, '#c0505a'); }
+    }
+    requestAnimationFrame(draw);
+  })();
 
   // ---------- オープニング（タップすると音が出るようになって、計算の画面へ） ----------
   (function opening() {
