@@ -57,6 +57,7 @@
   .sortbox .row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sortbox .row button { width: 36px; height: 32px; font-size: 14px; background: #1c1930; border: 2px solid #5a5478; border-radius: 6px; padding: 0; flex-shrink: 0; }
   .sortbox .row button:disabled { opacity: .3; }
+  .sortbox .row button.rm { border-color: #8a3a3a; }
   .sortbox .reset { font-size: 12px; background: none; border: 2px dashed #3a3358; border-radius: 8px; padding: 6px; color: var(--dim); }
   .shelf.hide { display: none; }
   /* 削除 */
@@ -107,7 +108,7 @@
   <div id="heroArea"><h2>新着</h2>
   <div id="hero"></div></div>
 
-  <div class="head"><h2>動画</h2><button id="sortBtn">⇅ 並べかえ</button></div>
+  <div class="head"><h2>動画</h2><button id="sortBtn">⇅ 並べかえ・削除</button></div>
   <div class="shelf" id="shelf"></div>
   <div class="sortbox" id="sortBox"></div>
   <p class="note" id="note">赤い点：まだ見ていない動画</p>
@@ -198,7 +199,8 @@ function renderAll() {
 renderAll();
 document.querySelectorAll('.shelf').forEach(s => s.addEventListener('click', e => {
   const b = e.target.closest('.app'); if (!b) return;
-  openSheet(shown[+b.dataset.i]);
+  const a = shown[+b.dataset.i];
+  if (a[7]) openSheet(a); else play(a[0], a[1]);
 }));
 
 // ---------- 並べかえ：▲▼ で1つずつ動かす ----------
@@ -208,11 +210,17 @@ function renderSort() {
   const list = ordered();
   sortBox.innerHTML = list.map((a, i) =>
     `<div class="row${a[0] === lastMoved ? ' moved' : ''}"><img src="${icon(a[0])}" alt=""><span>${i + 1}. ${esc(a[1])}</span>` +
-    `<button data-m="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="上へ">▲</button><button data-m="${i}" data-d="1" ${i === list.length - 1 ? 'disabled' : ''} aria-label="下へ">▼</button></div>`).join('') +
+    `<button data-m="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="上へ">▲</button><button data-m="${i}" data-d="1" ${i === list.length - 1 ? 'disabled' : ''} aria-label="下へ">▼</button><button class="rm" data-rm="${i}" aria-label="削除">🗑</button></div>`).join('') +
     `<button class="reset" id="resetBtn">作った順に もどす</button>`;
   document.getElementById('resetBtn').onclick = () => { saveOrder(APPS); lastMoved = ''; renderSort(); };
 }
 sortBox.addEventListener('click', e => {
+  const rm = e.target.closest('button[data-rm]');
+  if (rm) {
+    const a = ordered()[+rm.dataset.rm];
+    if (confirm(`「${a[1]}」を棚から削除しますか？\n（あとで「削除した動画を もどす」で戻せます）`)) { hidden.push(a[0]); saveHidden(); renderAll(); renderSort(); }
+    return;
+  }
   const b = e.target.closest('button[data-m]'); if (!b) return;
   const list = ordered(), i = +b.dataset.m, j = i + +b.dataset.d;
   if (j < 0 || j >= list.length) return;
@@ -221,9 +229,9 @@ sortBox.addEventListener('click', e => {
 });
 sortBtn.onclick = () => {
   sorting = !sorting; lastMoved = '';
-  sortBtn.textContent = sorting ? '✓ できた' : '⇅ 並べかえ'; sortBtn.classList.toggle('on', sorting);
+  sortBtn.textContent = sorting ? '✓ できた' : '⇅ 並べかえ・削除'; sortBtn.classList.toggle('on', sorting);
   document.getElementById('shelf').classList.toggle('hide', sorting); sortBox.classList.toggle('on', sorting);
-  document.getElementById('note').textContent = sorting ? '▲▼ で順番を入れかえられます（この端末で覚えます）' : '赤い点：まだ見ていない動画';
+  document.getElementById('note').textContent = sorting ? '▲▼ で順番を入れかえ、🗑 で棚から削除できます（この端末で覚えます）' : '赤い点：まだ見ていない動画';
   if (sorting) renderSort(); else renderAll();
 };
 
@@ -275,6 +283,25 @@ function play(h, name) {
   player.classList.add('on'); document.body.style.overflow = 'hidden';
   try { history.pushState({ play: 1 }, ''); } catch (e) {}
 }
+// 動画のページが開いたら、その「▶ 再生する」を自動で押す。
+// iPhone などで音が出せない（音の準備が止まったまま）ときは、止めて「▶ 再生する」を出したままにする（1回押せば再生）
+frameEl.addEventListener('load', () => {
+  const w = frameEl.contentWindow; if (!w || frameEl.src === 'about:blank' || !player.classList.contains('on')) return;
+  try {
+    const go = () => {
+      const btn = w.document.getElementById('startBtn'); if (!btn) return;
+      btn.click();
+      setTimeout(() => {
+        try {
+          if (w.eval('ac && ac.state') === 'running') return;
+          w.eval("playing = false; stopSpeak(); bgmOn(false); document.getElementById('startBox').classList.remove('hide')");
+        } catch (e) {}
+      }, 700);
+    };
+    // 字の準備ができてから（動画のページの最初の一枚と同じ）
+    Promise.race([w.document.fonts.ready, new Promise(r => setTimeout(r, 1500))]).then(go);
+  } catch (e) {}
+});
 function stopPlay() {
   player.classList.remove('on'); document.body.style.overflow = '';
   frameEl.src = 'about:blank'; // 声と音を止める
