@@ -59,6 +59,17 @@
   .sortbox .row button:disabled { opacity: .3; }
   .sortbox .reset { font-size: 12px; background: none; border: 2px dashed #3a3358; border-radius: 8px; padding: 6px; color: var(--dim); }
   .shelf.hide { display: none; }
+  /* 削除 */
+  .sheet .del { display: block; width: 100%; margin-top: 14px; padding: 8px; background: none; border: 2px solid #8a3a3a; border-radius: 8px; font-size: 13px; color: #ff8a8a; }
+  .trash { display: block; margin: 10px auto 0; font-size: 12px; background: none; border: 2px dashed #3a3358; border-radius: 8px; padding: 5px 12px; color: var(--dim); }
+  .trash.hide { display: none; }
+  .sheet .hrow { display: flex; align-items: center; gap: 10px; padding: 6px 8px; background: var(--card); border: 2px solid var(--line); border-radius: 8px; font-size: 13px; margin-top: 8px; }
+  .sheet .hrow img { width: 36px; height: 36px; border-radius: 8px; image-rendering: pixelated; }
+  .sheet .hrow span { flex: 1; min-width: 0; }
+  .sheet .hrow button, .sheet .allback { background: #1c1930; border: 2px solid var(--accent); border-radius: 6px; padding: 4px 10px; font-size: 12px; }
+  .sheet .allback { display: block; width: 100%; margin-top: 12px; padding: 7px; }
+  .sheet h3 { font-weight: 400; font-size: 15px; color: #ffcf8a; margin: 0 0 4px; }
+  .sheet .hint { font-size: 11px; color: var(--dim); margin: 0; }
   /* 説明のシート（下から出る） */
   .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; }
   .sheet-bg.on { opacity: 1; pointer-events: auto; }
@@ -93,13 +104,14 @@
   <h1><canvas id="ccTitle" width="48" height="52" aria-hidden="true"></canvas>動画棚</h1>
   <p class="sub">ドット絵の動画を えらんで再生（声と音が出ます）</p>
 
-  <h2>新着</h2>
-  <div id="hero"></div>
+  <div id="heroArea"><h2>新着</h2>
+  <div id="hero"></div></div>
 
   <div class="head"><h2>動画</h2><button id="sortBtn">⇅ 並べかえ</button></div>
   <div class="shelf" id="shelf"></div>
   <div class="sortbox" id="sortBox"></div>
   <p class="note" id="note">赤い点：まだ見ていない動画</p>
+  <button class="trash" id="trashBtn"></button>
 
 </div>
 
@@ -144,17 +156,23 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const icon = h => h + 'icon-180.png';
 const NEWEST = APPS[APPS.length - 1];
 
+// ---------- 棚から削除した動画（この端末だけ。あとで もどせる） ----------
+let hidden = [];
+try { hidden = JSON.parse(localStorage.getItem('tanaHidden') || '[]') || []; } catch (e) {}
+function saveHidden() { try { localStorage.setItem('tanaHidden', JSON.stringify(hidden)); } catch (e) {} }
+const isHidden = a => hidden.includes(a[0]);
+
 // ---------- 棚をつくる ----------
 // ---------- 並び順（並べかえた順番をこの端末で覚える。新しく足した動画は最後に入る） ----------
 let order = [];
 try { order = JSON.parse(localStorage.getItem('tanaOrder') || '[]') || []; } catch (e) {}
 function ordered() {
   const by = h => APPS.find(a => a[0] === h);
-  const list = order.map(by).filter(Boolean);
+  const list = [...new Set(order)].map(by).filter(Boolean);
   APPS.forEach(a => { if (!list.includes(a)) list.push(a); });
-  return list;
+  return list.filter(a => !isHidden(a));
 }
-function saveOrder(list) { order = list.map(a => a[0]); try { localStorage.setItem('tanaOrder', JSON.stringify(order)); } catch (e) {} }
+function saveOrder(list) { order = list.map(a => a[0]).concat(order.filter(h => hidden.includes(h))); try { localStorage.setItem('tanaOrder', JSON.stringify(order)); } catch (e) {} }
 let shown = [];
 function renderShelf(id, list) {
   shown = list;
@@ -165,9 +183,17 @@ function renderShelf(id, list) {
 }
 function renderAll() {
   renderShelf('shelf', ordered());
-  document.getElementById('hero').innerHTML =
-    `<div class="hero"><img src="${icon(NEWEST[0])}" alt=""><div><span class="k">いちばん新しい動画</span><b>${esc(NEWEST[1])}</b><span>${esc(NEWEST[3])}（${esc(NEWEST[5])}）</span><button class="play" id="heroPlay">▶ 再生</button></div></div>`;
-  document.getElementById('heroPlay').onclick = () => play(NEWEST[0], NEWEST[1]);
+  // 新着：削除していない中で いちばん新しい動画
+  const top = [...APPS].reverse().find(a => !isHidden(a));
+  document.getElementById('heroArea').style.display = top ? '' : 'none';
+  if (top) {
+    document.getElementById('hero').innerHTML =
+      `<div class="hero"><img src="${icon(top[0])}" alt=""><div><span class="k">いちばん新しい動画</span><b>${esc(top[1])}</b><span>${esc(top[3])}（${esc(top[5])}）</span><button class="play" id="heroPlay">▶ 再生</button></div></div>`;
+    document.getElementById('heroPlay').onclick = () => play(top[0], top[1]);
+  }
+  if (!ordered().length) document.getElementById('shelf').innerHTML = '<p class="note" style="grid-column:1/-1">棚に動画がありません</p>';
+  const tb = document.getElementById('trashBtn');
+  tb.textContent = `🗑 削除した動画（${hidden.length}本）を もどす`; tb.classList.toggle('hide', !hidden.length);
 }
 renderAll();
 document.querySelectorAll('.shelf').forEach(s => s.addEventListener('click', e => {
@@ -213,12 +239,30 @@ function openSheet(a) {
       `<div>作った日<em>${esc(date)}</em></div></div>` +
     `<p class="desc">${esc(desc)}</p>` +
     (parts ? `<div class="parts">${parts.map((p, i) => `<button data-p="${i}"><img src="${icon(p[0])}" alt=""><div>${esc(p[1])}<small>${esc(p[2])}</small></div></button>`).join('')}</div>` : '') +
+    `<button class="del" id="sheetDel">🗑 棚から削除</button>` +
     `<button class="close" id="sheetClose">とじる</button>`;
   const sp = document.getElementById('sheetPlay'); if (sp) sp.onclick = () => play(h, name);
   sheet.querySelectorAll('.parts button').forEach(b => b.onclick = () => { const p = parts[+b.dataset.p]; markSeen(h); play(p[0], p[1]); });
+  document.getElementById('sheetDel').onclick = () => {
+    if (!confirm(`「${name}」を棚から削除しますか？\n（あとで「削除した動画を もどす」で戻せます）`)) return;
+    hidden.push(h); saveHidden(); closeSheet(); renderAll(); if (sorting) renderSort();
+  };
   document.getElementById('sheetClose').onclick = closeSheet;
   sheet.classList.add('on'); sheetBg.classList.add('on'); sheet.scrollTop = 0;
 }
+// 削除した動画の一覧：1つずつ、または全部 もどす
+function openTrash() {
+  const list = APPS.filter(isHidden);
+  if (!list.length) { closeSheet(); return; }
+  sheet.innerHTML = `<h3>削除した動画</h3><p class="hint">もどすと、また棚に並びます</p>` +
+    list.map(a => `<div class="hrow"><img src="${icon(a[0])}" alt=""><span>${esc(a[1])}</span><button data-h="${esc(a[0])}">もどす</button></div>`).join('') +
+    `<button class="allback" id="allBack">全部 もどす</button><button class="close" id="sheetClose">とじる</button>`;
+  sheet.querySelectorAll('.hrow button').forEach(b => b.onclick = () => { hidden = hidden.filter(x => x !== b.dataset.h); saveHidden(); renderAll(); if (sorting) renderSort(); openTrash(); });
+  document.getElementById('allBack').onclick = () => { hidden = []; saveHidden(); renderAll(); if (sorting) renderSort(); closeSheet(); };
+  document.getElementById('sheetClose').onclick = closeSheet;
+  sheet.classList.add('on'); sheetBg.classList.add('on'); sheet.scrollTop = 0;
+}
+document.getElementById('trashBtn').onclick = openTrash;
 function closeSheet() { sheet.classList.remove('on'); sheetBg.classList.remove('on'); }
 sheetBg.onclick = closeSheet;
 
