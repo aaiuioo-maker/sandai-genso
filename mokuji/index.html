@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="目次">
+<title>目次</title>
+<link rel="apple-touch-icon" href="icon-180.png?v=1">
+<link rel="manifest" href="mokuji.webmanifest?v=1">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05040d">
+<link rel="icon" href="icon-180.png?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  body { font-family: "DotGothic16", sans-serif; display: flex; flex-direction: column; align-items: center;
+         padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  /* タイトルは真ん中。オレンジのキャラクターは左はしに小さく（動画と同じ） */
+  h1 { font-size: 18px; font-weight: 400; margin: 0 0 4px; letter-spacing: .08em; position: relative; width: 100%; max-width: 480px; text-align: center; }
+  #ccTitle { position: absolute; left: 36px; top: 50%; transform: translateY(-58%); width: 24px; height: 26px; image-rendering: pixelated; }
+  .sub { font-size: 11px; opacity: .6; margin: 0 0 14px; text-align: center; }
+  .list { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 10px; }
+  .list a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #12101f; border: 2px solid #2a2540; border-radius: 6px;
+            color: var(--fg); text-decoration: none; }
+  .list a:active { transform: translateY(1px); border-color: var(--accent); }
+  .list img { width: 56px; height: 56px; image-rendering: pixelated; border-radius: 10px; flex-shrink: 0; }
+  .list b { display: block; font-weight: 400; font-size: 16px; color: #ffcf8a; }
+  .list span { display: block; font-size: 12px; color: #b0a8c8; margin-top: 3px; }
+  .list i { font-style: normal; font-size: 10px; color: #05040d; background: var(--accent); border-radius: 3px; padding: 1px 4px; margin-left: 4px; vertical-align: 2px; }
+  h2 { width: 100%; max-width: 480px; font-size: 13px; font-weight: 400; color: #8a84a8; margin: 18px 0 8px; letter-spacing: .08em; }
+</style>
+</head>
+<body>
+<h1><canvas id="ccTitle" width="48" height="52" aria-hidden="true"></canvas>目次</h1>
+<p class="sub">ドット絵の動画 12本（声と音が出ます）<br>見たいものをえらんでください</p>
+<div class="list">
+  <a href="../"><img src="../icon-180.png" alt=""><div><b>1. 三大元素といのち</b><span>火素・水素・土素（約1分半）</span></div></a>
+  <a href="../shuchaku/"><img src="../shuchaku/icon-180.png" alt=""><div><b>2. 我と執着</b><span>争いのもと・霊的成長・機を待つ（約1分半）</span></div></a>
+  <a href="../hodo/"><img src="../hodo/icon-180.png" alt=""><div><b>3. 程（ほど）</b><span>人間万事 この一字にあり（約1分半）</span></div></a>
+  <a href="../taiyo/"><img src="../taiyo/icon-180.png" alt=""><div><b>4. 太陽の救い</b><span>常識と自由の「超宗教」（約1分半）</span></div></a>
+  <a href="../jiki/"><img src="../jiki/icon-180.png" alt=""><div><b>5. 時期を待て</b><span>時節には 神も敵わぬぞよ（約3分）</span></div></a>
+  <a href="../sonen/"><img src="../sonen/icon-180.png" alt=""><div><b>6. 人間は想念次第</b><span>喜べば 喜び事が来る（約3分）</span></div></a>
+  <a href="../sanson/"><img src="../sanson/icon-180.png" alt=""><div><b>7. 三尊の弥陀</b><span>観音・阿弥陀・釈迦の 三位一体（動画3本と全部まとめ）</span></div></a>
+  <a href="../shu/"><img src="../shu/icon-180.png" alt=""><div><b>8. 主の字</b><span>万物の 正しい順序（約2分半）</span></div></a>
+  <a href="../kannon/"><img src="../kannon/icon-180.png" alt=""><div><b>9. 観音力とは何ぞや</b><span>火と水の十字・五六七（ミロク）・十八（約3分）</span></div></a>
+  <a href="../shugo/"><img src="../shugo/icon-180.png" alt=""><div><b>10. 守護神</b><span>本守護神・副守護神・正守護神と心の善悪（約3分）</span></div></a>
+  <a href="../jinzo/"><img src="../jinzo/icon-180.png" alt=""><div><b>11. 本医術の施法</b><span>腎臓の毒を溶かし、全身を浄化する「腎臓医術」（約3分）</span></div></a>
+  <a href="../meishin/"><img src="../meishin/icon-180.png" alt=""><div><b>12. 三大迷信とは何か <i>NEW</i></b><span>薬剤・肥料・法律の 三つの迷信と、新しい文明（約3分半）</span></div></a>
+</div>
+<h2>その他</h2>
+<div class="list">
+  <a href="../yupack/"><img src="../yupack/icon-180.png" alt=""><div><b>代引計算</b><span>ゆうパック代金引換の 用紙の書き方</span></div></a>
+</div>
+
+<script>
+// ---------- タイトルの左のオレンジのキャラクター（歩く） ----------
+(function titleMascot() {
+  const c = document.getElementById('ccTitle'), g = c.getContext('2d'), q = 4, oy = 5;
+  function draw(now) {
+    const t = now / 1000 / 1.4;
+    const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x * q), Math.round(y * q), Math.round(w * q), Math.round(h * q)); };
+    g.clearRect(0, 0, c.width, c.height);
+    const col = '#d97757', f = Math.floor(t * 6) % 4, hop = f % 2 ? -1 : 0;
+    const up = [f === 1, f === 3, f === 3, f === 1];
+    [2, 4, 7, 9].forEach((x, i) => R(x, oy + 6, 1, up[i] ? 1 : 2, col));
+    const y0 = oy + hop;
+    R(2, y0, 8, 6, col); R(0, y0 + 2, 2, 2, col); R(10, y0 + 2, 2, 2, col);
+    const blink = (t % 3) > 2.85;
+    R(3, y0 + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612'); R(8, y0 + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612');
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+</script>
+<!-- 更新した日時（GitHub に反映した日時が自動で出る）。画面のいちばん下に小さく出す -->
+<script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
+var e=document.createElement('div');e.id='appVer';e.textContent='更新 '+d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+e.style.cssText='display:block;width:100%;text-align:center;font:11px/1.4 sans-serif;color:inherit;opacity:.6;margin-top:10px;pointer-events:none;';
+document.body.appendChild(e);})();</script>
+</body>
+</html>
