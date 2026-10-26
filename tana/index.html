@@ -44,6 +44,21 @@
   .app .dot { position: absolute; top: -3px; right: calc(50% - 38px); min-width: 10px; height: 10px; border-radius: 99px; background: #ff5a5a; border: 2px solid var(--card); }
   .app .dot.newl { height: auto; font-size: 8px; color: #fff; padding: 1px 4px; background: var(--accent); }
   .note { font-size: 10px; color: #8a84a8; text-align: center; margin-top: 8px; }
+  /* 並べかえ */
+  .head { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 8px; }
+  .head h2 { margin: 0; }
+  .head button { font-size: 12px; background: #1c1930; border: 2px solid #3a3358; border-radius: 6px; padding: 3px 10px; color: var(--dim); }
+  .head button.on { border-color: var(--accent); color: var(--fg); }
+  .sortbox { display: none; flex-direction: column; gap: 6px; }
+  .sortbox.on { display: flex; }
+  .sortbox .row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--card); border: 2px solid var(--line); border-radius: 8px; font-size: 13px; }
+  .sortbox .row.moved { border-color: var(--accent); }
+  .sortbox .row img { width: 36px; height: 36px; border-radius: 8px; image-rendering: pixelated; }
+  .sortbox .row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sortbox .row button { width: 36px; height: 32px; font-size: 14px; background: #1c1930; border: 2px solid #5a5478; border-radius: 6px; padding: 0; flex-shrink: 0; }
+  .sortbox .row button:disabled { opacity: .3; }
+  .sortbox .reset { font-size: 12px; background: none; border: 2px dashed #3a3358; border-radius: 8px; padding: 6px; color: var(--dim); }
+  .shelf.hide { display: none; }
   /* 説明のシート（下から出る） */
   .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; }
   .sheet-bg.on { opacity: 1; pointer-events: auto; }
@@ -81,12 +96,11 @@
   <h2>新着</h2>
   <div id="hero"></div>
 
-  <h2>動画</h2>
+  <div class="head"><h2>動画</h2><button id="sortBtn">⇅ 並べかえ</button></div>
   <div class="shelf" id="shelf"></div>
-  <p class="note">赤い点：まだ見ていない動画</p>
+  <div class="sortbox" id="sortBox"></div>
+  <p class="note" id="note">赤い点：まだ見ていない動画</p>
 
-  <h2>道具</h2>
-  <div class="shelf" id="tools"></div>
 </div>
 
 <div class="sheet-bg" id="sheetBg"></div>
@@ -98,10 +112,11 @@
 </div>
 
 <script>
-// ---------- 棚に並べるもの（新しい動画を作ったら、ここに1行足す） ----------
+// ---------- 棚に並べるもの（作った順。新しい動画を作ったら、いちばん下に1行足す） ----------
 // [場所, 名前, アイコンの下の短い名前, ひとこと, 説明, 長さ, 作った日]
 const APPS = [
   ['../', '三大元素といのち', '三大元素', '火素・水素・土素', '火・水・土の三つの元素と、いのちのはたらき。', '約1分半', '10/22'],
+  ['../mae-no-koe/', '三大元素といのち（前の声）', '三大元素 前', '火素・水素・土素（前の声の版）', '「三大元素といのち」の、前に使っていた声の版。', '約1分半', '10/23'],
   ['../shuchaku/', '我と執着', '我と執着', '争いのもと・霊的成長・機を待つ', '我（が）と執着が争いのもとになること、執着を離れて霊的に成長し、機を待つこと。', '約1分半', '10/23'],
   ['../hodo/', '程（ほど）', '程', '人間万事 この一字にあり', '何事も「程」が大切。山岡鉄舟の額の書「程」とともに。', '約1分半', '10/23'],
   ['../taiyo/', '太陽の救い', '太陽の救い', '常識と自由の「超宗教」', '迷惑な信仰・信仰地獄・常識と超宗教・天国的信仰・太陽の救い の5つの場面。', '約1分半', '10/24'],
@@ -119,9 +134,6 @@ const APPS = [
   ['../jinzo/', '本医術の施法', '本医術', '腎臓の毒を溶かし 全身を浄化', '腎臓の毒結を溶かして尿として出し、全身を浄化する「腎臓医術」。', '約3分', '10/26'],
   ['../meishin/', '三大迷信とは何か', '三大迷信', '薬剤・肥料・法律の 三つの迷信', '薬剤迷信・肥料迷信・法律迷信。誤りだらけの文明を正し、新しい文明を創る。', '約3分半', '10/26'],
 ];
-const TOOLS = [
-  ['../yupack/', '代引計算', '代引計算', 'ゆうパック代金引換の計算', '商品代金と送料を入れると、代金引換の用紙の ④①②③ がそのまま出ます。', '', '10/25'],
-];
 
 // ---------- 見た動画を覚えておく（この端末だけ） ----------
 let seen = {};
@@ -133,15 +145,26 @@ const icon = h => h + 'icon-180.png';
 const NEWEST = APPS[APPS.length - 1];
 
 // ---------- 棚をつくる ----------
-function renderShelf(id, list, dots) {
+// ---------- 並び順（並べかえた順番をこの端末で覚える。新しく足した動画は最後に入る） ----------
+let order = [];
+try { order = JSON.parse(localStorage.getItem('tanaOrder') || '[]') || []; } catch (e) {}
+function ordered() {
+  const by = h => APPS.find(a => a[0] === h);
+  const list = order.map(by).filter(Boolean);
+  APPS.forEach(a => { if (!list.includes(a)) list.push(a); });
+  return list;
+}
+function saveOrder(list) { order = list.map(a => a[0]); try { localStorage.setItem('tanaOrder', JSON.stringify(order)); } catch (e) {} }
+let shown = [];
+function renderShelf(id, list) {
+  shown = list;
   document.getElementById(id).innerHTML = list.map((a, i) => {
-    const dot = !dots || seen[a[0]] ? '' : a === NEWEST ? '<i class="dot newl">NEW</i>' : '<i class="dot"></i>';
-    return `<button class="app" data-l="${id}" data-i="${i}"><img src="${icon(a[0])}" alt="">${dot}<span class="n">${esc(a[2])}</span></button>`;
+    const dot = seen[a[0]] ? '' : a === NEWEST ? '<i class="dot newl">NEW</i>' : '<i class="dot"></i>';
+    return `<button class="app" data-i="${i}"><img src="${icon(a[0])}" alt="">${dot}<span class="n">${esc(a[2])}</span></button>`;
   }).join('');
 }
 function renderAll() {
-  renderShelf('shelf', APPS, true);
-  renderShelf('tools', TOOLS, false);
+  renderShelf('shelf', ordered());
   document.getElementById('hero').innerHTML =
     `<div class="hero"><img src="${icon(NEWEST[0])}" alt=""><div><span class="k">いちばん新しい動画</span><b>${esc(NEWEST[1])}</b><span>${esc(NEWEST[3])}（${esc(NEWEST[5])}）</span><button class="play" id="heroPlay">▶ 再生</button></div></div>`;
   document.getElementById('heroPlay').onclick = () => play(NEWEST[0], NEWEST[1]);
@@ -149,19 +172,44 @@ function renderAll() {
 renderAll();
 document.querySelectorAll('.shelf').forEach(s => s.addEventListener('click', e => {
   const b = e.target.closest('.app'); if (!b) return;
-  openSheet((b.dataset.l === 'tools' ? TOOLS : APPS)[+b.dataset.i]);
+  openSheet(shown[+b.dataset.i]);
 }));
+
+// ---------- 並べかえ：▲▼ で1つずつ動かす ----------
+const sortBtn = document.getElementById('sortBtn'), sortBox = document.getElementById('sortBox');
+let sorting = false, lastMoved = '';
+function renderSort() {
+  const list = ordered();
+  sortBox.innerHTML = list.map((a, i) =>
+    `<div class="row${a[0] === lastMoved ? ' moved' : ''}"><img src="${icon(a[0])}" alt=""><span>${i + 1}. ${esc(a[1])}</span>` +
+    `<button data-m="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="上へ">▲</button><button data-m="${i}" data-d="1" ${i === list.length - 1 ? 'disabled' : ''} aria-label="下へ">▼</button></div>`).join('') +
+    `<button class="reset" id="resetBtn">作った順に もどす</button>`;
+  document.getElementById('resetBtn').onclick = () => { saveOrder(APPS); lastMoved = ''; renderSort(); };
+}
+sortBox.addEventListener('click', e => {
+  const b = e.target.closest('button[data-m]'); if (!b) return;
+  const list = ordered(), i = +b.dataset.m, j = i + +b.dataset.d;
+  if (j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]]; lastMoved = list[j][0];
+  saveOrder(list); renderSort();
+});
+sortBtn.onclick = () => {
+  sorting = !sorting; lastMoved = '';
+  sortBtn.textContent = sorting ? '✓ できた' : '⇅ 並べかえ'; sortBtn.classList.toggle('on', sorting);
+  document.getElementById('shelf').classList.toggle('hide', sorting); sortBox.classList.toggle('on', sorting);
+  document.getElementById('note').textContent = sorting ? '▲▼ で順番を入れかえられます（この端末で覚えます）' : '赤い点：まだ見ていない動画';
+  if (sorting) renderSort(); else renderAll();
+};
 
 // ---------- 説明のシート ----------
 const sheet = document.getElementById('sheet'), sheetBg = document.getElementById('sheetBg');
 function openSheet(a) {
   const [h, name, , one, desc, len, date, parts] = a;
-  const isTool = TOOLS.includes(a);
   sheet.innerHTML =
     `<div class="top"><img src="${icon(h)}" alt=""><div><b>${esc(name)}</b><span>${esc(one)}</span>` +
-    (parts ? '' : `<button class="play" id="sheetPlay">${isTool ? '開く' : '▶ 再生'}</button>`) + `</div></div>` +
+    (parts ? '' : `<button class="play" id="sheetPlay">▶ 再生</button>`) + `</div></div>` +
     `<div class="facts">` +
-      (isTool ? `<div>種類<em>道具</em></div>` : `<div>長さ<em>${esc(len)}</em></div><div>声<em>4人</em></div>`) +
+      `<div>長さ<em>${esc(len)}</em></div><div>声<em>4人</em></div>` +
       `<div>作った日<em>${esc(date)}</em></div></div>` +
     `<p class="desc">${esc(desc)}</p>` +
     (parts ? `<div class="parts">${parts.map((p, i) => `<button data-p="${i}"><img src="${icon(p[0])}" alt=""><div>${esc(p[1])}<small>${esc(p[2])}</small></div></button>`).join('')}</div>` : '') +
