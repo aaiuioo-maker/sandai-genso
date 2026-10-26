@@ -132,7 +132,6 @@
 // [場所, 名前, アイコンの下の短い名前, ひとこと, 説明, 長さ, 作った日]
 const APPS = [
   ['../', '三大元素といのち', '三大元素', '火素・水素・土素', '火・水・土の三つの元素と、いのちのはたらき。', '約1分半', '10/22'],
-  ['../mae-no-koe/', '三大元素といのち（前の声）', '三大元素 前', '火素・水素・土素（前の声の版）', '「三大元素といのち」の、前に使っていた声の版。', '約1分半', '10/23'],
   ['../shuchaku/', '我と執着', '我と執着', '争いのもと・霊的成長・機を待つ', '我（が）と執着が争いのもとになること、執着を離れて霊的に成長し、機を待つこと。', '約1分半', '10/23'],
   ['../hodo/', '程（ほど）', '程', '人間万事 この一字にあり', '何事も「程」が大切。山岡鉄舟の額の書「程」とともに。', '約1分半', '10/23'],
   ['../taiyo/', '太陽の救い', '太陽の救い', '常識と自由の「超宗教」', '迷惑な信仰・信仰地獄・常識と超宗教・天国的信仰・太陽の救い の5つの場面。', '約1分半', '10/24'],
@@ -289,9 +288,38 @@ function newFrame(h) {
 }
 // cur：いま再生している棚の動画（三尊の弥陀の①②③のときも、棚の「三尊の弥陀」）
 let cur = '', ending = 0;
+// ---------- 音：棚で押したときに音の出口を1つ開けておき、どの動画もそこから鳴らす ----------
+// iPhone は、画面を押していないときに新しく音を鳴らし始められない。そのため連続再生で次の動画に進むと
+// 「再生する」を押すまで音が出なかった。最初に押したときの音の出口を使い回せば、次の動画もそのまま鳴る
+let pac = null, bus = null;
+function unlockAudio() {
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+  try {
+    if (!pac) pac = new (window.AudioContext || window.webkitAudioContext)();
+    pac.resume();
+    const s = pac.createBufferSource(); s.buffer = pac.createBuffer(1, 1, 22050); s.connect(pac.destination); s.start(0);
+  } catch (e) {}
+}
+// 動画のページの AudioContext を、棚の音の出口に差しかえる。動画ごとに音量のつまみ（bus）を分け、
+// 次の動画や棚に戻ったときは前の動画のつまみを外して、前の声や音楽が残らないようにする
+function shareAudio(w) {
+  dropBus();
+  if (!pac) return;
+  const my = bus = pac.createGain(); my.connect(pac.destination);
+  const ctx = new Proxy(pac, {
+    get(t, k) { if (k === 'destination') return my; const v = Reflect.get(t, k); return typeof v === 'function' ? v.bind(t) : v; },
+    set() { return true; },
+  });
+  const Ctx = function () { return ctx; };
+  w.AudioContext = Ctx; w.webkitAudioContext = Ctx;
+}
+function dropBus() { try { if (bus) bus.disconnect(); } catch (e) {} bus = null; }
+
 function play(h, name, shelfH) {
+  unlockAudio();
   closeSheet(); markSeen(shelfH || h); renderAll();
   cur = shelfH || h; ending = 0; clearTimeout(nextTimer);
+  dropBus(); // 前の動画の音を すぐ止める
   document.getElementById('playTitle').textContent = name;
   newFrame(h);
   const was = player.classList.contains('on');
@@ -346,6 +374,7 @@ document.getElementById('allBtn').onclick = () => {
 function autoStart(f) {
   const w = f.contentWindow; if (!w || f !== frameEl || !player.classList.contains('on')) return;
   try {
+    shareAudio(w);
     const go = () => {
       const btn = w.document.getElementById('startBtn'); if (!btn) return;
       btn.click();
@@ -361,6 +390,7 @@ function autoStart(f) {
   } catch (e) {}
 }
 function stopPlay() {
+  dropBus();
   ending = 0; clearTimeout(nextTimer);
   player.classList.remove('on'); document.body.style.overflow = '';
   newFrame(''); // iframe ごと消して、声と音を止める
