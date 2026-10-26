@@ -1,0 +1,1022 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="三大迷信とは何か">
+<title>三大迷信とは何か</title>
+<link rel="apple-touch-icon" href="icon-180.png?v=2">
+<link rel="manifest" href="meishin.webmanifest?v=2">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05040d">
+<link rel="icon" href="icon-180.png?v=2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&text=%E3%81%AE%E4%B8%89%E4%B8%96%E4%BC%9A%E4%BF%A1%E5%89%A4%E5%8A%9B%E5%A4%A7%E5%AE%97%E5%BE%8B%E6%83%B3%E6%95%91%E6%95%99%E6%96%99%E6%B3%95%E7%90%86%E7%A4%BE%E8%82%A5%E8%96%AC%E8%BF%B7&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  body { font-family: "DotGothic16", sans-serif; display: flex; flex-direction: column; align-items: center;
+         padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  /* タイトルは真ん中。オレンジのキャラクターは左はしに小さく */
+  h1 { font-size: 18px; font-weight: 400; margin: 0 0 4px; letter-spacing: .08em; position: relative; width: 100%; max-width: 480px; text-align: center; }
+  #ccTitle { position: absolute; left: 36px; top: 50%; transform: translateY(-58%); width: 24px; height: 26px; image-rendering: pixelated; border: none; border-radius: 0; background: transparent; }
+  .sub { font-size: 11px; opacity: .6; margin: 0 0 10px; }
+  .stage { width: 100%; max-width: 480px; position: relative; }
+  canvas { width: 100%; display: block; image-rendering: pixelated; border: 2px solid #2a2540; border-radius: 6px; background: #000; }
+  .panel { margin-top: 10px; background: #12101f; border: 2px solid #2a2540; border-radius: 6px; padding: 10px 12px; }
+  .seek { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .seek span { width: 40px; flex-shrink: 0; text-align: center; color: #ffcf8a; }
+  .seek span:last-child { color: #8a84a8; }
+  .seek input { flex: 1; min-width: 0; accent-color: var(--accent); height: 22px; }
+  /* 左から「最初から・再生・声と音」を横一列に。画面の幅に合わせて文字の大きさを変える */
+  .btns { display: flex; flex-wrap: nowrap; gap: 6px; margin-top: 8px; }
+  .btns button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 7px 2px; border-color: #5a5478; }
+  .btns .snd { color: #6fe0a0; flex-grow: 1.25; }
+  .btns .snd.off { color: #8a84a8; }
+  /* 声の選びかた（4人） */
+  .voices { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; }
+  .voices span { flex-shrink: 0; color: #8a84a8; }
+  .voices button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 5px 2px; border-color: #3a3358; color: #8a84a8; }
+  .voices button.on { border-color: var(--accent); color: var(--fg); }
+  button { font-family: inherit; font-size: 15px; color: var(--fg); background: #1c1930; border: 2px solid var(--accent);
+           border-radius: 6px; padding: 8px 18px; cursor: pointer; }
+  button:active { transform: translateY(1px); }
+  .start { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .start button { font-size: 18px; padding: 12px 26px; background: rgba(28,25,48,.9); }
+  .hide { display: none !important; }
+</style>
+</head>
+<body>
+<h1><canvas id="ccTitle" width="48" height="52" aria-hidden="true"></canvas>三大迷信とは何か</h1>
+<p class="sub">薬剤・肥料・法律の 三つの迷信と、新しい文明（約3分半・声と音が出ます）<br><span id="credit">声：VOICEVOX:四国めたん</span></p>
+<div class="stage">
+  <canvas id="cv"></canvas>
+  <div class="start" id="startBox"><button id="startBtn">▶ 再生する</button></div>
+</div>
+<div class="stage panel">
+  <div class="seek"><span id="curT">00:00</span><input type="range" id="seekBar" min="0" max="85" step="0.1" value="0" aria-label="再生位置"><span id="totT">00:00</span></div>
+  <div class="btns">
+    <button id="rsBtn">🔄 最初から</button>
+    <button id="ppBtn">▶ 再生</button>
+    <button id="sndBtn" class="snd">🔊 声・音 ON</button>
+  </div>
+  <div class="voices"><span>声</span>
+    <button data-v="4" class="on">順番</button>
+    <button data-v="0">めたん</button>
+    <button data-v="1">つむぎ</button>
+    <button data-v="2">はう</button>
+    <button data-v="3">小夜</button>
+  </div>
+</div>
+
+<script>
+const W = 180, H = 260, S = 3, SH = 216, DUR = 20;
+const cv = document.getElementById('cv');
+cv.width = W * S; cv.height = H * S;
+const ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+// ---------- 描画の道具 ----------
+const rd = Math.round;
+function R(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(rd(x) * S, rd(y) * S, rd(w) * S, rd(h) * S); }
+function P(x, y, c, s = 1) { R(x, y, s, s, c); }
+function disc(cx, cy, r, c) {
+  for (let y = -r; y <= r; y++) { const w = Math.floor(Math.sqrt(r * r - y * y) + 0.3); R(cx - w, cy + y, w * 2 + 1, 1, c); }
+}
+function T(s, x, y, size, c, align = 'center', a = 1) {
+  ctx.globalAlpha = a;
+  ctx.font = `${size * S}px "DotGothic16", monospace`;
+  ctx.textAlign = align; ctx.textBaseline = 'middle';
+  ctx.lineWidth = S * 1.4; ctx.lineJoin = 'round'; ctx.strokeStyle = '#000';
+  ctx.strokeText(s, x * S, y * S);
+  ctx.fillStyle = c; ctx.fillText(s, x * S, y * S);
+  ctx.globalAlpha = 1;
+}
+// 筆文字：縁取りなしで細く読みやすく
+function B(s, x, y, size, c) {
+  ctx.font = `${size * S}px "Yuji Syuku", serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = c; ctx.fillText(s, x * S, y * S);
+}
+function A(a, fn) { ctx.globalAlpha = Math.max(0, Math.min(1, a)); fn(); ctx.globalAlpha = 1; }
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const fadeIn = (lt, st, d = 0.3) => clamp((lt - st) / d);
+const ease = k => k * k * (3 - 2 * k);
+function mix(c1, c2, k) {
+  const a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16);
+  const ch = s => rd(lerp((a >> s) & 255, (b >> s) & 255, k));
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+}
+// 小さなタグ（ラベル）
+function tag(s, x, y, c, a = 1, size = 8) { T(s, x, y, size, c, 'center', a); }
+
+// ---------- 星 ----------
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const stars = [...Array(70)].map(() => ({ x: rnd() * W | 0, y: rnd() * SH | 0, p: rnd() * 6.28, s: rnd() < .15 ? 2 : 1 }));
+function drawStars(t, a = 1) {
+  for (const s of stars) { const b = .5 + .5 * Math.sin(t * 3 + s.p); ctx.globalAlpha = a * (.25 + .75 * b); P(s.x, s.y, '#fff', s.s); }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- 太陽・月・地球 ----------
+function sun(cx, cy, t, r = 13) {
+  A(.25 + .1 * Math.sin(t * 6), () => disc(cx, cy, r + 5, '#ff7a2e'));
+  disc(cx, cy, r, '#ffb02e'); disc(cx - 1, cy - 1, r - 4, '#ffd84a'); disc(cx - 3, cy - 3, 2, '#fff6c0');
+  for (let i = 0; i < 8; i++) {
+    const an = i * Math.PI / 4 + t * .6, L = r + 7 + (Math.sin(t * 8 + i) > 0 ? 2 : 0);
+    P(cx + Math.cos(an) * L, cy + Math.sin(an) * L, '#ffd84a', 2);
+  }
+}
+// ---------- 人（小さな人形）----------
+// (x, y) は足もとのまんなか。k は大きさ（k=1 で高さ 26 マス）
+// pose：down 腕を下ろす／reachR 右へ手をのばす／reachL 左へ手をのばす／up 両手を上げる／give 右手で差し出す
+function personShape(x, y, c, pose, k) {
+  const r = (dx, dy, w, h) => R(x + dx * k, y + dy * k, w * k, h * k, c);
+  disc(x, y - 22 * k, 3 * k, c);
+  r(-3, -18, 7, 10);
+  r(-3, -8, 2, 8); r(2, -8, 2, 8);
+  if (pose === 'reachR') { r(-5, -17, 2, 7); r(4, -16, 6, 2); }
+  else if (pose === 'reachL') { r(-9, -16, 6, 2); r(4, -17, 2, 7); }
+  else if (pose === 'up') { r(-5, -25, 2, 8); r(4, -25, 2, 8); }
+  else if (pose === 'give') { r(-5, -17, 2, 7); r(4, -15, 7, 2); }
+  else { r(-5, -17, 2, 8); r(4, -17, 2, 8); }
+}
+function person(x, y, fill = '#2c2f52', line = '#9a90d0', pose = 'down', k = 1, a = 1) {
+  A(a, () => {
+    [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dx, dy]) => personShape(x + dx, y + dy, line, pose, k));
+    personShape(x, y, fill, pose, k);
+    P(x - 2 * k, y - 23 * k, '#f3ead6', Math.max(1, k | 0)); P(x + 1 * k, y - 23 * k, '#f3ead6', Math.max(1, k | 0));
+  });
+}
+// 小さなハート
+function smallHeart(x, y, c = '#ff6a7a') { P(x, y, c); P(x + 2, y, c); R(x - 1, y + 1, 5, 1, c); R(x, y + 2, 3, 1, c); P(x + 1, y + 3, c); }
+function ground(c = '#5a3d24') { R(0, 202, W, 14, c); R(0, 202, W, 2, '#3f8f3a'); for (let x = 3; x < W; x += 11) P(x, 207 + (x % 3), '#6b4a2c', 2); }
+function room(t, a = .5) { R(0, 0, W, SH, '#0f1028'); drawStars(t, a); ground(); }
+
+// ---------- Claude Code のキャラクター（字幕の左にいる案内役） ----------
+function mascot(ox, oy, t, mode = "walk", p = 1) {
+  // ox, oy, p は画面の1マス（3画素）単位。p は小数でもよい（画素単位で描くので、にじまない）
+  const R = (x, y, w, h, c) => { const q = (v) => Math.round(v * S); ctx.fillStyle = c; ctx.fillRect(q(x), q(y), q(x + w) - q(x), q(y + h) - q(y)); };
+  const c = '#d97757', f = Math.floor(t * 6) % 4;
+  const hop = (mode === "jump" ? -Math.abs(Math.sin(t * 7)) * 4 : (f % 2 ? -1 : 0)) * p;
+  const up = [f === 1, f === 3, f === 3, f === 1];
+  [2, 4, 7, 9].forEach((x, i) => R(ox + x * p, oy + 6 * p, p, (up[i] && mode === 'walk' ? 1 : 2) * p, c));
+  const y0 = oy + hop;
+  R(ox + 2 * p, y0, 8 * p, 6 * p, c);
+  const wave = mode === "talk" && Math.sin(t * 10) > 0 ? -p : 0;
+  R(ox, y0 + 2 * p + wave, 2 * p, 2 * p, c); R(ox + 10 * p, y0 + 2 * p - wave, 2 * p, 2 * p, c);
+  const blink = (t % 3) > 2.85;
+  R(ox + 3 * p, y0 + p + (blink ? .6 * p : 0), p, blink ? .4 * p : p, "#1a1612"); R(ox + 8 * p, y0 + p + (blink ? .6 * p : 0), p, blink ? .4 * p : p, "#1a1612");
+}
+
+// 案内役の動きに合わせた効果音（声のじゃまにならないよう小さく鳴らす）
+// しゃべる：手をふるたびに「ぴょこ」／ジャンプ：とび上がるたびに「ぴょん」／歩く：一歩ごとに「とこ」／まばたき：「ぱち」
+// 動きが変わったとき：しゃべる→ジャンプ「ポロロン↑」、ジャンプ→歩く「ポロン↓」
+let mPrevT = -1, mPrevMode = '';
+function mascotSfx(t, mode) {
+  const pt = mPrevT, pm = mPrevMode; mPrevT = t; mPrevMode = mode;
+  if (!ac || !playing || muted || seeking || pt < 0 || t <= pt || t - pt > .2) return;
+  try {
+    if (mode !== pm) {
+      if (mode === 'jump') [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .07, .18, 'square', .03));
+      else if (mode === 'walk') [784, 587, 392].forEach((f, i) => tone(f, i * .09, .25, 'triangle', .07));
+      else [880, 1175].forEach((f, i) => tone(f, i * .08, .2, 'sine', .05));
+      return;
+    }
+    const cross = k => Math.floor(t * k) !== Math.floor(pt * k); // t*k が次の整数に進んだ
+    if (mode === 'talk' && Math.sin(t * 10) > 0 && Math.sin(pt * 10) <= 0) tone(620 + Math.random() * 120, 0, .08, 'sine', .035, 980);
+    if (mode === 'jump' && cross(7 / Math.PI)) { tone(140, 0, .06, 'triangle', .12, 90); tone(330, .02, .2, 'square', .025, 900); }
+    if (mode === 'walk' && cross(6) && Math.floor(t * 6) % 2 === 0) tone(Math.floor(t * 6) % 4 ? 440 : 520, 0, .05, 'triangle', .08, 260);
+    if ((t % 3) > 2.85 && (pt % 3) <= 2.85) tone(2200, 0, .03, 'sine', .02, 1600);
+  } catch (e) {}
+}
+
+// ---------- 声の4人（字幕の左で、いま読んでいる人がしゃべる） ----------
+// 1文字＝1ドット（横14×縦16）。S＝はだ、E＝目（まばたき・口は下で動かす）
+const SPK = [
+  { name: 'めたん', pal: { H: '#e04b8f', D: '#c43a7a', d: '#f07ab0', S: '#ffe2cc', E: '#d9a020', K: '#2b2733', W: '#f4f0f0' }, map: [
+    '....HHHHHH....', '..HHHHHHHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'DHHSSHSSHSSHHD', 'dHSSSSSSSSSSHd', 'DHSEESSSSEESHD', 'dHSEESSSSEESHd',
+    'DDSSSSSSSSSSDD', 'dd.SSSSSSSS.dd', 'DD..SSSSSS..DD', '.dd.KWWWWK.dd.',
+    '.DD.KKWWKK.DD.', '..d.KKKKKK.d..', '...KKKKKKKK...', '...KKKKKKKK...'] },
+  { name: 'つむぎ', pal: { H: '#f2c740', h: '#ffe08a', S: '#ffe2cc', E: '#7a4a2a', W: '#f4f4f4', R: '#e04848' }, map: [
+    '.....HHHH.....', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHHSSHSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HHH.WWRRWW.HHH',
+    'HHH.WWRRWW.HHH', '.HH.WWWWWW.HH.', '...WWWWWWWW...', '...WWWWWWWW...'] },
+  { name: 'はう', pal: { H: '#9ccbe8', C: '#ffffff', X: '#e04848', S: '#ffe2cc', E: '#4a7ab0', W: '#ffffff', P: '#f6b8c8' }, map: [
+    '...CCCCCCCC...', '..CCCCXCCCCC..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    '.HSSSSSSSSSSH.', '.H.SSSSSSSS.H.', '....SSSSSS....', '...PWWWWWWP...',
+    '..PPWWWWWWPP..', '..PPWWWWWWPP..', '..PPPWWWWPPP..', '..PPPWWWWPPP..'] },
+  { name: '小夜', pal: { H: '#8a5a3a', I: '#f2a0b0', S: '#ffe2cc', E: '#3a8a5a', G: '#e8d070', K: '#b04040' }, map: [
+    '.HH........HH.', '.HIH......HIH.', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...GGGGGGGG...',
+    '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..'] },
+];
+// v：だれ（0〜3）、talk：いま声が出ている（口がパクパク・体がゆれる）
+function speakerDot(v, ox, oy, t, talk) {
+  const sp = SPK[v]; if (!sp) return;
+  const bob = talk && Math.floor(t * 4) % 2 ? -1 : 0, y0 = oy + bob;
+  const blink = (t % 3.2) > 3.05;
+  sp.map.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (ch === '.') return;
+    if (ch === 'E' && blink) { if (y === 7) P(ox + x, y0 + y, '#5a3a3a'); return; } // まばたき：下だけ線に
+    P(ox + x, y0 + y, sp.pal[ch]);
+  }));
+  // 口：しゃべっているときはパクパク
+  const open = talk && Math.floor(t * 9) % 3 !== 0;
+  if (open) { R(ox + 6, y0 + 9, 2, 2, '#8a2a3a'); P(ox + 6, y0 + 10, '#e07080'); }
+  else R(ox + 6, y0 + 9, 2, 1, '#c0505a');
+  T(sp.name, ox + 7, oy + 20.5, 6, talk ? '#ffe8b0' : '#b0a8c8', 'center');
+}
+
+
+// ---------- 字幕 ----------
+// [始まり, 終わり, 1行目, 2行目, 読み上げる文（読みにくい言葉はひらがな）, 1行目の色]
+const HO = '#ffe8b0', GO = '#ffd84a', KI = '#ff9a8a', DK = '#c0a070', OK = '#9fe0a0', NY = '#ffe08a';
+const CAPS = [
+  [0.0, 1.0, '三大迷信とは何か', '目的は 新しい文明の創造', 'さんだいめいしん、とは、なにか。本教の、目的とするところは、新しい文明の、創造である、と、いつも述べています。', HO],
+  [1.0, 2.0, '今さら 新しい文明？', '第三者は 不思議に思う', 'しかし、第三者が見たら、今は、野蛮時代でもないのに、今さら、新しい文明の創造とは、と、不思議に思うかも、しれません。', NY],
+  [2.0, 3.0, '現在は 形だけは', '確かに 進歩した文明世界', 'たしかに、現在は、形だけは、進歩した、文明世界です。', HO],
+  [3.0, 4.0, 'しかし 内容は', '誤謬（ごびゅう）だらけ', 'しかし、その内容は、ほとんど、ごびゅう、つまり、誤りだらけで、真の文明とは、言えません。その大きな誤りが、三つあります。', KI],
+  [4.0, 5.0, '（一）薬剤迷信', '病気のとき 一番頼る 薬', 'ひとつめは、やくざい迷信。今日、だれもが、病気のとき、いちばん頼りにしているのは、薬です。', HO],
+  [5.0, 6.0, 'ところが 薬こそ', '健康を弱らせ 病気を作る', 'ところが、驚いてはいけない。この薬こそが、人間の健康を弱らせ、病気を作り、命まで、危うくするもの、だというのです。', KI],
+  [6.0, 7.0, 'なぜ 気付かなかったか', '薬剤迷信に 陥っていたから', '今日まで、なぜ、気付かなかったのか。それは、やくざい迷信に、深く、陥っていたから、です。', NY],
+  [7.0, 8.0, '人類を救うには', '迷信を打破し 目醒めさせる', 'ですから、人類を救うには、この迷信を打破し、目醒めさせる、ほかに、方法はない、と述べています。', OK],
+  [8.0, 9.0, '（二）肥料迷信', '土そのものが 肥料の塊', 'ふたつめは、ひりょう迷信。本来、土とは、神が、人間に食糧を作らせるため、素晴らしい性能を、与えたもの。土そのものが、肥料のかたまり、とも言うべき、貴重品です。', HO],
+  [9.0, 10.0, 'それなのに 肥料という', '土を殺す 汚物を使う', 'それなのに、いつの時代か、肥料という、土を殺し、土自体の栄養を、そしする、汚物を、使うように、なってしまいました。', DK],
+  [10.0, 11.0, '手数を掛け 農民の懐を絞り', 'かえって 減産になる', '手数を掛け、農民の、ふところを絞り、かえって、減産に役立つ、という、驚くべき迷信です。', DK],
+  [11.0, 12.0, '米の不足も 虫害も', '原因は 肥料にある', '国の産米が、一年に、二千万石も、不足することや、毎年、虫害に苦しむことも、原因は、肥料にある、と、長年、警告している、とのことです。', NY],
+  [12.0, 13.0, '（三）法律迷信', '手段は 取締りと刑罰だけ', 'みっつめは、法律迷信。法律の目的は、犯罪を、防止すること。しかし、その手段は、取締りと、刑罰だけです。', HO],
+  [13.0, 14.0, 'それだけでは', '目的は 達せられない', 'それだけでは、目的を、達せられないことは、今日の世相が、よく物語っています。', NY],
+  [14.0, 15.0, '犯罪の原因である', '人間の魂を 無視してきた', 'この迷信とは、犯罪の原因である、人間の魂を、無視してきた、誤りです。', KI],
+  [15.0, 16.0, '魂を改善させる 方法こそ', '宗教の力', '本当に、犯罪を無くすなら、人間の魂を、改善させる、ほかにない。その方法こそ、宗教の力である、と述べています。', GO],
+  [16.0, 17.0, '今までは 教育や道徳が', '宗教よりも 重用された', 'これまでは、教育や、道徳のほうが、宗教よりも、重く用いられてきました。そのため、刑罰主義に、頼ってきたのも、無理はなかったのです。', NY],
+  [17.0, 18.0, '宗教・道徳・教育を', '合わせた以上の 力ある宗教', '既成宗教、道徳、教育などを、ひとつに合わせた、それ以上の、真に、力ある宗教が、出てこそ、', HO],
+  [18.0, 19.0, '犯罪のない', '理想社会が 出現する', '犯罪のない、理想社会が、出現するのです。', OK],
+  [19.0, 20.0, '救世（メシヤ）教を', '一日も早く 研究せよ', 'その宗教こそ、メシヤ教である、として、一日も早く、研究してみることを、すすめています。必ず、私の言の、偽りないことを、知るであろう、と、結んでいます。', GO],
+  [20.0, 22.0, "ご視聴ありがとうございました", "", "ごしちょう、ありがとうございました。"],
+];
+// 1つの字幕を見せる時間（秒）。読み上げの長さに合わせ、ゆっくり読めるように長めにとる
+CAPS.forEach(c => { c.dur = Math.max(3.8, c[4].replace(/[、。\s]/g, '').length * 0.2 + 2.0); });
+CAPS[CAPS.length - 1].dur = 5.5; // 最後の「ご視聴ありがとうございました」はゆっくり余韻をとる
+function captions(t) {
+  R(0, SH, W, H - SH, '#0d0b18'); R(0, SH, W, 1, '#3a3358');
+  const c = CAPS.find(c => t >= c[0] && t < c[1]); if (!c) return;
+  const a = clamp((t - c[0]) / .15);
+  T(c[2], 90, c[3] ? 231.5 : 237, 9, c[5] || '#f3ead6', 'center', a);
+  if (c[3]) T(c[3], 90, 244.5, 8.5, '#f3ead6', 'center', a);
+}
+
+// ---------- 道具 ----------
+// 大きなハート。c：色、r：大きさ
+function heart(cx, cy, r, c) {
+  disc(cx - r / 2, cy - r / 4, r / 2 + .5, c); disc(cx + r / 2, cy - r / 4, r / 2 + .5, c);
+  for (let y = 0; y <= r; y++) { const w = rd((r - y) * 1.05); R(cx - w, cy - r / 4 + y, w * 2 + 1, 1, c); }
+}
+// 雲
+function cloud(cx, cy, k = 1) {
+  disc(cx - 10 * k, cy + 2 * k, 7 * k, '#d8d8ea'); disc(cx + 10 * k, cy + 2 * k, 7 * k, '#d8d8ea');
+  disc(cx, cy - 3 * k, 10 * k, '#f3f3fa'); disc(cx - 9 * k, cy + 1 * k, 7 * k, '#f3f3fa'); disc(cx + 9 * k, cy + 1 * k, 7 * k, '#f3f3fa');
+  R(cx - 16 * k, cy + 2 * k, 32 * k, 6 * k, '#f3f3fa');
+}
+// きらきら（十字の光）
+function spark(x, y, c = '#fff1b0', s = 2) { P(x, y, c); for (let i = 1; i <= s; i++) { P(x - i, y, c); P(x + i, y, c); P(x, y - i, c); P(x, y + i, c); } }
+// 花（地面から生える）。k：咲き方（0〜1）
+function flower(x, gy, k, c = '#ff8ab0') {
+  const h = rd(4 + 10 * k); R(x, gy - h, 1, h, '#3f8f3a');
+  if (k > .5) { const r = k > .8 ? 2 : 1; [[-2, 0], [2, 0], [0, -2], [0, 2]].forEach(([dx, dy]) => P(x + dx, gy - h + dy, c, r)); P(x, gy - h, '#ffd84a'); }
+}
+// 人を倒したり傾けたりして描く（足もとを中心にまわす）
+function personRot(x, y, an, ...a) {
+  ctx.save(); ctx.translate(x * S, y * S); ctx.rotate(an); ctx.translate(-x * S, -y * S);
+  person(x, y, ...a); ctx.restore();
+}
+// 筆文字を透明度つきで
+function BA(s, x, y, size, c, a) { A(a, () => B(s, x, y, size, c)); }
+// 明るい人・暗い人の色
+const LIT = ['#2c2f52', '#fff1b0'], DIM = ['#2a2a30', '#6a6a78'];
+// 開いた本
+function book(cx, cy) {
+  R(cx - 16, cy - 8, 15, 12, '#f3ead6'); R(cx + 1, cy - 8, 15, 12, '#f3ead6'); R(cx - 1, cy - 9, 2, 14, '#8a5a3a');
+  for (let i = 0; i < 4; i++) { R(cx - 14, cy - 6 + i * 3, 11, 1, '#8a84a8'); R(cx + 3, cy - 6 + i * 3, 11, 1, '#8a84a8'); }
+}
+
+// 巻物
+function scroll(cx, cy, w, h, a = 1) {
+  A(a, () => {
+    R(cx - w / 2, cy - h / 2, w, h, '#f3ead6'); R(cx - w / 2, cy - h / 2, w, 2, '#d8cbb0');
+    R(cx - w / 2 - 3, cy - h / 2 - 2, 3, h + 4, '#8a5a3a'); R(cx + w / 2, cy - h / 2 - 2, 3, h + 4, '#8a5a3a');
+  });
+}
+// 花火
+function firework(cx, cy, q, c) {
+  if (q <= 0 || q >= 1) return;
+  for (let i = 0; i < 12; i++) { const an = i * Math.PI / 6, L = 4 + q * 20; A(1 - q, () => P(cx + Math.cos(an) * L, cy + Math.sin(an) * L, c, 2)); }
+}
+// ドット絵（1文字＝1ドット）。中心 (cx, cy)、k：大きさ（整数）、flip：左右反転
+function spr(map, pal, cx, cy, k = 1, flip = false, a = 1) {
+  const w = Math.max(...map.map(r => r.length)), ox = rd(cx - w * k / 2), oy = rd(cy - map.length * k / 2);
+  A(a, () => map.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (!pal[ch]) return;
+    R(ox + (flip ? w - 1 - x : x) * k, oy + y * k, k, k, pal[ch]);
+  })));
+}
+
+// ---------- 三大迷信の道具 ----------
+// 町のビル [左, 高さ, 幅]。shine：窓の明かり（0〜1）、crack：ひび（中身の誤り）
+const BLD = [[6, 34, 22], [30, 24, 30], [56, 40, 18], [76, 28, 26], [104, 46, 20], [126, 30, 24], [152, 38, 22]];
+function city(t, shine = 1, crack = 0) {
+  BLD.forEach(([x, h, w], i) => {
+    const top = rd(202 - h * 1.6);
+    R(x, top, w, 202 - top, mix('#22223e', '#3a3e6a', shine)); R(x, top, w, 2, '#5a5a8a');
+    for (let yy = top + 5; yy < 196; yy += 7) for (let xx = x + 3; xx < x + w - 3; xx += 6) {
+      const on = ((xx * 7 + yy * 3 + i) % 5) < 3;
+      P(xx, yy, on ? mix('#3a3a50', '#ffd84a', shine * (.75 + .25 * Math.sin(t * 2 + xx))) : '#1a1a2a', 2);
+    }
+    if (crack > 0) A(crack, () => { const cx = x + rd(w / 2); for (let k = 0; k < 7; k++) P(cx + (k % 2 ? 1 : -1) * (k % 3), top + 4 + k * 4, '#05040d', 2); });
+  });
+}
+// 吹き出し（？など）
+function bubble(cx, cy, s, a = 1) {
+  A(a, () => { disc(cx, cy, 8, '#f3ead6'); P(cx - 7, cy + 7, '#f3ead6', 2); P(cx - 9, cy + 9, '#f3ead6'); });
+  T(s, cx, cy, 10, '#8a2a20', 'center', a);
+}
+// 薬のカプセル。an：かたむき
+function capsule(cx, cy, an = 0) {
+  ctx.save(); ctx.translate(cx * S, cy * S); ctx.rotate(an);
+  disc(-4, 0, 3, '#e04848'); R(-4, -3, 4, 7, '#e04848');
+  disc(4, 0, 3, '#f3f3fa'); R(0, -3, 4, 7, '#f3f3fa');
+  P(-5, -2, '#ff9a9a'); P(3, -2, '#ffffff');
+  ctx.restore();
+}
+// 薬びん。by：底の高さ
+function bottle(cx, by, a = 1) {
+  A(a, () => {
+    R(cx - 7, by - 24, 14, 24, '#a05a2a'); R(cx - 4, by - 29, 8, 5, '#a05a2a'); R(cx - 5, by - 32, 10, 3, '#f3f3fa');
+    R(cx - 5, by - 18, 10, 10, '#f3ead6'); R(cx - 6, by - 22, 2, 14, '#c07a4a');
+  });
+  T('薬', cx, by - 13, 7, '#e04848', 'center', a);
+}
+// ベッドに寝ている病人。x：ベッドの左はし
+function sickBed(x, t, a = 1) {
+  A(a, () => { R(x, 192, 64, 8, '#4a6ad0'); R(x, 192, 64, 2, '#8aa8f0'); R(x + 18, 189, 14, 4, '#f3ead6'); R(x, 200, 3, 2, '#6a4a2a'); R(x + 61, 200, 3, 2, '#6a4a2a'); });
+  personRot(x + 50, 194, -Math.PI / 2, DIM[0], DIM[1], 'down', 1, a);
+  A(a, () => { for (let i = 0; i < 3; i++) P(x + 28 + i * 6, 176 - (t * 8 + i * 3) % 10, '#8aa8d0', 2); });
+}
+// 迷信の雲（目をふさぐ暗い雲）。k：大きさ
+function fog(cx, cy, k, a = 1) {
+  A(a, () => {
+    disc(cx - 8 * k, cy + 1, 6 * k, '#3a3550'); disc(cx + 8 * k, cy + 1, 6 * k, '#3a3550');
+    disc(cx, cy - 3 * k, 8 * k, '#4a4560'); R(cx - 13 * k, cy, 26 * k, 5 * k, '#4a4560');
+  });
+}
+// 上から差す光
+function rays(cx, a, t) {
+  if (a <= 0) return;
+  for (let i = -3; i <= 3; i++) A(a * (.14 + .07 * Math.sin(t * 3 + i)), () => {
+    for (let y = 0; y < 202; y += 2) R(cx + i * (5 + y * .14) - 2, y, 4, 2, '#fff1b0');
+  });
+}
+// 土の切り口。y0：地面の高さ、rich：1 生きた土（光るつぶ）〜 0 死んだ土
+function soil(y0, rich, t) {
+  R(0, y0, W, SH - y0, mix('#2e2620', '#6b4a2c', rich)); R(0, y0, W, 2, mix('#4a4a3a', '#3f8f3a', rich));
+  for (let i = 0; i < 30; i++) {
+    const x = (i * 47) % W, y = y0 + 6 + (i * 29) % Math.max(1, SH - y0 - 8);
+    P(x, y, mix('#1e1814', '#8a6a3c', rich), 2);
+    if (rich > .3 && i % 3 === 0) A(rich * (.45 + .45 * Math.sin(t * 4 + i)), () => P(x + 2, y - 1, '#ffe08a'));
+  }
+}
+// 稲。k：育ち方、ripe：実の量（0〜1）
+function rice(x, gy, k, ripe = 1) {
+  const h = rd(8 + 22 * k), g = mix('#6a6a40', '#5aa040', ripe);
+  R(x, gy - h, 1, h, g); R(x - 3, gy - rd(h * .45), 3, 1, g); R(x + 1, gy - rd(h * .6), 3, 1, g);
+  const n = rd(5 * ripe);
+  for (let i = 0; i < n; i++) P(x + 1 + rd(i * .6), gy - h + i * 2, '#e8c040', 2);
+}
+// 肥料のふくろ。(cx, cy) 中心、an：かたむき（注ぐとき）
+function bag(cx, cy, an = 0, a = 1) {
+  ctx.save(); ctx.translate(cx * S, cy * S); ctx.rotate(an);
+  A(a, () => { R(-11, -14, 22, 28, '#c8b890'); R(-11, -16, 22, 3, '#a89870'); R(-8, -7, 16, 11, '#f3ead6'); });
+  T('肥料', 0, -1.5, 6.5, '#5a3d24', 'center', a);
+  ctx.restore();
+}
+// お金（小判）
+function coin(x, y) { disc(x, y, 3, '#e8c040'); P(x - 1, y - 1, '#fff1b0'); P(x, y, '#a07a20'); }
+// 虫（羽をぱたぱた）
+function bug(x, y, t) {
+  const f = Math.floor(t * 8) % 2;
+  R(x - 2, y - 1, 5, 3, '#2e3a20'); P(x - 3, y - 2, '#2e3a20'); P(x + 3, y, '#c04040');
+  P(x - 1, y - 3 - f, '#b8c0e0'); P(x + 1, y - 3 - f, '#b8c0e0');
+}
+// 米俵。ok：false で「足りない」（点線だけ）
+function bale(cx, cy, ok = true, a = 1) {
+  A(a, () => {
+    if (!ok) { for (let x = -10; x < 10; x += 3) { P(cx + x, cy - 7, '#8a84a8'); P(cx + x, cy + 6, '#8a84a8'); } for (let y = -7; y < 7; y += 3) { P(cx - 10, cy + y, '#8a84a8'); P(cx + 9, cy + y, '#8a84a8'); } return; }
+    R(cx - 10, cy - 7, 20, 14, '#d8c070'); R(cx - 10, cy - 7, 3, 14, '#a89040'); R(cx + 7, cy - 7, 3, 14, '#a89040'); R(cx - 1, cy - 7, 1, 14, '#a89040');
+  });
+}
+// 裁判の木づち。(cx, cy) 持つところ、an：ふり下ろす角度
+function gavel(cx, cy, an) {
+  ctx.save(); ctx.translate(cx * S, cy * S); ctx.rotate(an);
+  R(-1, -18, 3, 20, '#8a5a3a'); R(-8, -24, 17, 8, '#6a3a20'); R(-8, -24, 17, 2, '#9a6a40'); R(-9, -23, 2, 6, '#c8a040'); R(8, -23, 2, 6, '#c8a040');
+  ctx.restore();
+}
+// 法律の本（閉じた本）
+function lawBook(cx, cy) {
+  R(cx - 12, cy - 16, 24, 32, '#5a2a2a'); R(cx - 12, cy - 16, 3, 32, '#3a1a1a'); R(cx + 12, cy - 15, 2, 30, '#f3ead6');
+  R(cx - 6, cy - 9, 14, 12, '#c8a040');
+  T('法', cx + 1, cy - 3, 9, '#ffe8b0');
+}
+// 牢屋の格子
+function bars(x, y, w, h) {
+  R(x, y, w, 3, '#6a6a7a'); R(x, y + h - 3, w, 3, '#6a6a7a');
+  for (let i = x; i <= x + w - 2; i += 7) R(i, y, 2, h, '#8a8a9a');
+}
+// 魂（ゆらめく火）。k：大きさ、c1：外の色、c2：中の色
+function soul(cx, cy, k, c1, c2, t) {
+  const f = Math.sin(t * 8) > 0 ? 1 : 0, r = rd(3 * k);
+  disc(cx, cy, r, c1); disc(cx, cy - rd(r * .9), Math.max(1, rd(r * .7)), c1); disc(cx + f, cy - rd(r * 1.6), Math.max(1, rd(r * .4)), c1);
+  P(cx - f, cy - rd(r * 2.1), c1);
+  disc(cx, cy + 1, Math.max(1, rd(r * .5)), c2);
+}
+// 光の玉と名前
+function orb(cx, cy, r, c, s, a = 1, t = 0) {
+  A(a * (.25 + .08 * Math.sin(t * 5)), () => disc(cx, cy, r + 4, c));
+  A(a, () => { disc(cx, cy, r, c); P(cx - rd(r / 2), cy - rd(r / 2), '#ffffff', 2); });
+  if (s) tag(s, cx, cy + r + 8, c, a, 8);
+}
+
+// ---------- 場面1：新しい文明の創造 ----------
+function scene1(lt, t) {
+  R(0, 0, W, SH, '#0f1028'); drawStars(t, .6);
+  if (lt < 1) {
+    // 題：三大迷信とは何か。夜明けの町
+    const k = lt;
+    sun(90, rd(176 - 50 * ease(clamp(k / .8))), t, 12);
+    city(t, .6); ground();
+    BA('三大迷信', 90, 38, 24, HO, fadeIn(lt, .1, .4));
+    tag('とは何か', 90, 62, '#c0b8e0', fadeIn(lt, .3), 9);
+    tag('新しい文明の 創造', 90, 84, GO, fadeIn(lt, .55), 9);
+  } else if (lt < 2) {
+    // 第三者が首をかしげる：今さら新しい文明？
+    city(t, .8); ground();
+    person(36, 202, LIT[0], LIT[1], 'down', 1.4);
+    bubble(56, 150, '？', fadeIn(lt, 1.15));
+    tag('第三者', 36, 208, '#c0b8e0', fadeIn(lt, 1.05), 7);
+    tag('今さら 新しい文明？', 90, 40, NY, fadeIn(lt, 1.3), 9);
+    tag('野蛮時代 でもないのに', 90, 56, '#c0b8e0', fadeIn(lt, 1.5), 8);
+  } else if (lt < 3) {
+    // 形だけは確かに進歩した文明（町がかがやく）
+    city(t, 1); ground();
+    for (let i = 0; i < 6; i++) spark(18 + i * 29, 86 + (i % 2) * 14 + rd(Math.sin(t * 3 + i) * 2), '#fff1b0', Math.sin(t * 5 + i) > 0 ? 2 : 1);
+    tag('形だけは 進歩した', 90, 36, HO, fadeIn(lt, 2.1), 9);
+    tag('文明世界', 90, 54, GO, fadeIn(lt, 2.3), 11);
+  } else {
+    // しかし中身は誤りだらけ：三つの大きな誤り
+    const k = lt - 3;
+    city(t, .35, clamp(k / .3)); ground();
+    A(.45, () => R(0, 0, W, SH, '#000'));
+    tag('中身は 誤謬だらけ', 90, 40, KI, clamp((k - .1) / .2), 9);
+    ['薬剤', '肥料', '法律'].forEach((s, i) => {
+      const a = clamp((k - .3 - i * .15) / .15), x = 34 + i * 56;
+      A(a, () => { R(x - 23, 70, 46, 42, '#1c1930'); R(x - 23, 70, 46, 2, KI); R(x - 23, 110, 46, 2, KI); });
+      T(s, x, 84, 10, HO, 'center', a); T('迷信', x, 99, 9, KI, 'center', a);
+    });
+    tag('三つの 大きな誤り', 90, 132, '#f3ead6', clamp((k - .8) / .15), 9);
+  }
+}
+
+// ---------- 場面2：薬剤迷信 ----------
+function scene2(lt, t) {
+  R(0, 0, W, SH, '#14102a'); drawStars(t, .4); ground();
+  if (lt < 1) {
+    // 病気のとき、いちばん頼りにするのは薬
+    const k = lt;
+    BA('薬剤迷信', 90, 34, 22, KI, fadeIn(lt, .1, .3));
+    sickBed(14, t);
+    bottle(140, 202, fadeIn(lt, .3));
+    for (let i = 0; i < 3; i++) if (k > .45 + i * .1) capsule(116 + i * 20, 134 + rd(Math.sin(t * 3 + i) * 3), i * .6);
+    tag('いちばんの 頼り＝薬', 90, 62, NY, clamp((k - .5) / .2), 9);
+  } else if (lt < 2) {
+    // 薬こそ健康を弱らせ、病気を作る：飲むたびに体が暗くなる
+    const k = lt - 1, d = ease(clamp((k - .15) / .6));
+    person(90, 202, mix(LIT[0], DIM[0], d), mix(LIT[1], DIM[1], d), 'down', 2);
+    for (let i = 0; i < 4; i++) {
+      const q = (k * 1.6 + i * .25) % 1;
+      if (k * 3 > q) A(1 - q, () => capsule(lerp(40 + i * 33, 90, q), lerp(80, 160, q), t * 2 + i));
+    }
+    tag('健康を弱らせ', 90, 34, KI, fadeIn(lt, 1.3), 9);
+    tag('病気を作る', 90, 50, KI, fadeIn(lt, 1.5), 9);
+    A(clamp((k - .7) / .2), () => { R(130, 140, 3, 10, '#ff6a6a'); R(130, 152, 3, 3, '#ff6a6a'); R(137, 140, 3, 10, '#ff6a6a'); R(137, 152, 3, 3, '#ff6a6a'); });
+  } else if (lt < 3) {
+    // 迷信の雲に目をふさがれて、気付かない
+    person(90, 202, DIM[0], DIM[1], 'down', 2);
+    fog(90, 154, 1.6, fadeIn(lt, 2.05, .3));
+    T('迷信', 90, 152, 9, '#c0b8e0', 'center', fadeIn(lt, 2.2));
+    bottle(148, 202); capsule(30, 196, .4); capsule(44, 198, -.3);
+    tag('なぜ 気付かなかった？', 90, 36, NY, fadeIn(lt, 2.3), 9);
+    tag('深く 陥っていた', 90, 52, '#c0b8e0', fadeIn(lt, 2.5), 8);
+  } else {
+    // 迷信を打ち破り、目醒める
+    const k = lt - 3, b = ease(clamp((k - .1) / .4));
+    sun(90, rd(lerp(150, 110, b)), t, 12);
+    ground();
+    const o = b * 50;
+    if (b < 1) { fog(90 - o, 154 - o * .4, 1, 1 - b); fog(90 + o, 154 - o * .4, 1, 1 - b); }
+    person(90, 202, mix(DIM[0], LIT[0], b), mix(DIM[1], LIT[1], b), b > .5 ? 'up' : 'down', 2);
+    for (let i = 0; i < 6; i++) A(b, () => spark(90 + rd(Math.cos(i + t) * 40), 160 + rd(Math.sin(i * 2 + t) * 22), '#fff1b0', 1));
+    tag('迷信を 打破し', 90, 40, OK, clamp((k - .35) / .2), 9);
+    tag('目醒めさせる', 90, 58, OK, clamp((k - .5) / .2), 11);
+  }
+}
+
+// ---------- 場面3：肥料迷信 ----------
+function scene3(lt, t) {
+  R(0, 0, W, SH, '#0f1a28'); drawStars(t, .4);
+  if (lt < 1) {
+    // 土そのものが肥料の塊：神が与えた素晴らしい性能
+    const k = lt;
+    rays(90, fadeIn(lt, .1, .4), t);
+    soil(150, 1, t);
+    for (let i = 0; i < 7; i++) rice(24 + i * 22, 150, ease(clamp((k - .3) / .5)), 1);
+    BA('肥料迷信', 90, 32, 22, NY, fadeIn(lt, .1, .3));
+    tag('土そのものが', 90, 58, HO, fadeIn(lt, .4), 9);
+    tag('肥料の 塊', 90, 74, GO, fadeIn(lt, .55), 10);
+    tag('神が与えた 素晴しい性能', 90, 94, '#ffe8b0', fadeIn(lt, .7), 8);
+  } else if (lt < 2) {
+    // 肥料という汚物を注ぐと、土が死ぬ
+    const k = lt - 1, d = ease(clamp((k - .2) / .6));
+    soil(150, 1 - d, t);
+    for (let i = 0; i < 7; i++) rice(24 + i * 22, 150, 1 - d * .5, 1 - d);
+    bag(124, 96, -1.0 * ease(clamp(k / .2)));
+    if (k > .15) for (let i = 0; i < 8; i++) { const q = (t * 1.5 + i / 8) % 1; P(108 - rd(q * 8 + Math.sin(i * 3) * 2), rd(lerp(104, 150, q)), '#3a2a1a', 2); }
+    tag('土を殺す 汚物', 90, 36, DK, fadeIn(lt, 1.3), 10);
+    tag('土の栄養を 阻止する', 90, 54, '#c0b8e0', fadeIn(lt, 1.5), 8);
+  } else if (lt < 3) {
+    // 手数を掛け、農民の懐を絞り、かえって減産
+    const k = lt - 2;
+    soil(176, .2, t);
+    for (let i = 0; i < 5; i++) rice(104 + i * 16, 176, .45, .2);
+    person(44, 176, LIT[0], LIT[1], 'reachR', 1.4);
+    tag('農民', 44, 184, '#c0b8e0', fadeIn(lt, 2.05), 7);
+    for (let i = 0; i < 4; i++) {
+      const q = (k * 1.4 + i * .25) % 1;
+      if (k * 4 > q) A(1 - q, () => coin(rd(58 + q * 70), rd(150 - q * 50 - Math.sin(q * 3.14) * 12)));
+    }
+    tag('懐を 絞り', 90, 36, DK, fadeIn(lt, 2.15), 9);
+    tag('かえって 減産', 90, 54, KI, fadeIn(lt, 2.4), 11);
+    A(clamp((k - .55) / .2), () => { R(134, 118, 4, 20, KI); R(130, 136, 12, 2, KI); R(132, 138, 8, 2, KI); R(134, 140, 4, 2, KI); });
+  } else {
+    // 米の不足も、虫害も、原因は肥料
+    const k = lt - 3;
+    soil(176, .2, t);
+    for (let i = 0; i < 7; i++) rice(24 + i * 22, 176, .6, .3);
+    for (let i = 0; i < 6; i++) if (k > .1 + i * .08) bug(28 + i * 25 + rd(Math.sin(t * 4 + i) * 3), 152 + (i % 3) * 5, t + i);
+    [60, 82, 104, 126].forEach((x, i) => bale(x, 96, i < 2, fadeIn(lt, 3.1 + i * .05)));
+    tag('米 二千万石の 不足', 90, 36, NY, fadeIn(lt, 3.1), 9);
+    tag('虫害も 原因は肥料', 90, 54, KI, fadeIn(lt, 3.4), 9);
+  }
+}
+
+// ---------- 場面4：法律迷信 ----------
+function scene4(lt, t) {
+  R(0, 0, W, SH, '#120e1e'); drawStars(t, .3); ground();
+  if (lt < 1) {
+    // 法律の手段は、取締りと刑罰だけ
+    BA('法律迷信', 90, 32, 22, '#c0b8e0', fadeIn(lt, .1, .3));
+    lawBook(56, 160);
+    R(100, 172, 40, 6, '#8a5a3a'); R(104, 178, 3, 24, '#6a4a2a'); R(133, 178, 3, 24, '#6a4a2a');
+    const sw = Math.max(0, Math.sin(t * 6));
+    gavel(132, 166, -.9 + sw * .7);
+    if (sw > .95) spark(118, 170, '#ffe8b0', 2);
+    tag('犯罪を 防ぐ 手段は', 90, 62, '#c0b8e0', fadeIn(lt, .4), 8);
+    tag('取締り と 刑罰 だけ', 90, 80, KI, fadeIn(lt, .6), 9);
+  } else if (lt < 2) {
+    // それだけでは犯罪はなくならない（今日の世相）
+    for (let i = 0; i < 3; i++) person(30 + i * 20, 202, DIM[0], DIM[1], 'down', 1);
+    bars(16, 140, 74, 62);
+    for (let i = 0; i < 3; i++) person(114 + i * 22, 202, DIM[0], DIM[1], i === 1 ? 'reachR' : 'down', 1, fadeIn(lt, 1.3 + i * .1));
+    tag('それだけでは', 90, 36, NY, fadeIn(lt, 1.1), 9);
+    tag('今日の世相が 物語る', 90, 54, KI, fadeIn(lt, 1.4), 9);
+  } else if (lt < 3) {
+    // 犯罪の原因：人間の魂。それを無視してきた
+    const k = lt - 2;
+    person(90, 202, DIM[0], DIM[1], 'down', 2.2);
+    soul(90, 176, 1.2, '#5a5a68', '#7a7a88', t);
+    lawBook(146, 186);
+    A(clamp((k - .5) / .2), () => { for (let i = 0; i < 7; i++) { P(132 - i * 4, 170 - i, '#8a84a8'); } });
+    tag('犯罪の原因 ＝ 魂', 90, 36, KI, fadeIn(lt, 2.1), 9);
+    tag('魂を 無視してきた', 90, 54, '#c0b8e0', fadeIn(lt, 2.35), 9);
+  } else {
+    // 宗教の力で魂が改善され、光る
+    const k = lt - 3, b = ease(clamp((k - .1) / .5));
+    rays(90, b, t);
+    person(90, 202, mix(DIM[0], LIT[0], b), mix(DIM[1], LIT[1], b), b > .6 ? 'up' : 'down', 2.2);
+    soul(90, 176, 1.2 + b * .8, mix('#5a5a68', '#ffb02e', b), mix('#7a7a88', '#fff1b0', b), t);
+    tag('魂を 改善する', 90, 36, OK, fadeIn(lt, 3.3), 9);
+    BA('宗教の力', 90, 58, 18, GO, fadeIn(lt, 3.5, .3));
+  }
+}
+
+// ---------- 場面5：真に力ある宗教 ----------
+function scene5(lt, t) {
+  R(0, 0, W, SH, '#0f1028'); drawStars(t, .6); ground();
+  if (lt < 1) {
+    // 今までは教育や道徳が、宗教よりも重く用いられた
+    orb(46, 104, 11, '#6aa0e0', '教育', fadeIn(lt, .1), t);
+    orb(134, 104, 11, '#9fe0a0', '道徳', fadeIn(lt, .2), t + 1);
+    orb(90, 168, 6, '#8a84a8', '宗教', fadeIn(lt, .35), t + 2);
+    tag('教育・道徳が 重用された', 90, 36, NY, fadeIn(lt, .5), 9);
+    tag('それで 刑罰主義に', 90, 54, '#c0b8e0', fadeIn(lt, .7), 8);
+  } else if (lt < 2) {
+    // 既成宗教・道徳・教育を合わせた以上の、真に力ある宗教
+    const k = lt - 1, m = ease(clamp((k - .15) / .5));
+    [[34, 110, '#8a84a8', '宗教'], [90, 92, '#6aa0e0', '教育'], [146, 110, '#9fe0a0', '道徳']].forEach(([x, y, c, s], i) => {
+      if (m < 1) orb(rd(lerp(x, 90, m)), rd(lerp(y, 120, m)), 9, c, m < .3 ? s : '', 1 - m * .6, t + i);
+    });
+    const g = clamp((k - .6) / .25);
+    if (g > 0) { orb(90, 120, rd(10 + 10 * g), '#ffd84a', '', g, t); for (let i = 0; i < 8; i++) { const an = i * Math.PI / 4 + t; A(g, () => spark(90 + rd(Math.cos(an) * 34), 120 + rd(Math.sin(an) * 34), '#fff1b0', 1)); } }
+    tag('合わせた 以上の', 90, 36, HO, fadeIn(lt, 1.2), 9);
+    tag('真に 力ある宗教', 90, 168, GO, clamp((k - .7) / .2), 10);
+  } else if (lt < 3) {
+    // 犯罪のない理想社会
+    sun(150, 40, t, 11);
+    for (let i = 0; i < 9; i++) flower(10 + i * 20, 202, .9, ['#ff8ab0', '#ffd84a', '#8ab0ff'][i % 3]);
+    [[46, 'up'], [90, 'reachL'], [134, 'up']].forEach(([x, p], i) => person(x, 202, LIT[0], LIT[1], p, 1.3, fadeIn(lt, 2.05 + i * .1)));
+    for (let i = 0; i < 4; i++) { const q = (t * .5 + i / 4) % 1; A(1 - q, () => smallHeart(50 + i * 26, rd(160 - q * 40))); }
+    tag('犯罪のない', 70, 52, OK, fadeIn(lt, 2.2), 9);
+    BA('理想社会', 70, 74, 18, OK, fadeIn(lt, 2.4, .3));
+  } else {
+    // その宗教こそ救世（メシヤ）教。一日も早く研究を
+    const k = lt - 3;
+    rays(90, fadeIn(lt, 3.05, .3), t);
+    BA('救世教', 90, 52, 26, GO, fadeIn(lt, 3.1, .3));
+    tag('メシヤ', 90, 78, HO, fadeIn(lt, 3.25), 9);
+    R(64, 182, 52, 4, '#8a5a3a'); R(68, 186, 3, 16, '#6a4a2a'); R(109, 186, 3, 16, '#6a4a2a');
+    book(90, 176);
+    person(44, 202, LIT[0], LIT[1], 'reachR', 1.2, fadeIn(lt, 3.3));
+    tag('一日も早く 研究を', 90, 110, NY, clamp((k - .5) / .2), 9);
+    if (k > .7) { firework(40, 130, (t * .8) % 1, '#ffd84a'); firework(140, 120, (t * .8 + .5) % 1, '#ff8ab0'); }
+  }
+}
+
+// ---------- 進行 ----------
+const SCENES = [
+  [0, 4, scene1, '序 新しい文明'],
+  [4, 8, scene2, '一 薬剤迷信'],
+  [8, 12, scene3, '二 肥料迷信'],
+  [12, 16, scene4, '三 法律迷信'],
+  [16, 20, scene5, '結 力ある宗教'],
+];
+
+function frame(t) {
+  lastVT = t;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  const sc = SCENES.find(s => t >= s[0] && t < s[1]) || SCENES[SCENES.length - 1];
+  const lt = t - sc[0];
+  sc[2](lt, AT);
+  // 場面の見出し
+  T(sc[3], 4, 6, 6.5, '#f3ead6', 'left', clamp(1.6 - lt) * .9 + .25);
+  // 場面の切りかわり（黒くフェード）
+  const d = Math.min(t - sc[0] + (sc[0] === 0 ? 9 : 0), sc[1] - t + (sc[1] === DUR ? 9 : 0));
+  if (d < .05) A(1 - d / .05, () => R(0, 0, W, SH, '#000'));
+  // 終わり：ゆっくり暗くして「ご視聴ありがとうございました」
+  if (t > DUR) {
+    const e = t - DUR;
+    A(clamp(e / 1.2) * .8, () => R(0, 0, W, SH, "#000"));
+    T("ご視聴", 90, 80, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
+    T("ありがとう", 90, 104, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
+    T("ございました", 90, 128, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
+  }
+  captions(t);
+  // 字幕の左：いま読んでいる人（めたん・つむぎ・はう・小夜）がしゃべる。オレンジのキャラクターはタイトルの左
+  const ci = CAPS.findIndex(c => t >= c[0] && t < c[1]), si = ci < 0 ? CAPS.length - 1 : ci;
+  speakerDot(voiceOf(si), 9, 227, AT, playing && speaking && si === seg);
+}
+
+// ---------- 進み方：字幕1つずつ、読み上げが終わってから次へ ----------
+let AT = 0; // AT：鼓動や粒の動き用の時計（字幕の進みとは別に、いつも同じ速さで進む）
+let running = false, playing = false, muted = false, seg = 0, pos = 0, lastNow = 0, waitT = 0, speaking = false;
+const STARTS = []; let TOTAL = 0;
+CAPS.forEach(c => { STARTS.push(TOTAL); TOTAL += c.dur; });
+const segAt = p => { let i = 0; while (i < CAPS.length - 1 && p >= STARTS[i + 1]) i++; return i; };
+function loop(now) {
+  const dt = Math.min(.1, (now - lastNow) / 1000); lastNow = now;
+  if (playing) {
+    AT += dt / 1.4;
+    const end = STARTS[seg] + CAPS[seg].dur;
+    let np = pos + dt;
+    if (np >= end) {
+      // 読み上げがまだ続いていたら、終わるまで待つ（声が出ない端末のため 8 秒で打ち切る）
+      if (speaking && !muted && waitT < 8) { np = end - .001; waitT += dt; }
+      else if (seg < CAPS.length - 1) { np = end; enterSeg(seg + 1, true); }
+      else { np = TOTAL; finish(); }
+    }
+    pos = np;
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+function draw() {
+  const i = segAt(Math.min(pos, TOTAL - .001)), c = CAPS[i];
+  const k = pos >= TOTAL ? 1 : clamp((pos - STARTS[i]) / c.dur);
+  frame(lerp(c[0], c[1] - .001, k));
+  if (!seeking) seekBar.value = pos;
+  curT.textContent = mmss(pos);
+}
+// その字幕に入る：声を読み、効果音を鳴らす
+function enterSeg(i, sfx) {
+  seg = i; waitT = 0;
+  if (muted || !playing) { stopSpeak(); return; }
+  speak(i);
+  if (sfx && SFX[i]) try { wakeAudio(); SFX[i](); } catch (e) {}
+}
+function finish() {
+  playing = false; stopSpeak(); bgmOn(false);
+  ppBtn.textContent = '▶ もう一度';
+}
+function stopSpeak() {
+  speaking = false; cur = null;
+  if (koeSrc) { try { koeSrc.onended = null; koeSrc.stop(); } catch (e) {} koeSrc = null; }
+  try { if (ttsOK) speechSynthesis.cancel(); } catch (e) {}
+}
+
+// ---------- 操作パネル ----------
+const seekBar = document.getElementById('seekBar'), curT = document.getElementById('curT');
+const ppBtn = document.getElementById('ppBtn'), rsBtn = document.getElementById('rsBtn'), sndBtn = document.getElementById('sndBtn');
+const mmss = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+seekBar.max = TOTAL.toFixed(1);
+document.getElementById('totT').textContent = mmss(TOTAL);
+let seeking = false;
+// ---------- 女性の声で読み上げ（御神書索引と同じしくみ） ----------
+let cur = null;
+const ttsOK = 'speechSynthesis' in window;
+const MALE = ['otoya', 'ichiro', 'keita', 'hattori', 'daichi', 'naoki', 'male'];
+const FEMALE = ['kyoko', 'o-ren', 'oren', 'nanami', 'haruka', 'ayumi', 'sayaka', 'mizuki', 'female', 'google'];
+function voiceQuality(v) {
+  const s = ((v.voiceURI || '') + ' ' + (v.name || '')).toLowerCase();
+  if (s.includes('eloquence')) return -1;
+  if (s.includes('premium')) return 3;
+  if (s.includes('enhanced') || s.includes('natural') || s.includes('neural')) return 2;
+  if (s.includes('compact')) return 0;
+  return 1;
+}
+function pickVoice() {
+  let vs = []; try { vs = speechSynthesis.getVoices() || []; } catch (e) {}
+  const name = v => ((v.voiceURI || '') + ' ' + (v.name || '')).toLowerCase();
+  const ja = vs.filter(v => v.lang && v.lang.toLowerCase().replace('_', '-').startsWith('ja') && !MALE.some(m => name(v).includes(m)));
+  const rank = v => { const i = FEMALE.findIndex(f => name(v).includes(f)); return i < 0 ? FEMALE.length : i; };
+  ja.sort((a, b) => (voiceQuality(b) - voiceQuality(a)) || (rank(a) - rank(b)));
+  return ja[0] || null;
+}
+let voice = null;
+if (ttsOK) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => { voice = pickVoice(); }; } catch (e) {} }
+let lastUtter = null;
+function speakTTS(text, token) {
+  if (!ttsOK) { speaking = false; return; }
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ja-JP'; u.rate = 0.9; u.pitch = 1.1; u.volume = 1;
+    voice = voice || pickVoice(); if (voice) u.voice = voice;
+    u.onend = u.onerror = () => { if (cur === token) speaking = false; };
+    lastUtter = u; // 読み上げ中に消えないよう持っておく（消えると「読み終わり」が届かない）
+    speechSynthesis.speak(u);
+  } catch (e) { speaking = false; }
+}
+
+// ---------- ナレーション：VOICEVOX で作った声（4人：めたん・つむぎ・はう・小夜。各フォルダに 00.wav〜20.wav）を流す ----------
+// 「順番」のときは、字幕1つごとに めたん→つむぎ→はう→小夜 の順番で読む（ランダムではない）。
+// iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
+// 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
+const KOE_V = 1;
+const VOICES = [['koe', '四国めたん'], ['koe-tsumugi', '春日部つむぎ'], ['koe-hau', '雨晴はう'], ['koe-sayo', '小夜/SAYO']];
+const MIX = 4; // 「順番」
+const koeOK = [[], [], [], []], koeRaw = [], koeBuf = [[], [], [], []]; // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
+function loadVoice(v) {
+  if (koeRaw[v]) return;
+  koeRaw[v] = CAPS.map((c, i) => fetch(VOICES[v][0] + '/' + String(i).padStart(2, '0') + '.wav?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[v][i] = !!ab; return ab; }));
+  if (ac) CAPS.forEach((c, i) => koeDecode(v, i));
+}
+let voiceNo = MIX;
+try { const n = parseInt(localStorage.getItem('meishinVoice4')); if (n >= 0 && n <= MIX) voiceNo = n; } catch (e) {}
+// 字幕ごとの読み手（「順番」のとき）
+let segVoice = [];
+function shuffleVoices() {
+  segVoice = [];
+  CAPS.forEach((c, i) => segVoice.push(i % 4)); // めたん→つむぎ→はう→小夜 の順番でくり返す（ランダムではない）
+}
+shuffleVoices();
+const voiceOf = i => voiceNo === MIX ? segVoice[i] : voiceNo;
+function koeDecode(v, i) {
+  if (!koeBuf[v][i]) koeBuf[v][i] = koeRaw[v][i].then(ab => ab && new Promise(res => {
+    try { ac.decodeAudioData(ab.slice(0), b => res(b), () => res(null)); } catch (e) { res(null); }
+  }));
+  return koeBuf[v][i];
+}
+let koeSrc = null;
+function speak(i) {
+  stopSpeak();
+  speaking = true;
+  const token = {}; cur = token;
+  const v = voiceOf(i);
+  if (!ac || koeOK[v][i] === false) { speakTTS(CAPS[i][4], token); return; }
+  koeDecode(v, i).then(b => {
+    if (cur !== token) return; // もう別の字幕に進んだ・止めた
+    if (!b) { speakTTS(CAPS[i][4], token); return; }
+    const s = ac.createBufferSource(); s.buffer = b;
+    s.connect(ac.destination);
+    s.onended = () => { if (cur === token) speaking = false; };
+    koeSrc = s; s.start();
+  });
+}
+
+// ---------- 音楽と効果音（Web Audio で作る） ----------
+let ac = null, bgm = null;
+function tone(f, at, len, type, vol, f2, dest) {
+  const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + at;
+  o.type = type; o.frequency.setValueAtTime(f, t0);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + len);
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .01);
+  g.gain.exponentialRampToValueAtTime(.0001, t0 + len);
+  o.connect(g).connect(dest || ac.destination); o.start(t0); o.stop(t0 + len + .05);
+}
+// ざわざわした音（ゴォー・シュワー・息など）。type と freq で音色、up で「だんだん大きく」
+function noise(at, len, vol, freq = 900, type = 'bandpass', up = 0, q = 1) {
+  const b = ac.createBuffer(1, ac.sampleRate * len, ac.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const s = ac.createBufferSource(), g = ac.createGain(), fl = ac.createBiquadFilter(), t0 = ac.currentTime + at;
+  fl.type = type; fl.frequency.value = freq; fl.Q.value = q;
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .02 + up * len);
+  g.gain.linearRampToValueAtTime(0, t0 + len);
+  s.buffer = b; s.connect(fl).connect(g).connect(ac.destination); s.start(t0);
+}
+const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
+// 背景の音楽：声が聞こえるように小さく、ゆっくり（1拍 = 0.5秒）
+const MEL = [67,69,72,74,72,69,67,64, 67,72,74,76,74,72,69,67], BASS = [48,48,43,43,45,45,43,43];
+let beat = 0, nextBeat = 0;
+function bgmTick() {
+  if (!ac) return;
+  while (nextBeat < ac.currentTime + .6) {
+    const at = nextBeat - ac.currentTime;
+    tone(NOTE(MEL[beat % 16]), at, .45, 'triangle', .05, 0, bgm);
+    if (beat % 2 === 0) tone(NOTE(BASS[(beat >> 1) % 8]), at, .9, 'triangle', .1, 0, bgm);
+    beat++; nextBeat += .5;
+  }
+  setTimeout(bgmTick, 200);
+}
+const chime = () => { tone(1320, 0, .25, 'sine', .1); tone(1760, .08, .3, 'sine', .08); };
+// 雷の音（ゴロッ・ピシャッ）：前の版の発熱の音。いきなり大きく鳴って、だんだん消える
+function thunder(at, len, vol) {
+  const b = ac.createBuffer(1, ac.sampleRate * len, ac.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+  const s = ac.createBufferSource(), g = ac.createGain(), fl = ac.createBiquadFilter();
+  fl.type = "bandpass"; fl.frequency.value = 900; g.gain.value = vol;
+  s.buffer = b; s.connect(fl).connect(g).connect(ac.destination); s.start(ac.currentTime + at);
+}
+// 心臓の音（ドクン）：低い音を2つ続ける
+// iPhone のスピーカーは低い音が出にくいので、少し高めの音を重ねる
+const thump = at => { tone(170, at, .16, "triangle", .4, 70); tone(80, at, .18, "sine", .4, 40); tone(140, at + .2, .14, "triangle", .3, 60); };
+// 字幕の番号ごとの効果音（場面に合わせて1回ずつ）
+const SFX = {
+  0: () => { tone(220, .2, 2.4, 'sine', .12); [64, 67, 72, 76].forEach((n, i) => tone(NOTE(n), .6 + i * .3, .5, 'triangle', .06)); }, // ゴーン・ポロロン
+  1: () => { tone(NOTE(72), .4, .25, 'square', .03); tone(NOTE(77), .65, .4, 'square', .03); },                   // はてな？
+  2: () => [72, 76, 79, 84, 88].forEach((n, i) => tone(NOTE(n), .3 + i * .12, .5, 'sine', .04)),                   // 町がかがやく
+  3: () => { tone(110, .3, 1.6, 'sawtooth', .04, 70); [0, .45, .9].forEach((d, i) => tone(NOTE(60 - i), .9 + d, .25, 'square', .04)); }, // ひび・三つの箱
+  4: () => { [64, 60].forEach((n, i) => tone(NOTE(n), .4 + i * .5, .6, 'sine', .05)); [0, .2, .4].forEach(d => tone(1500, 1.4 + d, .06, 'sine', .03, 900)); }, // 病気・カプセル
+  5: () => { tone(330, .3, 1.8, 'triangle', .06, 110); tone(NOTE(76), 2.2, .15, 'square', .04); tone(NOTE(76), 2.45, .15, 'square', .04); }, // 体が暗く・！！
+  6: () => { noise(.3, 2, .04, 400, 'lowpass', .5); [57, 56, 55].forEach((n, i) => tone(NOTE(n), .8 + i * .5, .6, 'triangle', .05)); },   // もやもやの雲
+  7: () => { noise(.3, .5, .1, 2500, 'bandpass'); [72, 76, 79, 84].forEach((n, i) => tone(NOTE(n), .6 + i * .15, .7, 'triangle', .05)); }, // 雲が割れて目醒め
+  8: () => { [60, 64, 67, 72, 76].forEach((n, i) => tone(NOTE(n), .3 + i * .2, .9, 'sine', .04)); },                // 神の光・土
+  9: () => { noise(.4, 1.8, .05, 500, 'lowpass', .2); tone(140, .6, 1.4, 'sawtooth', .03, 70); },                  // どぼどぼ・土が死ぬ
+  10: () => [0, .3, .6, .9].forEach((d, i) => tone(1300 - i * 150, .3 + d, .12, 'square', .03, 900)),               // お金が出ていく
+  11: () => { for (let i = 0; i < 8; i++) tone(2400 + (i % 2) * 300, .3 + i * .09, .05, 'square', .015); tone(NOTE(55), 1.3, .8, 'triangle', .05); }, // 虫のぶんぶん
+  12: () => [0, .5].forEach(d => { tone(180, .4 + d, .12, 'square', .07, 90); noise(.4 + d, .1, .1, 1800, 'bandpass'); }), // 木づち：カン・カン
+  13: () => { tone(NOTE(57), .3, .5, 'triangle', .05); tone(NOTE(53), .8, .9, 'triangle', .05); },                   // 世相
+  14: () => { tone(NOTE(48), .3, 2, 'sine', .06); tone(NOTE(55), .3, 2, 'sine', .03); },                             // 暗い魂
+  15: () => { noise(.3, 1.4, .05, 3000, 'highpass', .4); [72, 76, 79, 84, 88].forEach((n, i) => tone(NOTE(n), .7 + i * .15, .6, 'sine', .04)); }, // 宗教の光で魂が輝く
+  16: () => { [67, 64, 60].forEach((n, i) => tone(NOTE(n), .4 + i * .3, .5, 'triangle', .05)); },                     // 教育・道徳・宗教
+  17: () => { [60, 64, 67].forEach((n, i) => tone(NOTE(n), .5 + i * .3, 2.2 - i * .3, 'sine', .04)); chime(); },       // 一つになる
+  18: () => [60, 64, 67, 72, 76, 79, 84].forEach((n, i) => tone(NOTE(n), .3 + i * .15, .8, 'triangle', .05)),          // 理想社会：ハープ
+  19: () => { [72, 76, 79, 84].forEach((n, i) => tone(NOTE(n), i * .18, .7, 'square', .05)); tone(NOTE(84), .7, 1.6, 'triangle', .1); [0, .6].forEach(d => { tone(300, 2.4 + d, .3, 'triangle', .04, 1200); noise(2.7 + d, .5, .08, 1500, 'bandpass'); }); }, // ファンファーレ・花火
+  20: () => { bgm.gain.setTargetAtTime(0, ac.currentTime, 1.2); [60, 64, 67, 72].forEach((n, i) => tone(NOTE(n), i * .25, 3.5 - i * .25, "triangle", .07)); }, // 終わりの和音と音楽のフェードアウト
+};
+function startSound() {
+  try {
+    // iPhone の消音スイッチが入っていても声と音が出るようにする（声も音もすべて Web Audio で鳴らすので使える）
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+    if (!ac) {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      ac.onstatechange = () => { if (playing && !muted) wakeAudio(); };
+      bgm = ac.createGain(); bgm.gain.value = 0; bgm.connect(ac.destination);
+      nextBeat = ac.currentTime + .1; bgmTick();
+      koeRaw.forEach((r, v) => r && CAPS.forEach((c, i) => koeDecode(v, i))); // 録音の声を先に準備しておく
+    }
+    ac.resume();
+  } catch (e) {}
+}
+// iPhone で声の読み上げなどのあと音が止まっていたら、また鳴るようにする
+function wakeAudio() { try { if (ac && ac.state !== "running") ac.resume(); } catch (e) {} }
+// 背景の音楽を出す・止める（音量を上げ下げする）
+function bgmOn(on) { if (bgm) bgm.gain.setTargetAtTime(on && !muted ? .7 : 0, ac.currentTime, .15); }
+
+// 最初から再生（ボタンを押したその場で声を出す：iPhone は押した瞬間でないと声が出ないため）
+function playFromStart() {
+  startSound();
+  document.getElementById('startBox').classList.add('hide');
+  pos = 0; AT = 0; playing = true; bgmOn(true);
+  ppBtn.textContent = '⏸ 一時停止';
+  shuffleVoices();
+  enterSeg(0, true);
+  if (!running) { running = true; lastNow = performance.now(); requestAnimationFrame(loop); }
+}
+document.getElementById('startBtn').onclick = playFromStart;
+rsBtn.onclick = playFromStart;
+ppBtn.onclick = () => {
+  if (!running || pos >= TOTAL) { playFromStart(); return; }
+  playing = !playing;
+  if (playing) {
+    startSound(); bgmOn(true); ppBtn.textContent = '⏸ 一時停止';
+    enterSeg(segAt(pos), false); // 止めたところの字幕を、もう一度読む
+  } else {
+    stopSpeak(); bgmOn(false); ppBtn.textContent = '▶ 再生';
+  }
+};
+// 再生位置のバー：動かすと好きな場面へ
+seekBar.addEventListener('input', () => {
+  seeking = true; stopSpeak();
+  pos = Math.min(parseFloat(seekBar.value), TOTAL - .01); seg = segAt(pos);
+  if (!running) draw();
+});
+seekBar.addEventListener('change', () => {
+  seeking = false;
+  if (!running) { playFromStart(); pos = parseFloat(seekBar.value); seg = segAt(pos); enterSeg(seg, false); return; }
+  if (pos < TOTAL && !playing && ppBtn.textContent === '▶ もう一度') { playing = true; bgmOn(true); ppBtn.textContent = '⏸ 一時停止'; }
+  if (playing) enterSeg(seg, false);
+});
+// 声・音のオン・オフ
+sndBtn.onclick = () => {
+  muted = !muted;
+  sndBtn.textContent = muted ? '🔇 声・音 OFF' : '🔊 声・音 ON';
+  sndBtn.classList.toggle('off', muted);
+  if (muted) { stopSpeak(); bgmOn(false); }
+  else if (playing) { startSound(); bgmOn(true); enterSeg(seg, false); }
+};
+
+// 声を選ぶ：選んだ声で、いまの字幕から読み直す
+const vBtns = document.querySelectorAll('.voices button');
+function showVoice() {
+  vBtns.forEach(b => b.classList.toggle('on', +b.dataset.v === voiceNo));
+  document.getElementById('credit').textContent = '声：VOICEVOX:' + (voiceNo === MIX ? VOICES : [VOICES[voiceNo]]).map(v => v[1]).join('・');
+}
+vBtns.forEach(b => b.onclick = () => {
+  voiceNo = +b.dataset.v; showVoice();
+  try { localStorage.setItem('meishinVoice4', voiceNo); } catch (e) {}
+  stopSpeak(); (voiceNo === MIX ? [0, 1, 2, 3] : [voiceNo]).forEach(loadVoice);
+  if (playing && !muted) { startSound(); enterSeg(seg, false); }
+});
+showVoice(); (voiceNo === MIX ? [0, 1, 2, 3] : [voiceNo]).forEach(loadVoice);
+
+// ---------- タイトルの左のオレンジのキャラクター（前に字幕の左にいたときと同じ動き） ----------
+// 再生中：しゃべる（手をふる）→ 最後の場面でジャンプ → 終わったら歩く。止まっているときは歩く
+let lastVT = 0;
+(function titleMascot() {
+  const c = document.getElementById('ccTitle'); if (!c) return;
+  const g = c.getContext('2d'), q = 4, oy = 5; // 1ドット4画素。上にジャンプの分をあける
+  function draw(now) {
+    const t = now / 1000 / 1.4;
+    const mode = !playing ? 'walk' : lastVT >= DUR ? 'walk' : lastVT >= 19 ? 'jump' : 'talk';
+    const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x * q), Math.round(y * q), Math.round(w * q), Math.round(h * q)); };
+    g.clearRect(0, 0, c.width, c.height);
+    const col = '#d97757', f = Math.floor(t * 6) % 4;
+    const hop = mode === 'jump' ? -Math.abs(Math.sin(t * 7)) * 4 : (f % 2 ? -1 : 0);
+    const up = [f === 1, f === 3, f === 3, f === 1];
+    [2, 4, 7, 9].forEach((x, i) => R(x, oy + 6, 1, up[i] && mode === 'walk' ? 1 : 2, col));
+    const y0 = oy + hop;
+    R(2, y0, 8, 6, col);
+    const wave = mode === 'talk' && Math.sin(t * 10) > 0 ? -1 : 0;
+    R(0, y0 + 2 + wave, 2, 2, col); R(10, y0 + 2 - wave, 2, 2, col);
+    const blink = (t % 3) > 2.85;
+    R(3, y0 + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612'); R(8, y0 + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612');
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+
+// 最初の一枚（文字の準備ができてから）
+Promise.race([Promise.all([document.fonts.ready, document.fonts.load('20px "Yuji Syuku"', '三大迷信')]), new Promise(r => setTimeout(r, 1500))]).then(() => { if (!running) frame(0.95); });
+</script>
+<!-- 更新した日時（GitHub に反映した日時が自動で出る）。画面のいちばん下（操作パネルの下）に小さく出す -->
+<script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
+var e=document.createElement('div');e.id='appVer';e.textContent='更新 '+d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+e.style.cssText='display:block;width:100%;text-align:center;font:11px/1.4 sans-serif;color:inherit;opacity:.6;margin-top:10px;pointer-events:none;';
+document.body.appendChild(e);})();</script>
+</body>
+</html>
