@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="動画棚">
+<title>動画棚</title>
+<link rel="apple-touch-icon" href="icon-180.png?v=1">
+<link rel="manifest" href="tana.webmanifest?v=1">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05040d">
+<link rel="icon" href="icon-180.png?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; --card:#12101f; --line:#2a2540; --dim:#b0a8c8; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  body { font-family: "DotGothic16", sans-serif; padding: calc(12px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  button { font-family: inherit; color: var(--fg); cursor: pointer; }
+  /* タイトルは真ん中。オレンジのキャラクターは左はしに小さく（動画と同じ） */
+  h1 { font-size: 18px; font-weight: 400; margin: 0 0 4px; letter-spacing: .08em; position: relative; text-align: center; }
+  #ccTitle { position: absolute; left: 36px; top: 50%; transform: translateY(-58%); width: 24px; height: 26px; image-rendering: pixelated; }
+  .sub { font-size: 11px; opacity: .6; margin: 0 0 14px; text-align: center; }
+  h2 { font-size: 13px; font-weight: 400; color: #8a84a8; margin: 18px 0 8px; letter-spacing: .08em; }
+  /* 新着：いちばん新しい動画を大きく */
+  .hero { display: flex; gap: 14px; align-items: center; padding: 14px; background: linear-gradient(135deg, #2a1a30, #12101f); border: 2px solid var(--accent); border-radius: 10px; }
+  .hero img { width: 84px; height: 84px; border-radius: 18px; image-rendering: pixelated; flex-shrink: 0; }
+  .hero .k { font-size: 11px; color: var(--accent); }
+  .hero b { display: block; font-weight: 400; font-size: 17px; color: #ffcf8a; margin: 2px 0 4px; }
+  .hero span { display: block; font-size: 11px; color: var(--dim); }
+  .hero .play { margin-top: 8px; }
+  .play { font-size: 14px; background: var(--accent); color: #05040d; border: none; border-radius: 99px; padding: 6px 18px; }
+  .play:active { transform: translateY(1px); }
+  /* 棚：アイコンを4つずつ並べる */
+  .shelf { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 8px; padding: 14px 8px 10px; background: var(--card); border: 2px solid var(--line); border-radius: 10px; }
+  .app { display: flex; flex-direction: column; align-items: center; gap: 5px; background: none; border: none; padding: 0; min-width: 0; position: relative; }
+  .app img { width: 100%; max-width: 68px; aspect-ratio: 1; border-radius: 16px; image-rendering: pixelated; box-shadow: 0 2px 0 #000; }
+  .app:active img { transform: scale(.94); }
+  .app .n { font-size: 10.5px; line-height: 1.25; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .app .dot { position: absolute; top: -3px; right: calc(50% - 38px); min-width: 10px; height: 10px; border-radius: 99px; background: #ff5a5a; border: 2px solid var(--card); }
+  .app .dot.newl { height: auto; font-size: 8px; color: #fff; padding: 1px 4px; background: var(--accent); }
+  .note { font-size: 10px; color: #8a84a8; text-align: center; margin-top: 8px; }
+  /* 説明のシート（下から出る） */
+  .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; }
+  .sheet-bg.on { opacity: 1; pointer-events: auto; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 480px; background: #16132a; border: 2px solid var(--line); border-bottom: none;
+           border-radius: 16px 16px 0 0; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); transform: translateY(105%); transition: transform .25s; z-index: 11; max-height: 85vh; overflow-y: auto; }
+  .sheet.on { transform: none; }
+  .sheet .top { display: flex; gap: 14px; align-items: center; }
+  .sheet .top img { width: 96px; height: 96px; border-radius: 20px; image-rendering: pixelated; flex-shrink: 0; }
+  .sheet .top b { display: block; font-weight: 400; font-size: 18px; color: #ffcf8a; }
+  .sheet .top span { display: block; font-size: 11px; color: var(--dim); margin: 3px 0 8px; }
+  .sheet .desc { font-size: 13px; line-height: 1.6; margin: 14px 0 6px; }
+  .sheet .facts { display: flex; border: 2px solid var(--line); border-radius: 8px; margin-top: 10px; }
+  .sheet .facts div { flex: 1; text-align: center; padding: 6px 2px; font-size: 10px; color: #8a84a8; }
+  .sheet .facts div + div { border-left: 2px solid var(--line); }
+  .sheet .facts em { display: block; font-style: normal; font-size: 13px; color: var(--fg); margin-top: 2px; }
+  .sheet .parts { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .sheet .parts button { display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px 10px; background: var(--card); border: 2px solid var(--line); border-radius: 8px; font-size: 13px; }
+  .sheet .parts img { width: 40px; height: 40px; border-radius: 9px; image-rendering: pixelated; }
+  .sheet .parts small { display: block; font-size: 10px; color: var(--dim); }
+  .sheet .close { display: block; width: 100%; margin-top: 14px; padding: 8px; background: #1c1930; border: 2px solid #3a3358; border-radius: 8px; font-size: 13px; color: var(--dim); }
+  /* 再生の画面：棚の中で動画を開く */
+  .player { position: fixed; inset: 0; background: var(--bg); z-index: 20; display: none; flex-direction: column; }
+  .player.on { display: flex; }
+  .player .bar { display: flex; align-items: center; gap: 8px; padding: calc(6px + env(safe-area-inset-top)) 10px 6px; border-bottom: 2px solid var(--line); background: #0d0b18; }
+  .player .bar button { background: #1c1930; border: 2px solid var(--accent); border-radius: 6px; padding: 5px 12px; font-size: 13px; flex-shrink: 0; }
+  .player .bar span { font-size: 13px; color: #ffcf8a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .player iframe { flex: 1; width: 100%; border: none; background: var(--bg); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><canvas id="ccTitle" width="48" height="52" aria-hidden="true"></canvas>動画棚</h1>
+  <p class="sub">ドット絵の動画を えらんで再生（声と音が出ます）</p>
+
+  <h2>新着</h2>
+  <div id="hero"></div>
+
+  <h2>動画</h2>
+  <div class="shelf" id="shelf"></div>
+  <p class="note">赤い点：まだ見ていない動画</p>
+
+  <h2>道具</h2>
+  <div class="shelf" id="tools"></div>
+</div>
+
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+
+<div class="player" id="player">
+  <div class="bar"><button id="backBtn">◀ 棚にもどる</button><span id="playTitle"></span></div>
+  <iframe id="frame" title="動画" allow="autoplay"></iframe>
+</div>
+
+<script>
+// ---------- 棚に並べるもの（新しい動画を作ったら、ここに1行足す） ----------
+// [場所, 名前, アイコンの下の短い名前, ひとこと, 説明, 長さ, 作った日]
+const APPS = [
+  ['../', '三大元素といのち', '三大元素', '火素・水素・土素', '火・水・土の三つの元素と、いのちのはたらき。', '約1分半', '10/22'],
+  ['../shuchaku/', '我と執着', '我と執着', '争いのもと・霊的成長・機を待つ', '我（が）と執着が争いのもとになること、執着を離れて霊的に成長し、機を待つこと。', '約1分半', '10/23'],
+  ['../hodo/', '程（ほど）', '程', '人間万事 この一字にあり', '何事も「程」が大切。山岡鉄舟の額の書「程」とともに。', '約1分半', '10/23'],
+  ['../taiyo/', '太陽の救い', '太陽の救い', '常識と自由の「超宗教」', '迷惑な信仰・信仰地獄・常識と超宗教・天国的信仰・太陽の救い の5つの場面。', '約1分半', '10/24'],
+  ['../jiki/', '時期を待て', '時期を待て', '時節には 神も敵わぬぞよ', 'あせらず、時期を待つことの大切さ。', '約3分', '10/25'],
+  ['../sonen/', '人間は想念次第', '想念次第', '喜べば 喜び事が来る', '人間の運命は想念しだい。喜べば喜び事が来る。', '約3分', '10/25'],
+  ['../sanson/', '三尊の弥陀', '三尊の弥陀', '観音・阿弥陀・釈迦の 三位一体', '観音・阿弥陀・釈迦の三尊が三位一体であること。3つの動画に分かれていて、全部まとめても見られます。', '約3分', '10/25', [
+    ['../sanson/bunrui/', '① 三尊の分類', '日本・西洋・東洋／日・月・地／火・水・土（約1分）'],
+    ['../sanson/sugata/', '② 三尊のお姿', '直毛と縮れ毛・王冠と白布・純金と唐銅（約1分）'],
+    ['../sanson/sanjin/', '③ 三尊と三身', '法身は阿弥陀・報身は釈迦・応身は観音（約1分）'],
+    ['../sanson/zenbu/', '①②③ 全部まとめて', '3つを続けて見る（約3分）'],
+  ]],
+  ['../shu/', '主の字', '主の字', '万物の 正しい順序', '「主」の字が表す、万物の正しい順序。', '約2分半', '10/25'],
+  ['../kannon/', '観音力とは何ぞや', '観音力', '火と水の十字・五六七・十八', '火と水の十字、五六七（ミロク）、十八 から観音力を説く。', '約3分', '10/25'],
+  ['../shugo/', '守護神', '守護神', '本守護神・副守護神・正守護神', '本守護神・副守護神・正守護神と、心の善悪のしくみ。', '約3分', '10/26'],
+  ['../jinzo/', '本医術の施法', '本医術', '腎臓の毒を溶かし 全身を浄化', '腎臓の毒結を溶かして尿として出し、全身を浄化する「腎臓医術」。', '約3分', '10/26'],
+  ['../meishin/', '三大迷信とは何か', '三大迷信', '薬剤・肥料・法律の 三つの迷信', '薬剤迷信・肥料迷信・法律迷信。誤りだらけの文明を正し、新しい文明を創る。', '約3分半', '10/26'],
+];
+const TOOLS = [
+  ['../yupack/', '代引計算', '代引計算', 'ゆうパック代金引換の計算', '商品代金と送料を入れると、代金引換の用紙の ④①②③ がそのまま出ます。', '', '10/25'],
+];
+
+// ---------- 見た動画を覚えておく（この端末だけ） ----------
+let seen = {};
+try { seen = JSON.parse(localStorage.getItem('tanaSeen') || '{}') || {}; } catch (e) {}
+function markSeen(h) { seen[h] = 1; try { localStorage.setItem('tanaSeen', JSON.stringify(seen)); } catch (e) {} }
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const icon = h => h + 'icon-180.png';
+const NEWEST = APPS[APPS.length - 1];
+
+// ---------- 棚をつくる ----------
+function renderShelf(id, list, dots) {
+  document.getElementById(id).innerHTML = list.map((a, i) => {
+    const dot = !dots || seen[a[0]] ? '' : a === NEWEST ? '<i class="dot newl">NEW</i>' : '<i class="dot"></i>';
+    return `<button class="app" data-l="${id}" data-i="${i}"><img src="${icon(a[0])}" alt="">${dot}<span class="n">${esc(a[2])}</span></button>`;
+  }).join('');
+}
+function renderAll() {
+  renderShelf('shelf', APPS, true);
+  renderShelf('tools', TOOLS, false);
+  document.getElementById('hero').innerHTML =
+    `<div class="hero"><img src="${icon(NEWEST[0])}" alt=""><div><span class="k">いちばん新しい動画</span><b>${esc(NEWEST[1])}</b><span>${esc(NEWEST[3])}（${esc(NEWEST[5])}）</span><button class="play" id="heroPlay">▶ 再生</button></div></div>`;
+  document.getElementById('heroPlay').onclick = () => play(NEWEST[0], NEWEST[1]);
+}
+renderAll();
+document.querySelectorAll('.shelf').forEach(s => s.addEventListener('click', e => {
+  const b = e.target.closest('.app'); if (!b) return;
+  openSheet((b.dataset.l === 'tools' ? TOOLS : APPS)[+b.dataset.i]);
+}));
+
+// ---------- 説明のシート ----------
+const sheet = document.getElementById('sheet'), sheetBg = document.getElementById('sheetBg');
+function openSheet(a) {
+  const [h, name, , one, desc, len, date, parts] = a;
+  const isTool = TOOLS.includes(a);
+  sheet.innerHTML =
+    `<div class="top"><img src="${icon(h)}" alt=""><div><b>${esc(name)}</b><span>${esc(one)}</span>` +
+    (parts ? '' : `<button class="play" id="sheetPlay">${isTool ? '開く' : '▶ 再生'}</button>`) + `</div></div>` +
+    `<div class="facts">` +
+      (isTool ? `<div>種類<em>道具</em></div>` : `<div>長さ<em>${esc(len)}</em></div><div>声<em>4人</em></div>`) +
+      `<div>作った日<em>${esc(date)}</em></div></div>` +
+    `<p class="desc">${esc(desc)}</p>` +
+    (parts ? `<div class="parts">${parts.map((p, i) => `<button data-p="${i}"><img src="${icon(p[0])}" alt=""><div>${esc(p[1])}<small>${esc(p[2])}</small></div></button>`).join('')}</div>` : '') +
+    `<button class="close" id="sheetClose">とじる</button>`;
+  const sp = document.getElementById('sheetPlay'); if (sp) sp.onclick = () => play(h, name);
+  sheet.querySelectorAll('.parts button').forEach(b => b.onclick = () => { const p = parts[+b.dataset.p]; markSeen(h); play(p[0], p[1]); });
+  document.getElementById('sheetClose').onclick = closeSheet;
+  sheet.classList.add('on'); sheetBg.classList.add('on'); sheet.scrollTop = 0;
+}
+function closeSheet() { sheet.classList.remove('on'); sheetBg.classList.remove('on'); }
+sheetBg.onclick = closeSheet;
+
+// ---------- 再生：棚の中で動画のページを開く（もどると棚に戻る） ----------
+const player = document.getElementById('player'), frameEl = document.getElementById('frame');
+function play(h, name) {
+  closeSheet(); markSeen(h); renderAll();
+  document.getElementById('playTitle').textContent = name;
+  frameEl.src = h;
+  player.classList.add('on'); document.body.style.overflow = 'hidden';
+  try { history.pushState({ play: 1 }, ''); } catch (e) {}
+}
+function stopPlay() {
+  player.classList.remove('on'); document.body.style.overflow = '';
+  frameEl.src = 'about:blank'; // 声と音を止める
+}
+document.getElementById('backBtn').onclick = () => { if (history.state && history.state.play) history.back(); else stopPlay(); };
+window.addEventListener('popstate', () => { if (player.classList.contains('on')) stopPlay(); });
+
+// ---------- タイトルの左のオレンジのキャラクター（歩く） ----------
+(function titleMascot() {
+  const c = document.getElementById('ccTitle'), g = c.getContext('2d'), q = 4, oy = 5;
+  function draw(now) {
+    const t = now / 1000 / 1.4;
+    const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x * q), Math.round(y * q), Math.round(w * q), Math.round(h * q)); };
+    g.clearRect(0, 0, c.width, c.height);
+    const col = '#d97757', f = Math.floor(t * 6) % 4, hop = f % 2 ? -1 : 0;
+    const up = [f === 1, f === 3, f === 3, f === 1];
+    [2, 4, 7, 9].forEach((x, i) => R(x, oy + 6, 1, up[i] ? 1 : 2, col));
+    const y0 = oy + hop;
+    R(2, y0, 8, 6, col); R(0, y0 + 2, 2, 2, col); R(10, y0 + 2, 2, 2, col);
+    const blink = (t % 3) > 2.85;
+    R(3, y0 + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612'); R(8, y0 + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612');
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+</script>
+<!-- 更新した日時（GitHub に反映した日時が自動で出る）。画面のいちばん下に小さく出す -->
+<script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
+var e=document.createElement('div');e.id='appVer';e.textContent='更新 '+d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+e.style.cssText='display:block;width:100%;text-align:center;font:11px/1.4 sans-serif;color:inherit;opacity:.6;margin-top:10px;pointer-events:none;';
+document.body.appendChild(e);})();</script>
+</body>
+</html>
