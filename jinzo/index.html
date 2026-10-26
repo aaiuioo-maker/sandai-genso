@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="本医術の施法">
+<title>本医術の施法</title>
+<link rel="apple-touch-icon" href="icon-180.png?v=2">
+<link rel="manifest" href="jinzo.webmanifest?v=2">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05040d">
+<link rel="icon" href="icon-180.png?v=2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&text=%E3%81%AE%E5%81%A5%E5%85%A8%E5%8C%BB%E5%A4%A7%E6%96%BD%E6%9C%AC%E6%AF%92%E6%B3%95%E7%99%BA%E7%99%BD%E7%B5%90%E8%85%8E%E8%87%93%E8%9B%8B%E8%A1%93%E8%A6%8B&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  body { font-family: "DotGothic16", sans-serif; display: flex; flex-direction: column; align-items: center;
+         padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  /* タイトルは真ん中。オレンジのキャラクターは左はしに小さく */
+  h1 { font-size: 18px; font-weight: 400; margin: 0 0 4px; letter-spacing: .08em; position: relative; width: 100%; max-width: 480px; text-align: center; }
+  #ccTitle { position: absolute; left: 36px; top: 50%; transform: translateY(-58%); width: 24px; height: 26px; image-rendering: pixelated; border: none; border-radius: 0; background: transparent; }
+  .sub { font-size: 11px; opacity: .6; margin: 0 0 10px; }
+  .stage { width: 100%; max-width: 480px; position: relative; }
+  canvas { width: 100%; display: block; image-rendering: pixelated; border: 2px solid #2a2540; border-radius: 6px; background: #000; }
+  .panel { margin-top: 10px; background: #12101f; border: 2px solid #2a2540; border-radius: 6px; padding: 10px 12px; }
+  .seek { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .seek span { width: 40px; flex-shrink: 0; text-align: center; color: #ffcf8a; }
+  .seek span:last-child { color: #8a84a8; }
+  .seek input { flex: 1; min-width: 0; accent-color: var(--accent); height: 22px; }
+  /* 左から「最初から・再生・声と音」を横一列に。画面の幅に合わせて文字の大きさを変える */
+  .btns { display: flex; flex-wrap: nowrap; gap: 6px; margin-top: 8px; }
+  .btns button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 7px 2px; border-color: #5a5478; }
+  .btns .snd { color: #6fe0a0; flex-grow: 1.25; }
+  .btns .snd.off { color: #8a84a8; }
+  /* 声の選びかた（4人） */
+  .voices { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; }
+  .voices span { flex-shrink: 0; color: #8a84a8; }
+  .voices button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 5px 2px; border-color: #3a3358; color: #8a84a8; }
+  .voices button.on { border-color: var(--accent); color: var(--fg); }
+  button { font-family: inherit; font-size: 15px; color: var(--fg); background: #1c1930; border: 2px solid var(--accent);
+           border-radius: 6px; padding: 8px 18px; cursor: pointer; }
+  button:active { transform: translateY(1px); }
+  .start { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .start button { font-size: 18px; padding: 12px 26px; background: rgba(28,25,48,.9); }
+  .hide { display: none !important; }
+</style>
+</head>
+<body>
+<h1><canvas id="ccTitle" width="48" height="52" aria-hidden="true"></canvas>本医術の施法</h1>
+<p class="sub">腎臓の毒を溶かし、全身を浄化する「腎臓医術」（約3分・声と音が出ます）<br><span id="credit">声：VOICEVOX:四国めたん</span></p>
+<div class="stage">
+  <canvas id="cv"></canvas>
+  <div class="start" id="startBox"><button id="startBtn">▶ 再生する</button></div>
+</div>
+<div class="stage panel">
+  <div class="seek"><span id="curT">00:00</span><input type="range" id="seekBar" min="0" max="85" step="0.1" value="0" aria-label="再生位置"><span id="totT">00:00</span></div>
+  <div class="btns">
+    <button id="rsBtn">🔄 最初から</button>
+    <button id="ppBtn">▶ 再生</button>
+    <button id="sndBtn" class="snd">🔊 声・音 ON</button>
+  </div>
+  <div class="voices"><span>声</span>
+    <button data-v="4" class="on">順番</button>
+    <button data-v="0">めたん</button>
+    <button data-v="1">つむぎ</button>
+    <button data-v="2">はう</button>
+    <button data-v="3">小夜</button>
+  </div>
+</div>
+
+<script>
+const W = 180, H = 260, S = 3, SH = 216, DUR = 20;
+const cv = document.getElementById('cv');
+cv.width = W * S; cv.height = H * S;
+const ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+// ---------- 描画の道具 ----------
+const rd = Math.round;
+function R(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(rd(x) * S, rd(y) * S, rd(w) * S, rd(h) * S); }
+function P(x, y, c, s = 1) { R(x, y, s, s, c); }
+function disc(cx, cy, r, c) {
+  for (let y = -r; y <= r; y++) { const w = Math.floor(Math.sqrt(r * r - y * y) + 0.3); R(cx - w, cy + y, w * 2 + 1, 1, c); }
+}
+function T(s, x, y, size, c, align = 'center', a = 1) {
+  ctx.globalAlpha = a;
+  ctx.font = `${size * S}px "DotGothic16", monospace`;
+  ctx.textAlign = align; ctx.textBaseline = 'middle';
+  ctx.lineWidth = S * 1.4; ctx.lineJoin = 'round'; ctx.strokeStyle = '#000';
+  ctx.strokeText(s, x * S, y * S);
+  ctx.fillStyle = c; ctx.fillText(s, x * S, y * S);
+  ctx.globalAlpha = 1;
+}
+// 筆文字（額の書）：縁取りなしで細く読みやすく
+function B(s, x, y, size, c) {
+  ctx.font = `${size * S}px "Yuji Syuku", serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = c; ctx.fillText(s, x * S, y * S);
+}
+function A(a, fn) { ctx.globalAlpha = Math.max(0, Math.min(1, a)); fn(); ctx.globalAlpha = 1; }
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const fadeIn = (lt, st, d = 0.3) => clamp((lt - st) / d);
+const ease = k => k * k * (3 - 2 * k);
+function mix(c1, c2, k) {
+  const a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16);
+  const ch = s => rd(lerp((a >> s) & 255, (b >> s) & 255, k));
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+}
+// 小さなタグ（ラベル）
+function tag(s, x, y, c, a = 1, size = 8) { T(s, x, y, size, c, 'center', a); }
+
+// ---------- 星 ----------
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const stars = [...Array(70)].map(() => ({ x: rnd() * W | 0, y: rnd() * SH | 0, p: rnd() * 6.28, s: rnd() < .15 ? 2 : 1 }));
+function drawStars(t, a = 1) {
+  for (const s of stars) { const b = .5 + .5 * Math.sin(t * 3 + s.p); ctx.globalAlpha = a * (.25 + .75 * b); P(s.x, s.y, '#fff', s.s); }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- 太陽・月・地球 ----------
+function sun(cx, cy, t, r = 13) {
+  A(.25 + .1 * Math.sin(t * 6), () => disc(cx, cy, r + 5, '#ff7a2e'));
+  disc(cx, cy, r, '#ffb02e'); disc(cx - 1, cy - 1, r - 4, '#ffd84a'); disc(cx - 3, cy - 3, 2, '#fff6c0');
+  for (let i = 0; i < 8; i++) {
+    const an = i * Math.PI / 4 + t * .6, L = r + 7 + (Math.sin(t * 8 + i) > 0 ? 2 : 0);
+    P(cx + Math.cos(an) * L, cy + Math.sin(an) * L, '#ffd84a', 2);
+  }
+}
+// ---------- 人（小さな人形）----------
+// (x, y) は足もとのまんなか。k は大きさ（k=1 で高さ 26 マス）
+// pose：down 腕を下ろす／reachR 右へ手をのばす／reachL 左へ手をのばす／up 両手を上げる／give 右手で差し出す
+function personShape(x, y, c, pose, k) {
+  const r = (dx, dy, w, h) => R(x + dx * k, y + dy * k, w * k, h * k, c);
+  disc(x, y - 22 * k, 3 * k, c);
+  r(-3, -18, 7, 10);
+  r(-3, -8, 2, 8); r(2, -8, 2, 8);
+  if (pose === 'reachR') { r(-5, -17, 2, 7); r(4, -16, 6, 2); }
+  else if (pose === 'reachL') { r(-9, -16, 6, 2); r(4, -17, 2, 7); }
+  else if (pose === 'up') { r(-5, -25, 2, 8); r(4, -25, 2, 8); }
+  else if (pose === 'give') { r(-5, -17, 2, 7); r(4, -15, 7, 2); }
+  else { r(-5, -17, 2, 8); r(4, -17, 2, 8); }
+}
+function person(x, y, fill = '#2c2f52', line = '#9a90d0', pose = 'down', k = 1, a = 1) {
+  A(a, () => {
+    [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dx, dy]) => personShape(x + dx, y + dy, line, pose, k));
+    personShape(x, y, fill, pose, k);
+    P(x - 2 * k, y - 23 * k, '#f3ead6', Math.max(1, k | 0)); P(x + 1 * k, y - 23 * k, '#f3ead6', Math.max(1, k | 0));
+  });
+}
+// 小さなハート
+function smallHeart(x, y, c = '#ff6a7a') { P(x, y, c); P(x + 2, y, c); R(x - 1, y + 1, 5, 1, c); R(x, y + 2, 3, 1, c); P(x + 1, y + 3, c); }
+function ground(c = '#5a3d24') { R(0, 202, W, 14, c); R(0, 202, W, 2, '#3f8f3a'); for (let x = 3; x < W; x += 11) P(x, 207 + (x % 3), '#6b4a2c', 2); }
+function room(t, a = .5) { R(0, 0, W, SH, '#0f1028'); drawStars(t, a); ground(); }
+
+// ---------- Claude Code のキャラクター（字幕の左にいる案内役） ----------
+function mascot(ox, oy, t, mode = "walk", p = 1) {
+  // ox, oy, p は画面の1マス（3画素）単位。p は小数でもよい（画素単位で描くので、にじまない）
+  const R = (x, y, w, h, c) => { const q = (v) => Math.round(v * S); ctx.fillStyle = c; ctx.fillRect(q(x), q(y), q(x + w) - q(x), q(y + h) - q(y)); };
+  const c = '#d97757', f = Math.floor(t * 6) % 4;
+  const hop = (mode === "jump" ? -Math.abs(Math.sin(t * 7)) * 4 : (f % 2 ? -1 : 0)) * p;
+  const up = [f === 1, f === 3, f === 3, f === 1];
+  [2, 4, 7, 9].forEach((x, i) => R(ox + x * p, oy + 6 * p, p, (up[i] && mode === 'walk' ? 1 : 2) * p, c));
+  const y0 = oy + hop;
+  R(ox + 2 * p, y0, 8 * p, 6 * p, c);
+  const wave = mode === "talk" && Math.sin(t * 10) > 0 ? -p : 0;
+  R(ox, y0 + 2 * p + wave, 2 * p, 2 * p, c); R(ox + 10 * p, y0 + 2 * p - wave, 2 * p, 2 * p, c);
+  const blink = (t % 3) > 2.85;
+  R(ox + 3 * p, y0 + p + (blink ? .6 * p : 0), p, blink ? .4 * p : p, "#1a1612"); R(ox + 8 * p, y0 + p + (blink ? .6 * p : 0), p, blink ? .4 * p : p, "#1a1612");
+}
+
+// 案内役の動きに合わせた効果音（声のじゃまにならないよう小さく鳴らす）
+// しゃべる：手をふるたびに「ぴょこ」／ジャンプ：とび上がるたびに「ぴょん」／歩く：一歩ごとに「とこ」／まばたき：「ぱち」
+// 動きが変わったとき：しゃべる→ジャンプ「ポロロン↑」、ジャンプ→歩く「ポロン↓」
+let mPrevT = -1, mPrevMode = '';
+function mascotSfx(t, mode) {
+  const pt = mPrevT, pm = mPrevMode; mPrevT = t; mPrevMode = mode;
+  if (!ac || !playing || muted || seeking || pt < 0 || t <= pt || t - pt > .2) return;
+  try {
+    if (mode !== pm) {
+      if (mode === 'jump') [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .07, .18, 'square', .03));
+      else if (mode === 'walk') [784, 587, 392].forEach((f, i) => tone(f, i * .09, .25, 'triangle', .07));
+      else [880, 1175].forEach((f, i) => tone(f, i * .08, .2, 'sine', .05));
+      return;
+    }
+    const cross = k => Math.floor(t * k) !== Math.floor(pt * k); // t*k が次の整数に進んだ
+    if (mode === 'talk' && Math.sin(t * 10) > 0 && Math.sin(pt * 10) <= 0) tone(620 + Math.random() * 120, 0, .08, 'sine', .035, 980);
+    if (mode === 'jump' && cross(7 / Math.PI)) { tone(140, 0, .06, 'triangle', .12, 90); tone(330, .02, .2, 'square', .025, 900); }
+    if (mode === 'walk' && cross(6) && Math.floor(t * 6) % 2 === 0) tone(Math.floor(t * 6) % 4 ? 440 : 520, 0, .05, 'triangle', .08, 260);
+    if ((t % 3) > 2.85 && (pt % 3) <= 2.85) tone(2200, 0, .03, 'sine', .02, 1600);
+  } catch (e) {}
+}
+
+// ---------- 声の4人（字幕の左で、いま読んでいる人がしゃべる） ----------
+// 1文字＝1ドット（横14×縦16）。S＝はだ、E＝目（まばたき・口は下で動かす）
+const SPK = [
+  { name: 'めたん', pal: { H: '#e04b8f', D: '#c43a7a', d: '#f07ab0', S: '#ffe2cc', E: '#d9a020', K: '#2b2733', W: '#f4f0f0' }, map: [
+    '....HHHHHH....', '..HHHHHHHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'DHHSSHSSHSSHHD', 'dHSSSSSSSSSSHd', 'DHSEESSSSEESHD', 'dHSEESSSSEESHd',
+    'DDSSSSSSSSSSDD', 'dd.SSSSSSSS.dd', 'DD..SSSSSS..DD', '.dd.KWWWWK.dd.',
+    '.DD.KKWWKK.DD.', '..d.KKKKKK.d..', '...KKKKKKKK...', '...KKKKKKKK...'] },
+  { name: 'つむぎ', pal: { H: '#f2c740', h: '#ffe08a', S: '#ffe2cc', E: '#7a4a2a', W: '#f4f4f4', R: '#e04848' }, map: [
+    '.....HHHH.....', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHHSSHSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HHH.WWRRWW.HHH',
+    'HHH.WWRRWW.HHH', '.HH.WWWWWW.HH.', '...WWWWWWWW...', '...WWWWWWWW...'] },
+  { name: 'はう', pal: { H: '#9ccbe8', C: '#ffffff', X: '#e04848', S: '#ffe2cc', E: '#4a7ab0', W: '#ffffff', P: '#f6b8c8' }, map: [
+    '...CCCCCCCC...', '..CCCCXCCCCC..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    '.HSSSSSSSSSSH.', '.H.SSSSSSSS.H.', '....SSSSSS....', '...PWWWWWWP...',
+    '..PPWWWWWWPP..', '..PPWWWWWWPP..', '..PPPWWWWPPP..', '..PPPWWWWPPP..'] },
+  { name: '小夜', pal: { H: '#8a5a3a', I: '#f2a0b0', S: '#ffe2cc', E: '#3a8a5a', G: '#e8d070', K: '#b04040' }, map: [
+    '.HH........HH.', '.HIH......HIH.', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...GGGGGGGG...',
+    '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..'] },
+];
+// v：だれ（0〜3）、talk：いま声が出ている（口がパクパク・体がゆれる）
+function speakerDot(v, ox, oy, t, talk) {
+  const sp = SPK[v]; if (!sp) return;
+  const bob = talk && Math.floor(t * 4) % 2 ? -1 : 0, y0 = oy + bob;
+  const blink = (t % 3.2) > 3.05;
+  sp.map.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (ch === '.') return;
+    if (ch === 'E' && blink) { if (y === 7) P(ox + x, y0 + y, '#5a3a3a'); return; } // まばたき：下だけ線に
+    P(ox + x, y0 + y, sp.pal[ch]);
+  }));
+  // 口：しゃべっているときはパクパク
+  const open = talk && Math.floor(t * 9) % 3 !== 0;
+  if (open) { R(ox + 6, y0 + 9, 2, 2, '#8a2a3a'); P(ox + 6, y0 + 10, '#e07080'); }
+  else R(ox + 6, y0 + 9, 2, 1, '#c0505a');
+  T(sp.name, ox + 7, oy + 20.5, 6, talk ? '#ffe8b0' : '#b0a8c8', 'center');
+}
+
+
+// ---------- 字幕 ----------
+// [始まり, 終わり, 1行目, 2行目, 読み上げる文（読みにくい言葉はひらがな）, 1行目の色]
+const HO = '#ffe8b0', GO = '#ffd84a', KI = '#ff9a8a', DK = '#c0a070', OK = '#9fe0a0', NY = '#ffe08a';
+const CAPS = [
+  [0.0, 1.0, '本医術の施法', '「腎臓医術」という 医療観', 'ほんいじゅつの、しほう。これは、じんぞういじゅつ、という、医療観を、説いた内容です。', HO],
+  [1.0, 2.0, '人間の健康と', 'あらゆる病気の 治癒は', '人間の健康と、あらゆる病気の、治癒は、', HO],
+  [2.0, 3.0, '腎臓の機能を', '完全にすることに 懸かる', '腎臓の機能を、完全にすることに、かかっている。', KI],
+  [3.0, 4.0, '著者は これを', '「腎臓医術」と 主張する', '著者は、そう考え、これを、じんぞういじゅつとして、主張しています。', GO],
+  [4.0, 5.0, '腎臓の部分に 溜まった', '毒のかたまり「毒結」', 'まず、腎臓の部分には、どっけつ、と呼ばれる、毒のかたまりが、溜まっている、とされます。', DK],
+  [5.0, 6.0, '毒結を 溶解すると', '毒素は 尿と共に排出', 'この、どっけつを、溶かすと、その毒素は、尿と共に、体の外へ、排出されます。', NY],
+  [6.0, 7.0, '尿に混じる', '「蛋白（たんぱく）」', 'このとき、尿に混じって出てくる、たんぱく。', NY],
+  [7.0, 8.0, '蛋白こそが', '溶け出した 毒素である', 'この、たんぱくこそが、溶け出した、毒素である、と著者は、述べています。', NY],
+  [8.0, 9.0, '腎臓の毒素を', '溶かすだけで', '腎臓の毒素を、溶かすだけで、', OK],
+  [9.0, 10.0, '体全体の 自家浄化作用が', '活発になる', '体全体の、じか浄化作用が、活発になります。', OK],
+  [10.0, 11.0, 'そして あらゆる病気が', '治癒に 向かう', 'そして、その結果、あらゆる病気が、治癒に、向かうのです。', OK],
+  [11.0, 12.0, '腎臓が 綺麗になると', '他の部位の毒素も 溶けやすく', 'また、腎臓が、綺麗になることで、体の、ほかの部分の毒素も、溶けやすくなる、と述べています。', OK],
+  [12.0, 13.0, '人間は「腎臓」さえ', '健康になれば', '人間は、腎臓さえ、健康になれば、', HO],
+  [13.0, 14.0, 'すべての疾患から', '解放される', 'すべての、しっかんから、解放され、', HO],
+  [14.0, 15.0, '心身ともに', '健全となる', '心も、体も、ともに、健全となります。', OK],
+  [15.0, 16.0, 'そして 幸福と', '長寿を 得られる', 'そして、幸福と、長寿を、得ることが、できるのです。', GO],
+  [16.0, 17.0, 'この理想を 実現する', '「腎臓医術」の発見', 'この理想を、実現する、じんぞういじゅつの、発見。', HO],
+  [17.0, 18.0, 'それは 人類の歴史上', '空前の 大発見である', 'それは、人類の、歴史の上で、くうぜんの、大発見である、と、著者は、力強く、結んでいます。', GO],
+  [18.0, 19.0, '腎臓の毒素を 溶かし', '尿（蛋白）として 出せば', 'まとめると、腎臓に溜まった、毒素を溶かして、尿、つまり、たんぱくとして、出せば、', NY],
+  [19.0, 20.0, '全身が浄化され 病が治り', '心身の健康と 幸福へ', '全身の浄化作用が高まって、すべての病気が治り、心身の健康と、幸福が、得られる。これが、本医術の、教えです。', OK],
+  [20.0, 22.0, "ご視聴ありがとうございました", "", "ごしちょう、ありがとうございました。"],
+];
+// 1つの字幕を見せる時間（秒）。読み上げの長さに合わせ、ゆっくり読めるように長めにとる
+CAPS.forEach(c => { c.dur = Math.max(3.8, c[4].replace(/[、。\s]/g, '').length * 0.2 + 2.0); });
+CAPS[CAPS.length - 1].dur = 5.5; // 最後の「ご視聴ありがとうございました」はゆっくり余韻をとる
+function captions(t) {
+  R(0, SH, W, H - SH, '#0d0b18'); R(0, SH, W, 1, '#3a3358');
+  const c = CAPS.find(c => t >= c[0] && t < c[1]); if (!c) return;
+  const a = clamp((t - c[0]) / .15);
+  T(c[2], 90, c[3] ? 231.5 : 237, 9, c[5] || '#f3ead6', 'center', a);
+  if (c[3]) T(c[3], 90, 244.5, 8.5, '#f3ead6', 'center', a);
+}
+
+// ---------- 道具 ----------
+// 大きなハート。c：色、r：大きさ
+function heart(cx, cy, r, c) {
+  disc(cx - r / 2, cy - r / 4, r / 2 + .5, c); disc(cx + r / 2, cy - r / 4, r / 2 + .5, c);
+  for (let y = 0; y <= r; y++) { const w = rd((r - y) * 1.05); R(cx - w, cy - r / 4 + y, w * 2 + 1, 1, c); }
+}
+// 雲
+function cloud(cx, cy, k = 1) {
+  disc(cx - 10 * k, cy + 2 * k, 7 * k, '#d8d8ea'); disc(cx + 10 * k, cy + 2 * k, 7 * k, '#d8d8ea');
+  disc(cx, cy - 3 * k, 10 * k, '#f3f3fa'); disc(cx - 9 * k, cy + 1 * k, 7 * k, '#f3f3fa'); disc(cx + 9 * k, cy + 1 * k, 7 * k, '#f3f3fa');
+  R(cx - 16 * k, cy + 2 * k, 32 * k, 6 * k, '#f3f3fa');
+}
+// きらきら（十字の光）
+function spark(x, y, c = '#fff1b0', s = 2) { P(x, y, c); for (let i = 1; i <= s; i++) { P(x - i, y, c); P(x + i, y, c); P(x, y - i, c); P(x, y + i, c); } }
+// 花（地面から生える）。k：咲き方（0〜1）
+function flower(x, gy, k, c = '#ff8ab0') {
+  const h = rd(4 + 10 * k); R(x, gy - h, 1, h, '#3f8f3a');
+  if (k > .5) { const r = k > .8 ? 2 : 1; [[-2, 0], [2, 0], [0, -2], [0, 2]].forEach(([dx, dy]) => P(x + dx, gy - h + dy, c, r)); P(x, gy - h, '#ffd84a'); }
+}
+// 人を倒したり傾けたりして描く（足もとを中心にまわす）
+function personRot(x, y, an, ...a) {
+  ctx.save(); ctx.translate(x * S, y * S); ctx.rotate(an); ctx.translate(-x * S, -y * S);
+  person(x, y, ...a); ctx.restore();
+}
+// 筆文字を透明度つきで
+function BA(s, x, y, size, c, a) { A(a, () => B(s, x, y, size, c)); }
+// 明るい人・暗い人の色
+const LIT = ['#2c2f52', '#fff1b0'], DIM = ['#2a2a30', '#6a6a78'];
+// 開いた本
+function book(cx, cy) {
+  R(cx - 16, cy - 8, 15, 12, '#f3ead6'); R(cx + 1, cy - 8, 15, 12, '#f3ead6'); R(cx - 1, cy - 9, 2, 14, '#8a5a3a');
+  for (let i = 0; i < 4; i++) { R(cx - 14, cy - 6 + i * 3, 11, 1, '#8a84a8'); R(cx + 3, cy - 6 + i * 3, 11, 1, '#8a84a8'); }
+}
+
+// ---------- 腎臓医術の道具 ----------
+// 腎臓（そら豆の形）。(cx, cy) 中心、r：大きさ、side：-1 左／1 右（くぼみが内側＝体のまんなか向き）
+// dirt：毒結の量（0〜1）。1 で黒いかたまりがたくさん、0 で消える。glow：きれいになった光
+function kidney(cx, cy, r, side, dirt = 0, glow = 0, t = 0) {
+  if (glow > 0) A(glow * (.3 + .1 * Math.sin(t * 6)), () => disc(cx, cy, r * 1.7, '#ffb0a0'));
+  const c1 = mix('#6a3a30', '#c84a46', 1 - dirt * .6), c2 = mix('#7a4a3a', '#ea7a6a', 1 - dirt * .6);
+  disc(cx, cy - r * .55, r * .75, c1); disc(cx, cy + r * .55, r * .75, c1); disc(cx + side * -r * .2, cy, r * .8, c1);
+  disc(cx - side * r * .2, cy - r * .55, r * .4, c2);
+  // くぼみ（体のまんなか側）
+  disc(cx + side * r * .8, cy, Math.max(1, r * .35), mix('#3a1a18', '#7a2a28', 1 - dirt * .6));
+  // 毒結：黒っぽいつぶ
+  if (dirt > 0) {
+    const pts = [[-.3, -.6], [.1, -.2], [-.4, .3], [0, .65], [-.1, .1], [.2, -.7], [-.5, -.1]];
+    pts.forEach(([dx, dy], i) => {
+      const a = clamp(dirt * pts.length - i);
+      if (a > 0) A(a, () => disc(cx - side * dx * r, cy + dy * r, Math.max(1, rd(r * .18)), i % 2 ? '#3a2a1a' : '#4a3a24'));
+    });
+  }
+}
+// 体の中を見せる人（大きな人形のおなかに腎臓が2つ）。k：大きさ。dirt・glow は腎臓へ
+function bodyView(x, y, k, dirt, glow, t, fill = '#1e2340', line = '#9a90d0') {
+  person(x, y, fill, line, 'down', k);
+  const ky = y - 13 * k, kr = Math.max(3, rd(1.4 * k));
+  kidney(x - 2.2 * k, ky, kr, -1, dirt, glow, t); kidney(x + 2.8 * k, ky, kr, 1, dirt, glow, t + 1);
+  return { lx: x - 2.2 * k, rx: x + 2.8 * k, ky, kr };
+}
+// 尿のしずく
+function drop(x, y, c = '#ffe08a') { P(x, y - 2, c); R(x - 1, y - 1, 3, 2, c); P(x, y + 1, c); P(x - 1, y - 1, '#fff6c0'); }
+// 体の中の毒（黒いつぶ）がとけて消える。k：0 で全部、1 で全部消える
+function toxins(x0, y0, w, h, k, t) {
+  for (let i = 0; i < 18; i++) {
+    const px = x0 + ((i * 37) % w), py = y0 + ((i * 53) % h), a = clamp(1 - k * 1.6 + (i % 6) * .1);
+    if (a > 0) A(a, () => { P(px, py, '#4a3a24', 2); P(px + 1, py + 1, '#2a1a10'); });
+    else if (a > -.3) A(1 + a / .3, () => spark(px, py - (1 - a) * 4, '#bfe4ff', 1));
+  }
+}
+// 巻物
+function scroll(cx, cy, w, h, a = 1) {
+  A(a, () => {
+    R(cx - w / 2, cy - h / 2, w, h, '#f3ead6'); R(cx - w / 2, cy - h / 2, w, 2, '#d8cbb0');
+    R(cx - w / 2 - 3, cy - h / 2 - 2, 3, h + 4, '#8a5a3a'); R(cx + w / 2, cy - h / 2 - 2, 3, h + 4, '#8a5a3a');
+  });
+}
+// 花火
+function firework(cx, cy, q, c) {
+  if (q <= 0 || q >= 1) return;
+  for (let i = 0; i < 12; i++) { const an = i * Math.PI / 6, L = 4 + q * 20; A(1 - q, () => P(cx + Math.cos(an) * L, cy + Math.sin(an) * L, c, 2)); }
+}
+// 杖をついたお年寄り（長寿）
+function elder(x, y, t, a = 1) {
+  person(x, y, '#3a3a5a', '#f3ead6', 'reachR', 1, a);
+  A(a, () => { R(x - 3, y - 26, 7, 2, '#f3f3fa'); R(x + 10, y - 16, 1, 16, '#8a5a3a'); R(x + 1, y - 18, 1, 1, '#f3f3fa'); });
+}
+// 鶴（長寿のしるし）
+const CRANE = [
+  '...........KR', '..........KKW', '..........W..', '.........W...', 'WWWWWWWWWW...', '.WWWWWWWWW...',
+  '..KKWWWWW....', '....WWW......', '.....K.K.....', '.....K.K.....'];
+const CRANEP = { W: '#f4f4ff', K: '#1a1a24', R: '#e04848' };
+// ドット絵（1文字＝1ドット）。中心 (cx, cy)、k：大きさ（整数）、flip：左右反転
+function spr(map, pal, cx, cy, k = 1, flip = false, a = 1) {
+  const w = Math.max(...map.map(r => r.length)), ox = rd(cx - w * k / 2), oy = rd(cy - map.length * k / 2);
+  A(a, () => map.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (!pal[ch]) return;
+    R(ox + (flip ? w - 1 - x : x) * k, oy + y * k, k, k, pal[ch]);
+  })));
+}
+
+// ---------- 場面1：腎臓医術とは ----------
+function scene1(lt, t) {
+  R(0, 0, W, SH, '#0f1028'); drawStars(t, .6); ground();
+  if (lt < 1) {
+    // 題：本医術の施法。体の中の二つの腎臓が光る
+    BA('本医術の施法', 90, 36, 18, HO, fadeIn(lt, .1, .4));
+    bodyView(90, 202, 4, 0, fadeIn(lt, .3, .4), t);
+    tag('腎臓医術', 90, 64, KI, fadeIn(lt, .5), 9);
+  } else if (lt < 2) {
+    // 健康な人・病気の人
+    const k = lt - 1;
+    person(46, 202, LIT[0], LIT[1], 'up', 1.3);
+    tag('健康', 46, 150, OK, fadeIn(lt, 1.1), 9);
+    const a2 = clamp((k - .35) / .15);
+    if (a2 > 0) {
+      R(102, 192, 64, 8, '#4a6ad0'); R(102, 192, 64, 2, '#8aa8f0'); R(100, 190, 12, 4, '#f3ead6');
+      personRot(150, 194, -Math.PI / 2, DIM[0], DIM[1], 'down', 1, a2);
+      A(a2, () => { for (let i = 0; i < 3; i++) P(112 + i * 6, 176 - (t * 8 + i * 3) % 10, '#8aa8d0', 2); });
+    }
+    tag('病気', 134, 150, '#8aa8d0', a2, 9);
+    tag('あらゆる 病気の治癒も', 90, 40, HO, clamp((k - .6) / .2), 8);
+  } else if (lt < 3) {
+    // すべては腎臓に懸かる：大きな腎臓に矢印が集まる
+    const k = lt - 2, g = ease(clamp(k / .5));
+    kidney(64, 112, 18 + rd(4 * g), -1, 0, g, t); kidney(116, 112, 18 + rd(4 * g), 1, 0, g, t + 1);
+    for (let i = 0; i < 8; i++) {
+      const an = i * Math.PI / 4, q = (t * .7 + i / 8) % 1, L = lerp(80, 36, q);
+      A(clamp(k * 2) * (1 - q), () => P(90 + Math.cos(an) * L * 1.1, 112 + Math.sin(an) * L * .8, '#ffd84a', 2));
+    }
+    BA('腎臓', 90, 40, 22, KI, clamp((k - .3) / .2));
+    tag('機能を 完全に', 90, 166, HO, clamp((k - .55) / .2), 9);
+  } else {
+    // 著者は「腎臓医術」と主張
+    const k = lt - 3;
+    R(70, 180, 70, 4, '#8a5a3a'); R(74, 184, 3, 18, '#6a4a2a'); R(133, 184, 3, 18, '#6a4a2a');
+    book(108, 175);
+    person(50, 202, LIT[0], LIT[1], 'up', 1.2);
+    tag('著者', 50, 160, HO, fadeIn(lt, 3.05), 8);
+    kidney(124, 120, 8, 1, 0, .6, t); kidney(102, 120, 8, -1, 0, .6, t + 1);
+    scroll(90, 66, 100, 26, fadeIn(lt, 3.2, .3));
+    BA('腎臓医術', 90, 67, 16, '#8a2a20', fadeIn(lt, 3.35, .3));
+  }
+}
+
+// ---------- 場面2：毒結と蛋白 ----------
+function scene2(lt, t) {
+  R(0, 0, W, SH, '#160c1a'); drawStars(t, .3); ground();
+  if (lt < 1) {
+    // 腎臓に黒い毒のかたまりが溜まる
+    const k = lt, d = clamp((k - .1) / .6);
+    kidney(62, 116, 22, -1, d, 0, t); kidney(118, 116, 22, 1, d, 0, t + 1);
+    BA('毒結', 90, 40, 22, DK, clamp((k - .55) / .2));
+    tag('どっけつ', 90, 62, DK, clamp((k - .65) / .2), 8);
+    tag('毒の かたまり', 90, 168, '#c0b8e0', clamp((k - .7) / .2), 8);
+  } else if (lt < 2) {
+    // 溶ける！ かたまりが消えて、しずくになって下へ流れる
+    const k = lt - 1, d = 1 - ease(clamp((k - .1) / .6));
+    kidney(62, 100, 22, -1, d, 1 - d, t); kidney(118, 100, 22, 1, d, 1 - d, t + 1);
+    // 尿管 → ぼうこう
+    R(70, 122, 2, 50, '#7a4a3a'); R(108, 122, 2, 50, '#7a4a3a');
+    disc(90, 180, 12, '#7a4a3a'); disc(90, 180, 10, mix('#2a1a10', '#c8a040', 1 - d));
+    for (let i = 0; i < 4; i++) {
+      const q = (t * 1.2 + i / 4) % 1;
+      if (k > .2) { drop(71, lerp(124, 170, q)); drop(109, lerp(124, 170, (q + .5) % 1)); }
+    }
+    R(89, 192, 2, 10, '#ffe08a'); if (k > .3) for (let i = 0; i < 3; i++) drop(90, 196 + ((t * 30 + i * 5) % 14));
+    tag('溶解', 90, 30, OK, fadeIn(lt, 1.1), 10);
+    tag('尿と共に 排出', 150, 170, NY, clamp((k - .5) / .2), 8);
+  } else if (lt < 3) {
+    // 尿に混じる「蛋白」：コップの中に白いつぶ
+    const k = lt - 2, f = ease(clamp(k / .5));
+    R(66, 120, 48, 4, '#bfe4ff'); R(66, 124, 4, 60, '#bfe4ff'); R(110, 124, 4, 60, '#bfe4ff'); R(66, 184, 48, 4, '#bfe4ff');
+    R(70, 184 - 56 * f, 40, 56 * f, '#e8c040'); R(70, 184 - 56 * f, 40, 2, '#fff1a0');
+    for (let i = 0; i < 10; i++) {
+      const a = clamp((k - .4 - i * .03) / .1);
+      if (a > 0) A(a, () => P(74 + (i * 13) % 32, 134 + (i * 17) % 44 + rd(Math.sin(t * 3 + i) * 2), '#ffffff', 2));
+    }
+    BA('蛋白', 90, 54, 24, NY, clamp((k - .45) / .2));
+    tag('たんぱく', 90, 82, NY, clamp((k - .55) / .2), 8);
+  } else {
+    // 蛋白＝溶け出した毒素
+    const k = lt - 3;
+    disc(46, 120, 12, '#3a2a1a'); disc(44, 118, 9, '#4a3a24');
+    tag('毒結', 46, 146, DK, fadeIn(lt, 3.05), 8);
+    const a2 = clamp((k - .25) / .15);
+    A(a2, () => { for (let i = 0; i < 7; i++) drop(108 + (i % 4) * 10, 112 + Math.floor(i / 4) * 12 + rd(Math.sin(t * 4 + i) * 2)); });
+    tag('蛋白', 122, 146, NY, a2, 8);
+    T('＝', 90, 120, 14, GO, 'center', clamp((k - .45) / .15));
+    tag('溶け出した 毒素', 90, 50, HO, clamp((k - .6) / .2), 10);
+  }
+}
+
+// ---------- 場面3：全身の浄化 ----------
+function scene3(lt, t) {
+  R(0, 0, W, SH, '#0c1630'); drawStars(t, .5); ground();
+  if (lt < 1) {
+    // 腎臓の毒素を溶かすだけで
+    const k = lt, d = 1 - ease(clamp((k - .1) / .7));
+    bodyView(90, 202, 5, d, 1 - d, t);
+    tag('腎臓だけ', 90, 30, KI, fadeIn(lt, .1), 9);
+  } else if (lt < 2) {
+    // 体全体の自家浄化作用が活発に（光が全身へ広がる）
+    const k = lt - 1, g = ease(clamp(k / .6));
+    A(g * (.25 + .1 * Math.sin(t * 6)), () => disc(90, 136, rd(20 + 50 * g), '#bfe4ff'));
+    bodyView(90, 202, 5, 0, 1, t);
+    for (let i = 0; i < 10; i++) { const an = i * Math.PI / 5 + t, L = 10 + 40 * g; spark(90 + Math.cos(an) * L, 136 + Math.sin(an) * L * 1.2, '#e8f4ff', 1); }
+    tag('自家浄化作用', 90, 30, OK, fadeIn(lt, 1.1), 10);
+    tag('活発に！', 90, 48, HO, clamp((k - .5) / .2), 9);
+  } else if (lt < 3) {
+    // あらゆる病気が治癒へ：病気の人が起き上がり、花が咲く
+    const k = lt - 2, up = ease(clamp((k - .15) / .4));
+    if (up < 1) personRot(90, 202, lerp(-Math.PI / 2, 0, up), mix('#2a2a30', '#2c2f52', up), mix('#6a6a78', '#fff1b0', up), 'down', 1.4);
+    else person(90, 202, LIT[0], LIT[1], 'up', 1.4);
+    if (up >= 1) A(.35 + .15 * Math.sin(t * 6), () => disc(90, 170, 16, '#fff1b0'));
+    for (let i = 0; i < 8; i++) flower(14 + i * 22 + (i > 3 ? 20 : 0), 202, clamp((k - .45 - i * .04) / .25), ['#ff8ab0', '#ffd84a', '#c08aff'][i % 3]);
+    tag('治癒へ', 90, 40, OK, clamp((k - .5) / .2), 12);
+  } else {
+    // 腎臓がきれいだと、ほかの部位の毒素も溶けやすい
+    const k = lt - 3;
+    const v = bodyView(90, 202, 5, 0, 1, t);
+    toxins(78, 92, 26, 100, clamp((k - .15) / .6), t);
+    A(clamp(k * 3), () => { for (let i = 0; i < 6; i++) { const q = (t * .9 + i / 6) % 1; P(lerp(v.lx, 80 + (i * 7) % 22, q), lerp(v.ky, 96 + (i * 17) % 90, q), '#ffb0a0'); } });
+    tag('他の部位も', 30, 60, HO, fadeIn(lt, 3.1), 8);
+    tag('溶けやすく', 150, 60, OK, clamp((k - .5) / .2), 8);
+  }
+}
+
+// ---------- 場面4：究極の理想 ----------
+function scene4(lt, t) {
+  R(0, 0, W, SH, '#101a34'); drawStars(t, .5); ground();
+  if (lt < 1) {
+    // 腎臓さえ健康になれば
+    const k = lt;
+    kidney(66, 104, 22, -1, 0, 1, t); kidney(114, 104, 22, 1, 0, 1, t + 1);
+    for (let i = 0; i < 6; i++) { const q = (t * .6 + i / 6) % 1; A(1 - q, () => smallHeart(40 + i * 20, 160 - q * 30)); }
+    tag('「腎臓」さえ', 90, 32, KI, fadeIn(lt, .1), 10);
+    tag('健康なら', 90, 172, OK, clamp((k - .5) / .2), 10);
+  } else if (lt < 2) {
+    // すべての疾患から解放：鎖がはじけ飛ぶ
+    const k = lt - 1, br = clamp((k - .3) / .2);
+    person(90, 202, LIT[0], LIT[1], br >= 1 ? 'up' : 'down', 1.6);
+    for (let i = 0; i < 8; i++) {
+      const by = 172 - i * 4, ox = br * (i % 2 ? 1 : -1) * (20 + i * 6), oy = -br * 10 * (i % 3);
+      A(1 - br * .8, () => R(78 + ox, by + oy, 24, 2, '#8a84a8'));
+    }
+    if (br > 0 && br < 1) spark(90, 160, '#ffffff', 4);
+    tag('疾患', 40, 90, NG2, clamp(1 - br), 10);
+    tag('解放！', 90, 60, OK, clamp((k - .55) / .2), 12);
+  } else if (lt < 3) {
+    // 心身ともに健全：ハート（心）と体
+    const k = lt - 2;
+    heart(54, 98, 18, '#ff6a7a'); A(.3 + .1 * Math.sin(t * 6), () => disc(54, 100, 26, '#ffb0c0'));
+    person(126, 202, LIT[0], LIT[1], 'up', 1.6);
+    tag('心', 54, 136, HO, fadeIn(lt, 2.1), 10); tag('体', 126, 140, HO, fadeIn(lt, 2.2), 10);
+    BA('健全', 90, 40, 22, OK, clamp((k - .4) / .2));
+  } else {
+    // 幸福と長寿：鶴がとび、お年寄りがにこにこ
+    const k = lt - 3, d = ease(clamp(k / .6));
+    R(0, 0, W, SH, mix('#101a34', '#4a8ad0', d)); drawStars(t, 1 - d); sun(150, lerp(120, 40, d), t, 11); ground();
+    cloud(40, 60, .8);
+    spr(CRANE, CRANEP, 96 + rd(Math.sin(t * .8) * 24), 92 + rd(Math.sin(t * 3) * 3), 2, Math.cos(t * .8) < 0, fadeIn(lt, 3.1, .3));
+    for (let i = 0; i < 9; i++) flower(10 + i * 20, 202, clamp((k - .2 - i * .04) / .3), ['#ff8ab0', '#ffd84a', '#c08aff'][i % 3]);
+    elder(60, 202, t);
+    person(110, 202, LIT[0], LIT[1], 'up', 1);
+    tag('幸福', 60, 140, GO, clamp((k - .3) / .2), 10); tag('長寿', 120, 140, OK, clamp((k - .45) / .2), 10);
+  }
+}
+const NG2 = '#ff8a8a';
+
+// ---------- 場面5：空前の大発見 ----------
+function scene5(lt, t) {
+  R(0, 0, W, SH, '#0b0a1a'); drawStars(t);
+  if (lt < 1) {
+    // 理想を実現する「腎臓医術」の発見：巻物が開く
+    const k = lt, w = ease(clamp(k / .5)) * 120;
+    ground();
+    scroll(90, 90, Math.max(4, w), 50);
+    BA('腎臓医術', 90, 84, 18, '#8a2a20', clamp((k - .45) / .2));
+    tag('の 発見', 120, 104, '#5a3a2a', clamp((k - .55) / .2), 8);
+    bulb(90, 160, k > .6, t);
+  } else if (lt < 2) {
+    // 人類の歴史上、空前の大発見：花火
+    const k = lt - 1;
+    ground();
+    for (let i = 0; i < 4; i++) firework(30 + i * 40, 50 + (i % 2) * 30, ((t * .7 + i * .27) % 1.3) / 1.0, ['#ffd84a', '#ff8ab0', '#9fe0a0', '#bfe4ff'][i]);
+    [30, 60, 120, 150].forEach((x, i) => person(x, 202, LIT[0], LIT[1], Math.floor(t * 3 + i) % 2 ? 'up' : 'down', .9));
+    BA('大発見', 90, 120, 26, GO, clamp((k - .2) / .2));
+    tag('人類 空前の', 90, 92, HO, fadeIn(lt, 1.1), 9);
+  } else if (lt < 3) {
+    // まとめ①：腎臓の毒素を溶かし、尿（蛋白）として出す
+    const k = lt - 2, d = 1 - ease(clamp(k / .5));
+    ground();
+    kidney(62, 90, 18, -1, d, 1 - d, t); kidney(118, 90, 18, 1, d, 1 - d, t + 1);
+    for (let i = 0; i < 5; i++) { const q = (t * 1.2 + i / 5) % 1; drop(62 + (i % 2) * 56, lerp(110, 196, q)); }
+    tag('毒素を 溶かす', 90, 36, OK, fadeIn(lt, 2.1), 9);
+    tag('尿（蛋白）で 出す', 90, 160, NY, clamp((k - .4) / .2), 9);
+  } else {
+    // まとめ②：全身が浄化され、心身の健康と幸福へ
+    const k = lt - 3, d = ease(clamp(k / .6));
+    R(0, 0, W, SH, mix('#0b0a1a', '#3a5aa8', d)); drawStars(t, 1 - d);
+    sun(90, lerp(170, 50, d), t, 10);
+    ground();
+    for (let i = 0; i < 9; i++) flower(10 + i * 20, 202, clamp((k - .2 - i * .04) / .3), ['#ff8ab0', '#ffd84a', '#c08aff'][i % 3]);
+    A(.3 + .1 * Math.sin(t * 6), () => disc(90, 170, 26, '#fff1b0'));
+    bodyView(90, 202, 3, 0, 1, t, LIT[0], LIT[1]);
+    for (let i = 0; i < 4; i++) { const q = (t * .5 + i / 4) % 1; A(1 - q, () => smallHeart(40 + i * 30, 150 - q * 30)); }
+    tag('心身の 健康と 幸福', 90, 96, OK, clamp((k - .45) / .2), 9);
+  }
+}
+// 電球（ひらめき）
+function bulb(cx, cy, on, t) {
+  if (on) A(.3 + .1 * Math.sin(t * 8), () => disc(cx, cy, 11, '#fff1b0'));
+  disc(cx, cy, 5, on ? '#ffd84a' : '#4a4a5a'); R(cx - 2, cy + 5, 5, 3, '#8a84a8');
+  if (on) { P(cx - 2, cy - 2, '#fff'); for (let i = 0; i < 8; i++) { const an = i * Math.PI / 4; P(cx + Math.cos(an) * 9, cy + Math.sin(an) * 9, '#ffe8b0'); } }
+}
+
+// ---------- 進行 ----------
+const SCENES = [
+  [0, 4, scene1, '一 腎臓医術とは'],
+  [4, 8, scene2, '二 毒結と蛋白'],
+  [8, 12, scene3, '三 全身の浄化'],
+  [12, 16, scene4, '四 究極の理想'],
+  [16, 20, scene5, '結 空前の大発見'],
+];
+
+function frame(t) {
+  lastVT = t;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  const sc = SCENES.find(s => t >= s[0] && t < s[1]) || SCENES[SCENES.length - 1];
+  const lt = t - sc[0];
+  sc[2](lt, AT);
+  // 場面の見出し
+  T(sc[3], 4, 6, 6.5, '#f3ead6', 'left', clamp(1.6 - lt) * .9 + .25);
+  // 場面の切りかわり（黒くフェード）
+  const d = Math.min(t - sc[0] + (sc[0] === 0 ? 9 : 0), sc[1] - t + (sc[1] === DUR ? 9 : 0));
+  if (d < .05) A(1 - d / .05, () => R(0, 0, W, SH, '#000'));
+  // 終わり：ゆっくり暗くして「ご視聴ありがとうございました」
+  if (t > DUR) {
+    const e = t - DUR;
+    A(clamp(e / 1.2) * .8, () => R(0, 0, W, SH, "#000"));
+    T("ご視聴", 90, 80, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
+    T("ありがとう", 90, 104, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
+    T("ございました", 90, 128, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
+  }
+  captions(t);
+  // 字幕の左：いま読んでいる人（めたん・つむぎ・はう・小夜）がしゃべる。オレンジのキャラクターはタイトルの左
+  const ci = CAPS.findIndex(c => t >= c[0] && t < c[1]), si = ci < 0 ? CAPS.length - 1 : ci;
+  speakerDot(voiceOf(si), 9, 227, AT, playing && speaking && si === seg);
+}
+
+// ---------- 進み方：字幕1つずつ、読み上げが終わってから次へ ----------
+let AT = 0; // AT：鼓動や粒の動き用の時計（字幕の進みとは別に、いつも同じ速さで進む）
+let running = false, playing = false, muted = false, seg = 0, pos = 0, lastNow = 0, waitT = 0, speaking = false;
+const STARTS = []; let TOTAL = 0;
+CAPS.forEach(c => { STARTS.push(TOTAL); TOTAL += c.dur; });
+const segAt = p => { let i = 0; while (i < CAPS.length - 1 && p >= STARTS[i + 1]) i++; return i; };
+function loop(now) {
+  const dt = Math.min(.1, (now - lastNow) / 1000); lastNow = now;
+  if (playing) {
+    AT += dt / 1.4;
+    const end = STARTS[seg] + CAPS[seg].dur;
+    let np = pos + dt;
+    if (np >= end) {
+      // 読み上げがまだ続いていたら、終わるまで待つ（声が出ない端末のため 8 秒で打ち切る）
+      if (speaking && !muted && waitT < 8) { np = end - .001; waitT += dt; }
+      else if (seg < CAPS.length - 1) { np = end; enterSeg(seg + 1, true); }
+      else { np = TOTAL; finish(); }
+    }
+    pos = np;
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+function draw() {
+  const i = segAt(Math.min(pos, TOTAL - .001)), c = CAPS[i];
+  const k = pos >= TOTAL ? 1 : clamp((pos - STARTS[i]) / c.dur);
+  frame(lerp(c[0], c[1] - .001, k));
+  if (!seeking) seekBar.value = pos;
+  curT.textContent = mmss(pos);
+}
+// その字幕に入る：声を読み、効果音を鳴らす
+function enterSeg(i, sfx) {
+  seg = i; waitT = 0;
+  if (muted || !playing) { stopSpeak(); return; }
+  speak(i);
+  if (sfx && SFX[i]) try { wakeAudio(); SFX[i](); } catch (e) {}
+}
+function finish() {
+  playing = false; stopSpeak(); bgmOn(false);
+  ppBtn.textContent = '▶ もう一度';
+}
+function stopSpeak() {
+  speaking = false; cur = null;
+  if (koeSrc) { try { koeSrc.onended = null; koeSrc.stop(); } catch (e) {} koeSrc = null; }
+  try { if (ttsOK) speechSynthesis.cancel(); } catch (e) {}
+}
+
+// ---------- 操作パネル ----------
+const seekBar = document.getElementById('seekBar'), curT = document.getElementById('curT');
+const ppBtn = document.getElementById('ppBtn'), rsBtn = document.getElementById('rsBtn'), sndBtn = document.getElementById('sndBtn');
+const mmss = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+seekBar.max = TOTAL.toFixed(1);
+document.getElementById('totT').textContent = mmss(TOTAL);
+let seeking = false;
+// ---------- 女性の声で読み上げ（御神書索引と同じしくみ） ----------
+let cur = null;
+const ttsOK = 'speechSynthesis' in window;
+const MALE = ['otoya', 'ichiro', 'keita', 'hattori', 'daichi', 'naoki', 'male'];
+const FEMALE = ['kyoko', 'o-ren', 'oren', 'nanami', 'haruka', 'ayumi', 'sayaka', 'mizuki', 'female', 'google'];
+function voiceQuality(v) {
+  const s = ((v.voiceURI || '') + ' ' + (v.name || '')).toLowerCase();
+  if (s.includes('eloquence')) return -1;
+  if (s.includes('premium')) return 3;
+  if (s.includes('enhanced') || s.includes('natural') || s.includes('neural')) return 2;
+  if (s.includes('compact')) return 0;
+  return 1;
+}
+function pickVoice() {
+  let vs = []; try { vs = speechSynthesis.getVoices() || []; } catch (e) {}
+  const name = v => ((v.voiceURI || '') + ' ' + (v.name || '')).toLowerCase();
+  const ja = vs.filter(v => v.lang && v.lang.toLowerCase().replace('_', '-').startsWith('ja') && !MALE.some(m => name(v).includes(m)));
+  const rank = v => { const i = FEMALE.findIndex(f => name(v).includes(f)); return i < 0 ? FEMALE.length : i; };
+  ja.sort((a, b) => (voiceQuality(b) - voiceQuality(a)) || (rank(a) - rank(b)));
+  return ja[0] || null;
+}
+let voice = null;
+if (ttsOK) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => { voice = pickVoice(); }; } catch (e) {} }
+let lastUtter = null;
+function speakTTS(text, token) {
+  if (!ttsOK) { speaking = false; return; }
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ja-JP'; u.rate = 0.9; u.pitch = 1.1; u.volume = 1;
+    voice = voice || pickVoice(); if (voice) u.voice = voice;
+    u.onend = u.onerror = () => { if (cur === token) speaking = false; };
+    lastUtter = u; // 読み上げ中に消えないよう持っておく（消えると「読み終わり」が届かない）
+    speechSynthesis.speak(u);
+  } catch (e) { speaking = false; }
+}
+
+// ---------- ナレーション：VOICEVOX で作った声（4人：めたん・つむぎ・はう・小夜。各フォルダに 00.wav〜20.wav）を流す ----------
+// 「順番」のときは、字幕1つごとに めたん→つむぎ→はう→小夜 の順番で読む（ランダムではない）。
+// iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
+// 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
+const KOE_V = 1;
+const VOICES = [['koe', '四国めたん'], ['koe-tsumugi', '春日部つむぎ'], ['koe-hau', '雨晴はう'], ['koe-sayo', '小夜/SAYO']];
+const MIX = 4; // 「順番」
+const koeOK = [[], [], [], []], koeRaw = [], koeBuf = [[], [], [], []]; // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
+function loadVoice(v) {
+  if (koeRaw[v]) return;
+  koeRaw[v] = CAPS.map((c, i) => fetch(VOICES[v][0] + '/' + String(i).padStart(2, '0') + '.wav?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[v][i] = !!ab; return ab; }));
+  if (ac) CAPS.forEach((c, i) => koeDecode(v, i));
+}
+let voiceNo = MIX;
+try { const n = parseInt(localStorage.getItem('jinzoVoice4')); if (n >= 0 && n <= MIX) voiceNo = n; } catch (e) {}
+// 字幕ごとの読み手（「順番」のとき）
+let segVoice = [];
+function shuffleVoices() {
+  segVoice = [];
+  CAPS.forEach((c, i) => segVoice.push(i % 4)); // めたん→つむぎ→はう→小夜 の順番でくり返す（ランダムではない）
+}
+shuffleVoices();
+const voiceOf = i => voiceNo === MIX ? segVoice[i] : voiceNo;
+function koeDecode(v, i) {
+  if (!koeBuf[v][i]) koeBuf[v][i] = koeRaw[v][i].then(ab => ab && new Promise(res => {
+    try { ac.decodeAudioData(ab.slice(0), b => res(b), () => res(null)); } catch (e) { res(null); }
+  }));
+  return koeBuf[v][i];
+}
+let koeSrc = null;
+function speak(i) {
+  stopSpeak();
+  speaking = true;
+  const token = {}; cur = token;
+  const v = voiceOf(i);
+  if (!ac || koeOK[v][i] === false) { speakTTS(CAPS[i][4], token); return; }
+  koeDecode(v, i).then(b => {
+    if (cur !== token) return; // もう別の字幕に進んだ・止めた
+    if (!b) { speakTTS(CAPS[i][4], token); return; }
+    const s = ac.createBufferSource(); s.buffer = b;
+    s.connect(ac.destination);
+    s.onended = () => { if (cur === token) speaking = false; };
+    koeSrc = s; s.start();
+  });
+}
+
+// ---------- 音楽と効果音（Web Audio で作る） ----------
+let ac = null, bgm = null;
+function tone(f, at, len, type, vol, f2, dest) {
+  const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + at;
+  o.type = type; o.frequency.setValueAtTime(f, t0);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + len);
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .01);
+  g.gain.exponentialRampToValueAtTime(.0001, t0 + len);
+  o.connect(g).connect(dest || ac.destination); o.start(t0); o.stop(t0 + len + .05);
+}
+// ざわざわした音（ゴォー・シュワー・息など）。type と freq で音色、up で「だんだん大きく」
+function noise(at, len, vol, freq = 900, type = 'bandpass', up = 0, q = 1) {
+  const b = ac.createBuffer(1, ac.sampleRate * len, ac.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const s = ac.createBufferSource(), g = ac.createGain(), fl = ac.createBiquadFilter(), t0 = ac.currentTime + at;
+  fl.type = type; fl.frequency.value = freq; fl.Q.value = q;
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .02 + up * len);
+  g.gain.linearRampToValueAtTime(0, t0 + len);
+  s.buffer = b; s.connect(fl).connect(g).connect(ac.destination); s.start(t0);
+}
+const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
+// 背景の音楽：声が聞こえるように小さく、ゆっくり（1拍 = 0.5秒）
+const MEL = [67,69,72,74,72,69,67,64, 67,72,74,76,74,72,69,67], BASS = [48,48,43,43,45,45,43,43];
+let beat = 0, nextBeat = 0;
+function bgmTick() {
+  if (!ac) return;
+  while (nextBeat < ac.currentTime + .6) {
+    const at = nextBeat - ac.currentTime;
+    tone(NOTE(MEL[beat % 16]), at, .45, 'triangle', .05, 0, bgm);
+    if (beat % 2 === 0) tone(NOTE(BASS[(beat >> 1) % 8]), at, .9, 'triangle', .1, 0, bgm);
+    beat++; nextBeat += .5;
+  }
+  setTimeout(bgmTick, 200);
+}
+const chime = () => { tone(1320, 0, .25, 'sine', .1); tone(1760, .08, .3, 'sine', .08); };
+// 雷の音（ゴロッ・ピシャッ）：前の版の発熱の音。いきなり大きく鳴って、だんだん消える
+function thunder(at, len, vol) {
+  const b = ac.createBuffer(1, ac.sampleRate * len, ac.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+  const s = ac.createBufferSource(), g = ac.createGain(), fl = ac.createBiquadFilter();
+  fl.type = "bandpass"; fl.frequency.value = 900; g.gain.value = vol;
+  s.buffer = b; s.connect(fl).connect(g).connect(ac.destination); s.start(ac.currentTime + at);
+}
+// 心臓の音（ドクン）：低い音を2つ続ける
+// iPhone のスピーカーは低い音が出にくいので、少し高めの音を重ねる
+const thump = at => { tone(170, at, .16, "triangle", .4, 70); tone(80, at, .18, "sine", .4, 40); tone(140, at + .2, .14, "triangle", .3, 60); };
+// 字幕の番号ごとの効果音（場面に合わせて1回ずつ）
+const SFX = {
+  0: () => { tone(220, .2, 2.4, 'sine', .12); [64, 67, 72, 76].forEach((n, i) => tone(NOTE(n), .6 + i * .3, .5, 'triangle', .06)); }, // ゴーン・ポロロン
+  1: () => { [72, 76, 79].forEach((n, i) => tone(NOTE(n), .3 + i * .15, .4, 'triangle', .05)); [60, 58].forEach((n, i) => tone(NOTE(n), 1.6 + i * .4, .6, 'sine', .05)); }, // 健康と病気
+  2: () => [0, 1, 2, 3].forEach(i => tone(NOTE(67 + i * 4), .3 + i * .25, .5, 'triangle', .05)),                      // 腎臓に集まる
+  3: () => { tone(NOTE(64), .4, 1.2, 'triangle', .06); tone(NOTE(67), 1.2, 1.4, 'triangle', .06); },                // 著者の主張
+  4: () => { tone(110, .2, 1.8, 'sawtooth', .04, 80); [57, 56].forEach((n, i) => tone(NOTE(n), .6 + i * .6, .6, 'triangle', .06)); }, // 毒結：低く
+  5: () => { noise(.3, 1.6, .06, 1800, 'bandpass', .3, 2); [0, 1, 2, 3].forEach(i => tone(1400 - i * 120, .6 + i * .3, .1, 'sine', .04, 700)); }, // とける・ぽちゃん
+  6: () => [0, .3, .6].forEach(d => tone(1100, .3 + d, .12, 'sine', .04, 600)),                                     // しずく
+  7: () => { tone(NOTE(76), .3, .4, 'square', .03); tone(NOTE(72), .6, .8, 'triangle', .06); },                   // ＝
+  8: () => { [84, 81, 79, 76, 72].forEach((n, i) => tone(NOTE(n), .4 + i * .18, .5, 'triangle', .05)); },           // 腎臓がきれいに
+  9: () => { noise(.3, 1.4, .05, 3000, 'highpass', .4); [72, 76, 79, 84].forEach((n, i) => tone(NOTE(n), .8 + i * .15, .6, 'sine', .04)); }, // 浄化の光
+  10: () => [60, 64, 67, 72, 76, 79, 84].forEach((n, i) => tone(NOTE(n), .3 + i * .15, .8, 'triangle', .05)),        // 治癒：ハープ
+  11: () => [0, 1, 2, 3, 4].forEach(i => tone(NOTE(79 + (i % 2) * 5), .3 + i * .25, .15, 'sine', .04)),             // ほかの毒もとける
+  12: () => { [60, 64, 67, 72].forEach(n => tone(NOTE(n), .3, 2.2, 'sine', .04)); },                                // あたたかい和音
+  13: () => { tone(160, .9, .2, 'square', .05, 90); noise(.9, .4, .1, 2500, 'bandpass'); chime(); },                  // 鎖がはじける
+  14: () => { [72, 76, 79].forEach((n, i) => tone(NOTE(n), .3 + i * .2, .9, 'triangle', .05)); },                     // 健全
+  15: () => { [79, 84, 88, 91].forEach((n, i) => tone(NOTE(n), .3 + i * .2, .6, 'sine', .05)); tone(900, 1.4, .3, 'triangle', .03, 1300); }, // 鶴の声
+  16: () => { tone(NOTE(84), .9, .3, 'square', .04); tone(NOTE(91), 1, .5, 'sine', .06); },                          // ひらめき：ピコーン
+  17: () => [0, .5, 1, 1.5].forEach(d => { tone(300, .2 + d, .3, 'triangle', .04, 1200); noise(.5 + d, .5, .08, 1500, 'bandpass'); }), // 花火
+  18: () => [0, .35, .7].forEach(d => tone(1100, .3 + d, .12, 'sine', .04, 600)),                                     // しずく
+  19: () => { [72, 76, 79, 84].forEach((n, i) => tone(NOTE(n), i * .18, .7, 'square', .05)); tone(NOTE(84), .7, 1.6, 'triangle', .1); },
+  20: () => { bgm.gain.setTargetAtTime(0, ac.currentTime, 1.2); [60, 64, 67, 72].forEach((n, i) => tone(NOTE(n), i * .25, 3.5 - i * .25, "triangle", .07)); }, // 終わりの和音と音楽のフェードアウト
+};
+function startSound() {
+  try {
+    // iPhone の消音スイッチが入っていても声と音が出るようにする（声も音もすべて Web Audio で鳴らすので使える）
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+    if (!ac) {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      ac.onstatechange = () => { if (playing && !muted) wakeAudio(); };
+      bgm = ac.createGain(); bgm.gain.value = 0; bgm.connect(ac.destination);
+      nextBeat = ac.currentTime + .1; bgmTick();
+      koeRaw.forEach((r, v) => r && CAPS.forEach((c, i) => koeDecode(v, i))); // 録音の声を先に準備しておく
+    }
+    ac.resume();
+  } catch (e) {}
+}
+// iPhone で声の読み上げなどのあと音が止まっていたら、また鳴るようにする
+function wakeAudio() { try { if (ac && ac.state !== "running") ac.resume(); } catch (e) {} }
+// 背景の音楽を出す・止める（音量を上げ下げする）
+function bgmOn(on) { if (bgm) bgm.gain.setTargetAtTime(on && !muted ? .7 : 0, ac.currentTime, .15); }
+
+// 最初から再生（ボタンを押したその場で声を出す：iPhone は押した瞬間でないと声が出ないため）
+function playFromStart() {
+  startSound();
+  document.getElementById('startBox').classList.add('hide');
+  pos = 0; AT = 0; playing = true; bgmOn(true);
+  ppBtn.textContent = '⏸ 一時停止';
+  shuffleVoices();
+  enterSeg(0, true);
+  if (!running) { running = true; lastNow = performance.now(); requestAnimationFrame(loop); }
+}
+document.getElementById('startBtn').onclick = playFromStart;
+rsBtn.onclick = playFromStart;
+ppBtn.onclick = () => {
+  if (!running || pos >= TOTAL) { playFromStart(); return; }
+  playing = !playing;
+  if (playing) {
+    startSound(); bgmOn(true); ppBtn.textContent = '⏸ 一時停止';
+    enterSeg(segAt(pos), false); // 止めたところの字幕を、もう一度読む
+  } else {
+    stopSpeak(); bgmOn(false); ppBtn.textContent = '▶ 再生';
+  }
+};
+// 再生位置のバー：動かすと好きな場面へ
+seekBar.addEventListener('input', () => {
+  seeking = true; stopSpeak();
+  pos = Math.min(parseFloat(seekBar.value), TOTAL - .01); seg = segAt(pos);
+  if (!running) draw();
+});
+seekBar.addEventListener('change', () => {
+  seeking = false;
+  if (!running) { playFromStart(); pos = parseFloat(seekBar.value); seg = segAt(pos); enterSeg(seg, false); return; }
+  if (pos < TOTAL && !playing && ppBtn.textContent === '▶ もう一度') { playing = true; bgmOn(true); ppBtn.textContent = '⏸ 一時停止'; }
+  if (playing) enterSeg(seg, false);
+});
+// 声・音のオン・オフ
+sndBtn.onclick = () => {
+  muted = !muted;
+  sndBtn.textContent = muted ? '🔇 声・音 OFF' : '🔊 声・音 ON';
+  sndBtn.classList.toggle('off', muted);
+  if (muted) { stopSpeak(); bgmOn(false); }
+  else if (playing) { startSound(); bgmOn(true); enterSeg(seg, false); }
+};
+
+// 声を選ぶ：選んだ声で、いまの字幕から読み直す
+const vBtns = document.querySelectorAll('.voices button');
+function showVoice() {
+  vBtns.forEach(b => b.classList.toggle('on', +b.dataset.v === voiceNo));
+  document.getElementById('credit').textContent = '声：VOICEVOX:' + (voiceNo === MIX ? VOICES : [VOICES[voiceNo]]).map(v => v[1]).join('・');
+}
+vBtns.forEach(b => b.onclick = () => {
+  voiceNo = +b.dataset.v; showVoice();
+  try { localStorage.setItem('jinzoVoice4', voiceNo); } catch (e) {}
+  stopSpeak(); (voiceNo === MIX ? [0, 1, 2, 3] : [voiceNo]).forEach(loadVoice);
+  if (playing && !muted) { startSound(); enterSeg(seg, false); }
+});
+showVoice(); (voiceNo === MIX ? [0, 1, 2, 3] : [voiceNo]).forEach(loadVoice);
+
+// ---------- タイトルの左のオレンジのキャラクター（前に字幕の左にいたときと同じ動き） ----------
+// 再生中：しゃべる（手をふる）→ 最後の場面でジャンプ → 終わったら歩く。止まっているときは歩く
+let lastVT = 0;
+(function titleMascot() {
+  const c = document.getElementById('ccTitle'); if (!c) return;
+  const g = c.getContext('2d'), q = 4, oy = 5; // 1ドット4画素。上にジャンプの分をあける
+  function draw(now) {
+    const t = now / 1000 / 1.4;
+    const mode = !playing ? 'walk' : lastVT >= DUR ? 'walk' : lastVT >= 19 ? 'jump' : 'talk';
+    const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x * q), Math.round(y * q), Math.round(w * q), Math.round(h * q)); };
+    g.clearRect(0, 0, c.width, c.height);
+    const col = '#d97757', f = Math.floor(t * 6) % 4;
+    const hop = mode === 'jump' ? -Math.abs(Math.sin(t * 7)) * 4 : (f % 2 ? -1 : 0);
+    const up = [f === 1, f === 3, f === 3, f === 1];
+    [2, 4, 7, 9].forEach((x, i) => R(x, oy + 6, 1, up[i] && mode === 'walk' ? 1 : 2, col));
+    const y0 = oy + hop;
+    R(2, y0, 8, 6, col);
+    const wave = mode === 'talk' && Math.sin(t * 10) > 0 ? -1 : 0;
+    R(0, y0 + 2 + wave, 2, 2, col); R(10, y0 + 2 - wave, 2, 2, col);
+    const blink = (t % 3) > 2.85;
+    R(3, y0 + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612'); R(8, y0 + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612');
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+
+// 最初の一枚（文字の準備ができてから）
+Promise.race([Promise.all([document.fonts.ready, document.fonts.load('20px "Yuji Syuku"', '腎臓医術')]), new Promise(r => setTimeout(r, 1500))]).then(() => { if (!running) frame(0.95); });
+</script>
+<!-- 更新した日時（GitHub に反映した日時が自動で出る）。画面のいちばん下（操作パネルの下）に小さく出す -->
+<script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
+var e=document.createElement('div');e.id='appVer';e.textContent='更新 '+d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+e.style.cssText='display:block;width:100%;text-align:center;font:11px/1.4 sans-serif;color:inherit;opacity:.6;margin-top:10px;pointer-events:none;';
+document.body.appendChild(e);})();</script>
+</body>
+</html>
