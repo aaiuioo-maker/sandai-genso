@@ -49,6 +49,7 @@
   .head h2 { margin: 0; }
   .head button { font-size: 12px; background: #1c1930; border: 2px solid #3a3358; border-radius: 6px; padding: 3px 10px; color: var(--dim); }
   .head button.on { border-color: var(--accent); color: var(--fg); }
+  .head #allBtn { border-color: var(--accent); color: var(--fg); }
   .sortbox { display: none; flex-direction: column; gap: 6px; }
   .sortbox.on { display: flex; }
   .sortbox .row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--card); border: 2px solid var(--line); border-radius: 8px; font-size: 13px; }
@@ -96,7 +97,9 @@
   .player.on { display: flex; }
   .player .bar { display: flex; align-items: center; gap: 8px; padding: calc(6px + env(safe-area-inset-top)) 10px 6px; border-bottom: 2px solid var(--line); background: #0d0b18; }
   .player .bar button { background: #1c1930; border: 2px solid var(--accent); border-radius: 6px; padding: 5px 12px; font-size: 13px; flex-shrink: 0; }
-  .player .bar span { font-size: 13px; color: #ffcf8a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .player .bar span { flex: 1; min-width: 0; font-size: 13px; color: #ffcf8a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .player .bar .cont { border-color: #3a3358; color: #8a84a8; }
+  .player .bar .cont.on { border-color: #6fe0a0; color: #6fe0a0; }
   .player iframe { flex: 1; width: 100%; border: none; background: var(--bg); }
 </style>
 </head>
@@ -108,7 +111,7 @@
   <div id="heroArea"><h2>新着</h2>
   <div id="hero"></div></div>
 
-  <div class="head"><h2>動画</h2><button id="sortBtn">⇅ 並べかえ・削除</button></div>
+  <div class="head"><h2>動画</h2><div><button id="allBtn">▶ 全部 続けて</button> <button id="sortBtn">⇅ 並べかえ・削除</button></div></div>
   <div class="shelf" id="shelf"></div>
   <div class="sortbox" id="sortBox"></div>
   <p class="note" id="note">赤い点：まだ見ていない動画</p>
@@ -120,7 +123,7 @@
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
 
 <div class="player" id="player">
-  <div class="bar"><button id="backBtn">◀ 棚にもどる</button><span id="playTitle"></span></div>
+  <div class="bar"><button id="backBtn">◀ 棚にもどる</button><span id="playTitle"></span><button id="contBtn" class="cont">🔁 連続</button></div>
   <iframe id="frame" title="動画" allow="autoplay"></iframe>
 </div>
 
@@ -250,7 +253,7 @@ function openSheet(a) {
     `<button class="del" id="sheetDel">🗑 棚から削除</button>` +
     `<button class="close" id="sheetClose">とじる</button>`;
   const sp = document.getElementById('sheetPlay'); if (sp) sp.onclick = () => play(h, name);
-  sheet.querySelectorAll('.parts button').forEach(b => b.onclick = () => { const p = parts[+b.dataset.p]; markSeen(h); play(p[0], p[1]); });
+  sheet.querySelectorAll('.parts button').forEach(b => b.onclick = () => { const p = parts[+b.dataset.p]; play(p[0], p[1], h); });
   document.getElementById('sheetDel').onclick = () => {
     if (!confirm(`「${name}」を棚から削除しますか？\n（あとで「削除した動画を もどす」で戻せます）`)) return;
     hidden.push(h); saveHidden(); closeSheet(); renderAll(); if (sorting) renderSort();
@@ -275,18 +278,73 @@ function closeSheet() { sheet.classList.remove('on'); sheetBg.classList.remove('
 sheetBg.onclick = closeSheet;
 
 // ---------- 再生：棚の中で動画のページを開く（もどると棚に戻る） ----------
-const player = document.getElementById('player'), frameEl = document.getElementById('frame');
-function play(h, name) {
-  closeSheet(); markSeen(h); renderAll();
-  document.getElementById('playTitle').textContent = name;
-  frameEl.src = h;
-  player.classList.add('on'); document.body.style.overflow = 'hidden';
-  try { history.pushState({ play: 1 }, ''); } catch (e) {}
+const player = document.getElementById('player');
+let frameEl = document.getElementById('frame');
+// 動画ごとに新しい iframe に入れかえる（src を変えると「もどる」の履歴が増えて、棚に戻れなくなるため）
+function newFrame(h) {
+  const f = document.createElement('iframe');
+  f.id = 'frame'; f.title = '動画'; f.setAttribute('allow', 'autoplay');
+  if (h) { f.src = h; f.addEventListener('load', () => autoStart(f)); }
+  frameEl.replaceWith(f); frameEl = f;
 }
+// cur：いま再生している棚の動画（三尊の弥陀の①②③のときも、棚の「三尊の弥陀」）
+let cur = '', ending = 0;
+function play(h, name, shelfH) {
+  closeSheet(); markSeen(shelfH || h); renderAll();
+  cur = shelfH || h; ending = 0; clearTimeout(nextTimer);
+  document.getElementById('playTitle').textContent = name;
+  newFrame(h);
+  const was = player.classList.contains('on');
+  player.classList.add('on'); document.body.style.overflow = 'hidden';
+  if (!was) try { history.pushState({ play: 1 }, ''); } catch (e) {}
+}
+
+// ---------- 連続再生：動画が終わったら、棚の並び順で次の動画を自動で始める ----------
+let cont = true;
+try { cont = localStorage.getItem('tanaCont') !== '0'; } catch (e) {}
+const contBtn = document.getElementById('contBtn');
+function showCont() { contBtn.textContent = cont ? '🔁 連続 ON' : '🔁 連続 OFF'; contBtn.classList.toggle('on', cont); }
+contBtn.onclick = () => {
+  cont = !cont; showCont(); try { localStorage.setItem('tanaCont', cont ? '1' : '0'); } catch (e) {}
+  if (!cont && ending) { clearTimeout(nextTimer); ending = 0; document.getElementById('playTitle').textContent = nameOf(cur); }
+};
+showCont();
+const nameOf = h => (APPS.find(a => a[0] === h) || [, ''])[1];
+// 次の動画（三尊の弥陀は「全部まとめて」を流す）
+function nextOf(h) {
+  const list = ordered(), i = list.findIndex(a => a[0] === h);
+  return i >= 0 ? list[i + 1] : null;
+}
+function playApp(a) { if (a[7]) { const z = a[7][a[7].length - 1]; play(z[0], a[1], a[0]); } else play(a[0], a[1]); }
+let nextTimer = 0;
+setInterval(() => {
+  if (!player.classList.contains('on') || ending) return;
+  let done = false;
+  try { done = frameEl.contentWindow.eval('running && !playing && pos >= TOTAL'); } catch (e) {}
+  if (!done) return;
+  ending = 1;
+  const n = nextOf(cur), title = document.getElementById('playTitle');
+  if (!cont) return;
+  if (!n) { title.textContent = '全部 見終わりました'; return; }
+  let s = 5;
+  const tick = () => {
+    if (!ending) return;
+    if (s <= 0) { playApp(n); return; }
+    title.textContent = `次は「${n[1]}」… ${s}`; s--;
+    nextTimer = setTimeout(tick, 1000);
+  };
+  tick();
+}, 500);
+// 全部 続けて：棚のいちばん上から
+document.getElementById('allBtn').onclick = () => {
+  const list = ordered(); if (!list.length) return;
+  if (!cont) { cont = true; showCont(); try { localStorage.setItem('tanaCont', '1'); } catch (e) {} }
+  playApp(list[0]);
+};
 // 動画のページが開いたら、その「▶ 再生する」を自動で押す。
 // iPhone などで音が出せない（音の準備が止まったまま）ときは、止めて「▶ 再生する」を出したままにする（1回押せば再生）
-frameEl.addEventListener('load', () => {
-  const w = frameEl.contentWindow; if (!w || frameEl.src === 'about:blank' || !player.classList.contains('on')) return;
+function autoStart(f) {
+  const w = f.contentWindow; if (!w || f !== frameEl || !player.classList.contains('on')) return;
   try {
     const go = () => {
       const btn = w.document.getElementById('startBtn'); if (!btn) return;
@@ -301,10 +359,11 @@ frameEl.addEventListener('load', () => {
     // 字の準備ができてから（動画のページの最初の一枚と同じ）
     Promise.race([w.document.fonts.ready, new Promise(r => setTimeout(r, 1500))]).then(go);
   } catch (e) {}
-});
+}
 function stopPlay() {
+  ending = 0; clearTimeout(nextTimer);
   player.classList.remove('on'); document.body.style.overflow = '';
-  frameEl.src = 'about:blank'; // 声と音を止める
+  newFrame(''); // iframe ごと消して、声と音を止める
 }
 document.getElementById('backBtn').onclick = () => { if (history.state && history.state.play) history.back(); else stopPlay(); };
 window.addEventListener('popstate', () => { if (player.classList.contains('on')) stopPlay(); });
