@@ -63,8 +63,8 @@ def fill(polys, layer):
 
 # ---- Claude Code（ドット絵：横 11 × 縦 8 マス、1 マスは横 12 × 縦 13 mm）----
 UX, UY = 12.0, 13.0
-CX, CY = 32.0, 111.0  # 左下の角（下の文字とのすき間は、GitHub の猫と文字のすき間にそろえる）
-GX, GY = 200.0, 65.0  # GitHub の左下の角
+CX, CY = 32.0, 114.0  # 左下の角（下の文字とのすき間は、GitHub の猫と文字のすき間にそろえる）
+GX, GY = 210.0, 72.0  # GitHub の左下の角
 def cell(c, r):  # c: 左から、r: 下から
     return (CX + c * UX, CY + r * UY)
 
@@ -111,7 +111,7 @@ def trace(name, place, up=1):
         polys.append(pts)
     return polys
 
-gpolys = trace("github.jpg", lambda W, H: (0.235, GX, GY))
+gpolys = trace("github.jpg", lambda W, H: (0.21, GX, GY))
 
 # 「GitHub」の文字だけを小さくする（猫の丸より下にある形を、文字の上の辺の真ん中を中心に縮める）
 WORD = 0.7
