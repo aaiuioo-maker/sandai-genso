@@ -63,7 +63,7 @@ def fill(polys, layer):
 
 # ---- Claude Code（ドット絵：横 11 × 縦 8 マス、1 マスは横 12 × 縦 13 mm）----
 UX, UY = 12.0, 13.0
-CX, CY = 32.0, 110.0  # 左下の角（下の文字とのすき間は、GitHub の猫と文字のすき間にそろえる）
+CX, CY = 32.0, 111.0  # 左下の角（下の文字とのすき間は、GitHub の猫と文字のすき間にそろえる）
 GX, GY = 200.0, 65.0  # GitHub の左下の角
 def cell(c, r):  # c: 左から、r: 下から
     return (CX + c * UX, CY + r * UY)
@@ -114,7 +114,7 @@ def trace(name, place, up=1):
 gpolys = trace("github.jpg", lambda W, H: (0.235, GX, GY))
 
 # 「GitHub」の文字だけを小さくする（猫の丸より下にある形を、文字の上の辺の真ん中を中心に縮める）
-WORD = 0.8
+WORD = 0.7
 circle_bottom = min(y for x, y in max(gpolys, key=len))
 word = [pts for pts in gpolys if max(y for _, y in pts) < circle_bottom]
 wx = [x for pts in word for x, _ in pts]
@@ -123,9 +123,9 @@ for pts in word:
     pts[:] = [(wcx + (x - wcx) * WORD, wtop + (y - wtop) * WORD) for x, y in pts]
 word_bottom = min(y for pts in word for _, y in pts)
 
-# Claude Code の文字（src/claude-code-moji.png）は、キャラクターの横幅に合わせ、「GitHub」の文字と下をそろえる
-MOJI_W = 11 * UX
-mpolys = trace("claude-code-moji.png", lambda W, H: (MOJI_W / W, CX, word_bottom), up=4)
+# Claude Code の文字（src/claude-code-moji.png）は、キャラクターの下の真ん中に置き、「GitHub」の文字と下をそろえる
+MOJI_W = 150.0
+mpolys = trace("claude-code-moji.png", lambda W, H: (MOJI_W / W, CX + 5.5 * UX - MOJI_W / 2, word_bottom), up=4)
 for pts in mpolys:
     poly(pts, "6_moji")
 fill(mpolys, "7_moji_nuri")
