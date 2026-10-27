@@ -65,13 +65,10 @@ def fill(polys, layer):
     for k in list(open_):
         close(k, ys[-1])
 
-# ---- 題 ----
-text(210, 266, "Claude Code と GitHub", 7, align="center")
-
 # ---- Claude Code（ドット絵：横 11 × 縦 8 マス、1 マスは横 12 × 縦 13 mm）----
 UX, UY = 12.0, 13.0
-CX, CY = 32.0, 100.0  # 左下の角
-GX, GY = 200.0, 70.0  # GitHub の左下の角（下の文字はこの高さにそろえる）
+CX, CY = 32.0, 110.0  # 左下の角（下の文字とのすき間は、GitHub の猫と文字のすき間にそろえる）
+GX, GY = 200.0, 65.0  # GitHub の左下の角
 def cell(c, r):  # c: 左から、r: 下から
     return (CX + c * UX, CY + r * UY)
 
@@ -86,7 +83,6 @@ fill([body] + eyes, "2_claude_nuri")  # 目は穴として抜く
 for e in eyes:
     poly(e, "3_me")
     solid(*e, "3_me")
-text(CX + 5.5 * UX, GY, "Claude Code", 20, align="center")
 
 # ---- GitHub（src/github.jpg をなぞる）----
 img = np.array(Image.open(os.path.join(HERE, "src", "github.jpg")).convert("L"))
@@ -117,6 +113,20 @@ for curve in paths:
             pts += bezier(a, b, c, d, n)
         cur = pts[-1]
     gpolys.append(pts)
+
+# 「GitHub」の文字だけを小さくする（猫の丸より下にある形を、文字の上の辺の真ん中を中心に縮める）
+WORD = 0.8
+circle_bottom = min(y for x, y in max(gpolys, key=len))
+word = [pts for pts in gpolys if max(y for _, y in pts) < circle_bottom]
+wx = [x for pts in word for x, _ in pts]
+wcx, wtop = (min(wx) + max(wx)) / 2, max(y for pts in word for _, y in pts)
+for pts in word:
+    pts[:] = [(wcx + (x - wcx) * WORD, wtop + (y - wtop) * WORD) for x, y in pts]
+word_bottom = min(y for pts in word for _, y in pts)
+
+# Claude Code の文字は「GitHub」の文字と下をそろえる
+text(CX + 5.5 * UX, word_bottom, "Claude Code", 25, align="center")
+
 for pts in gpolys:
     poly(pts, "4_github")
 fill(gpolys, "5_github_nuri")
