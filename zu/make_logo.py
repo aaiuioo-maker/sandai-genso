@@ -1,6 +1,6 @@
 # Claude Code のキャラクターと GitHub のロゴを、JW_CAD で開ける DXF（R12・Shift_JIS）と確認用の SVG に書き出す
 # 単位は mm、A3 横（420 × 297）の大きさに置く。外形は線、中の塗りはソリッド（SOLID）で入れる
-# GitHub のロゴは src/github.jpg を potrace でなぞる（pip install potracer pillow numpy）
+# GitHub のロゴは src/github.jpg、Claude Code の文字は src/claude-code-moji.png を potrace でなぞる（pip install potracer pillow numpy）
 import math, os
 import numpy as np
 from PIL import Image
@@ -16,10 +16,11 @@ LAYERS = {
     "3_me":     (7, "#000000"),   # Claude Code の目
     "4_github": (7, "#111111"),   # GitHub の外形
     "5_github_nuri": (7, "#111111"),  # GitHub の塗り
-    "6_moji":   (7, "#222222"),   # 文字
+    "6_moji":   (7, "#111111"),   # Claude Code の文字の外形
+    "7_moji_nuri": (7, "#111111"),  # Claude Code の文字の塗り
 }
 
-ents = []  # ("line", layer, x1, y1, x2, y2) / ("solid", layer, [(x, y) × 4]) / ("text", layer, x, y, h, s)
+ents = []  # ("line", layer, x1, y1, x2, y2) / ("solid", layer, [(x, y) × 4])
 
 def line(x1, y1, x2, y2, layer):
     ents.append(("line", layer, x1, y1, x2, y2))
@@ -31,11 +32,6 @@ def poly(pts, layer):
 def solid(p1, p2, p3, p4, layer):
     # p1-p2 が下の辺、p4-p3 が上の辺（DXF の SOLID は 1,2,4,3 の順でまわる）
     ents.append(("solid", layer, [p1, p2, p4, p3]))
-
-def text(x, y, s, h=3.5, layer="6_moji", align="left"):
-    if align == "center":
-        x -= sum(h * (0.5 if ord(c) < 0x80 else 1.0) for c in s) / 2
-    ents.append(("text", layer, x, y, h, s))
 
 def fill(polys, layer):
     # 偶奇規則で塗る。頂点の高さで横に切った帯ごとに台形を作り、同じ左右の辺でつづく台形は1つのソリッドにまとめる
@@ -85,34 +81,37 @@ for e in eyes:
     solid(*e, "3_me")
 
 # ---- GitHub（src/github.jpg をなぞる）----
-img = np.array(Image.open(os.path.join(HERE, "src", "github.jpg")).convert("L"))
-dark = img < 128
-ys, xs = np.nonzero(dark)
-x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
-crop = dark[y0:y1 + 1, x0:x1 + 1]
-S = 0.235                    # mm / 画素
-H = crop.shape[0]
-
-def to_mm(p):
-    return (GX + p.x * S, GY + (H - p.y) * S)
-
 def bezier(a, b, c, d, n):
     return [tuple((1 - t) ** 3 * a[i] + 3 * (1 - t) ** 2 * t * b[i] + 3 * (1 - t) * t * t * c[i] + t ** 3 * d[i]
                   for i in range(2)) for t in (k / n for k in range(1, n + 1))]
 
-paths = potrace.Bitmap(~crop).trace(turdsize=20, alphamax=1.0, opticurve=True, opttolerance=0.2)
-gpolys = []
-for curve in paths:
-    pts, cur = [], to_mm(curve.start_point)
-    for seg in curve:
-        if seg.is_corner:
-            pts += [to_mm(seg.c), to_mm(seg.end_point)]
-        else:
-            a, b, c, d = cur, to_mm(seg.c1), to_mm(seg.c2), to_mm(seg.end_point)
-            n = max(2, min(24, int(math.dist(a, d) / 0.8) + 2))  # 0.8 mm ごとくらいに区切る
-            pts += bezier(a, b, c, d, n)
-        cur = pts[-1]
-    gpolys.append(pts)
+def trace(name, place, up=1):
+    # src/name の暗いところをなぞって mm の多角形にする。place(幅, 高さ) は (mm/画素, 左下 x, 左下 y) を返す
+    # up 倍に拡大してからなぞると、小さい画像でも線がなめらかになる
+    im = Image.open(os.path.join(HERE, "src", name)).convert("L")
+    if up > 1:
+        im = im.resize((im.width * up, im.height * up), Image.LANCZOS)
+    dark = np.array(im) < 128
+    ys, xs = np.nonzero(dark)
+    crop = dark[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    H, W = crop.shape
+    S, ox, oy = place(W, H)
+    to_mm = lambda p: (ox + p.x * S, oy + (H - p.y) * S)
+    polys = []
+    for curve in potrace.Bitmap(~crop).trace(turdsize=20, alphamax=1.0, opticurve=True, opttolerance=0.2):
+        pts, cur = [], to_mm(curve.start_point)
+        for seg in curve:
+            if seg.is_corner:
+                pts += [to_mm(seg.c), to_mm(seg.end_point)]
+            else:
+                a, b, c, d = cur, to_mm(seg.c1), to_mm(seg.c2), to_mm(seg.end_point)
+                n = max(2, min(24, int(math.dist(a, d) / 0.8) + 2))  # 0.8 mm ごとくらいに区切る
+                pts += bezier(a, b, c, d, n)
+            cur = pts[-1]
+        polys.append(pts)
+    return polys
+
+gpolys = trace("github.jpg", lambda W, H: (0.235, GX, GY))
 
 # 「GitHub」の文字だけを小さくする（猫の丸より下にある形を、文字の上の辺の真ん中を中心に縮める）
 WORD = 0.8
@@ -124,8 +123,12 @@ for pts in word:
     pts[:] = [(wcx + (x - wcx) * WORD, wtop + (y - wtop) * WORD) for x, y in pts]
 word_bottom = min(y for pts in word for _, y in pts)
 
-# Claude Code の文字は「GitHub」の文字と下をそろえる
-text(CX + 5.5 * UX, word_bottom, "Claude Code", 25, align="center")
+# Claude Code の文字（src/claude-code-moji.png）は、キャラクターの横幅に合わせ、「GitHub」の文字と下をそろえる
+MOJI_W = 11 * UX
+mpolys = trace("claude-code-moji.png", lambda W, H: (MOJI_W / W, CX, word_bottom), up=4)
+for pts in mpolys:
+    poly(pts, "6_moji")
+fill(mpolys, "7_moji_nuri")
 
 for pts in gpolys:
     poly(pts, "4_github")
@@ -150,20 +153,15 @@ def dxf():
     for name, (aci, _) in LAYERS.items():
         g(0, "LAYER"); g(2, name); g(70, 0); g(62, aci); g(6, "CONTINUOUS")
     g(0, "ENDTAB")
-    g(0, "TABLE"); g(2, "STYLE"); g(70, 1)
-    g(0, "STYLE"); g(2, "STANDARD"); g(70, 0); g(40, 0.0); g(41, 1.0); g(50, 0.0); g(71, 0); g(42, 3.5); g(3, "txt"); g(4, "")
-    g(0, "ENDTAB")
     g(0, "ENDSEC")
     g(0, "SECTION"); g(2, "ENTITIES")
     for e in ents:
         g(0, e[0].upper()); g(8, e[1])
         if e[0] == "line":
             xy(0, e[2], e[3]); xy(1, e[4], e[5])
-        elif e[0] == "solid":
+        else:
             for i, (x, y) in enumerate(e[2]):
                 xy(i, x, y)
-        else:
-            xy(0, e[2], e[3]); g(40, e[4]); g(1, e[5]); g(7, "STANDARD")
     g(0, "ENDSEC"); g(0, "EOF")
     return "\r\n".join(out) + "\r\n"
 
@@ -171,7 +169,6 @@ with open(os.path.join(HERE, NAME + ".dxf"), "wb") as f:
     f.write(dxf().encode("cp932"))
 
 # ---- 確認用 SVG ----
-def esc(s): return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 P = 297
 svg = ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 297" width="1680" height="1188">',
        '<rect width="420" height="297" fill="#fff"/>']
@@ -179,13 +176,11 @@ for e in ents:
     col = LAYERS[e[1]][1]
     if e[0] == "line":
         svg.append(f'<line x1="{e[2]:.2f}" y1="{P-e[3]:.2f}" x2="{e[4]:.2f}" y2="{P-e[5]:.2f}" stroke="{col}" stroke-width="0.3"/>')
-    elif e[0] == "solid":
+    else:
         a, b, c, d = e[2]  # 1,2,4,3 の順で入っているので、まわる順 1,2,3,4 に直す
         pts = " ".join(f"{x:.2f},{P-y:.2f}" for x, y in (a, b, d, c))
         svg.append(f'<polygon points="{pts}" fill="{col}" stroke="{col}" stroke-width="0.15"/>')
-    else:
-        svg.append(f'<text x="{e[2]:.2f}" y="{P-e[3]:.2f}" font-size="{e[4]}" fill="{col}" font-family="IPAGothic, Noto Sans CJK JP, MS Gothic, sans-serif">{esc(e[5])}</text>')
 svg.append("</svg>")
 with open(os.path.join(HERE, NAME + ".svg"), "w", encoding="utf-8") as f:
     f.write("\n".join(svg))
-print(len(ents), "entities,", sum(e[0] == "solid" for e in ents), "solids,", len(gpolys), "github paths, bbox px", x1 - x0 + 1, y1 - y0 + 1)
+print(len(ents), "entities,", sum(e[0] == "solid" for e in ents), "solids,", len(gpolys), "github paths,", len(mpolys), "moji paths")
