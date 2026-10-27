@@ -1,5 +1,5 @@
 # Claude Code のキャラクターと GitHub のロゴを、JW_CAD で開ける DXF（R12・Shift_JIS）と確認用の SVG に書き出す
-# 単位は mm、用紙は A3 横（420 × 297）。外形は線、中の塗りはソリッド（SOLID）で入れる
+# 単位は mm、A3 横（420 × 297）の大きさに置く。外形は線、中の塗りはソリッド（SOLID）で入れる
 # GitHub のロゴは src/github.jpg を potrace でなぞる（pip install potracer pillow numpy）
 import math, os
 import numpy as np
@@ -11,7 +11,6 @@ NAME = "logo-claude-github"
 
 # 画層: 名前, DXF の色番号, SVG の色
 LAYERS = {
-    "0_waku":   (7, "#222222"),   # 図枠・表題欄
     "1_claude": (30, "#d97757"),  # Claude Code の外形
     "2_claude_nuri": (30, "#d97757"),  # Claude Code の塗り
     "3_me":     (7, "#000000"),   # Claude Code の目
@@ -66,14 +65,13 @@ def fill(polys, layer):
     for k in list(open_):
         close(k, ys[-1])
 
-# ---- 図枠・題 ----
-poly([(5, 5), (415, 5), (415, 292), (5, 292)], "0_waku")
-poly([(10, 10), (410, 10), (410, 287), (10, 287)], "0_waku")
+# ---- 題 ----
 text(210, 266, "Claude Code と GitHub", 7, align="center")
 
 # ---- Claude Code（ドット絵：横 11 × 縦 8 マス、1 マスは横 12 × 縦 13 mm）----
 UX, UY = 12.0, 13.0
 CX, CY = 32.0, 100.0  # 左下の角
+GX, GY = 200.0, 70.0  # GitHub の左下の角（下の文字はこの高さにそろえる）
 def cell(c, r):  # c: 左から、r: 下から
     return (CX + c * UX, CY + r * UY)
 
@@ -88,7 +86,7 @@ fill([body] + eyes, "2_claude_nuri")  # 目は穴として抜く
 for e in eyes:
     poly(e, "3_me")
     solid(*e, "3_me")
-text(CX + 5.5 * UX, CY - 20, "Claude Code", 10, align="center")
+text(CX + 5.5 * UX, GY, "Claude Code", 20, align="center")
 
 # ---- GitHub（src/github.jpg をなぞる）----
 img = np.array(Image.open(os.path.join(HERE, "src", "github.jpg")).convert("L"))
@@ -97,7 +95,6 @@ ys, xs = np.nonzero(dark)
 x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
 crop = dark[y0:y1 + 1, x0:x1 + 1]
 S = 0.235                    # mm / 画素
-GX, GY = 200.0, 70.0         # 左下の角
 H = crop.shape[0]
 
 def to_mm(p):
