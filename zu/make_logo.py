@@ -66,16 +66,9 @@ def fill(polys, layer):
     for k in list(open_):
         close(k, ys[-1])
 
-# ---- 図枠・題・表題欄 ----
+# ---- 図枠・題 ----
 poly([(5, 5), (415, 5), (415, 292), (5, 292)], "0_waku")
 poly([(10, 10), (410, 10), (410, 287), (10, 287)], "0_waku")
-poly([(290, 10), (410, 10), (410, 46), (290, 46)], "0_waku")
-for y in (22, 34):
-    line(290, y, 410, y, "0_waku")
-line(312, 10, 312, 46, "0_waku")
-text(293, 38, "図名", 3); text(315, 38, "Claude Code と GitHub", 3)
-text(293, 26, "日付", 3); text(315, 26, "2026-10-27", 3)
-text(293, 14, "作成", 3); text(315, 14, "Claude Code（sandai-genso）", 3)
 text(210, 266, "Claude Code と GitHub", 7, align="center")
 
 # ---- Claude Code（ドット絵：横 11 × 縦 8 マス、1 マスは横 12 × 縦 13 mm）----
@@ -95,7 +88,7 @@ fill([body] + eyes, "2_claude_nuri")  # 目は穴として抜く
 for e in eyes:
     poly(e, "3_me")
     solid(*e, "3_me")
-text(CX + 5.5 * UX, CY - 14, "Claude Code", 6, align="center")
+text(CX + 5.5 * UX, CY - 20, "Claude Code", 10, align="center")
 
 # ---- GitHub（src/github.jpg をなぞる）----
 img = np.array(Image.open(os.path.join(HERE, "src", "github.jpg")).convert("L"))

@@ -8,19 +8,6 @@
 <line x1="410.00" y1="287.00" x2="410.00" y2="10.00" stroke="#222222" stroke-width="0.3"/>
 <line x1="410.00" y1="10.00" x2="10.00" y2="10.00" stroke="#222222" stroke-width="0.3"/>
 <line x1="10.00" y1="10.00" x2="10.00" y2="287.00" stroke="#222222" stroke-width="0.3"/>
-<line x1="290.00" y1="287.00" x2="410.00" y2="287.00" stroke="#222222" stroke-width="0.3"/>
-<line x1="410.00" y1="287.00" x2="410.00" y2="251.00" stroke="#222222" stroke-width="0.3"/>
-<line x1="410.00" y1="251.00" x2="290.00" y2="251.00" stroke="#222222" stroke-width="0.3"/>
-<line x1="290.00" y1="251.00" x2="290.00" y2="287.00" stroke="#222222" stroke-width="0.3"/>
-<line x1="290.00" y1="275.00" x2="410.00" y2="275.00" stroke="#222222" stroke-width="0.3"/>
-<line x1="290.00" y1="263.00" x2="410.00" y2="263.00" stroke="#222222" stroke-width="0.3"/>
-<line x1="312.00" y1="287.00" x2="312.00" y2="251.00" stroke="#222222" stroke-width="0.3"/>
-<text x="293.00" y="259.00" font-size="3" fill="#222222" font-family="IPAGothic, Noto Sans CJK JP, MS Gothic, sans-serif">図名</text>
-<text x="315.00" y="259.00" font-size="3" fill="#222222" font-family="IPAGothic, Noto Sans CJK JP, MS Gothic, sans-serif">Claude Code と GitHub</text>
-<text x="293.00" y="271.00" font-size="3" fill="#222222" font-family="IPAGothic, Noto Sans CJK JP, MS Gothic, sans-serif">日付</text>
-<text x="315.00" y="271.00" font-size="3" fill="#222222" font-family="IPAGothic, Noto Sans CJK JP, MS Gothic, sans-serif">2026-10-27</text>
-<text x="293.00" y="283.00" font-size="3" fill="#222222" font-family="IPAGothic, Noto Sans CJK JP, MS Gothic, sans-serif">作成</text>
-<text x="315.00" y="283.00" font-size="3" fill="#222222" font-family="IPAGothic, Noto Sans CJK JP, MS Gothic, sans-serif">Claude Code（sandai-genso）</text>
 <text x="173.25" y="31.00" font-size="7" fill="#222222" font-family="IPAGothic, Noto Sans CJK JP, MS Gothic, sans-serif">Claude Code と GitHub</text>
 <line x1="44.00" y1="197.00" x2="56.00" y2="197.00" stroke="#d97757" stroke-width="0.3"/>
 <line x1="56.00" y1="197.00" x2="56.00" y2="171.00" stroke="#d97757" stroke-width="0.3"/>
@@ -66,7 +53,7 @@
 <line x1="140.00" y1="119.00" x2="128.00" y2="119.00" stroke="#000000" stroke-width="0.3"/>
 <line x1="128.00" y1="119.00" x2="128.00" y2="132.00" stroke="#000000" stroke-width="0.3"/>
 <polygon points="128.00,132.00 140.00,132.00 140.00,119.00 128.00,119.00" fill="#000000" stroke="#000000" stroke-width="0.15"/>
-<text x="81.50" y="211.00" font-size="6" fill="#222222" font-family="IPAGothic, Noto Sans CJK JP, MS Gothic, sans-serif">Claude Code</text>
+<text x="70.50" y="217.00" font-size="10" fill="#222222" font-family="IPAGothic, Noto Sans CJK JP, MS Gothic, sans-serif">Claude Code</text>
 <line x1="215.22" y1="226.40" x2="214.05" y2="226.14" stroke="#111111" stroke-width="0.3"/>
 <line x1="214.05" y1="226.14" x2="212.92" y2="225.84" stroke="#111111" stroke-width="0.3"/>
 <line x1="212.92" y1="225.84" x2="211.84" y2="225.49" stroke="#111111" stroke-width="0.3"/>
