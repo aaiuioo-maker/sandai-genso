@@ -44,12 +44,10 @@
   <a href="zenbu/" class="all"><img src="zenbu/icon-180.png?v=1" alt=""><div><b>①②③ 全部まとめて</b><span>3つを続けて見る（約3分）</span></div></a>
 </div>
 
-<script src="../henshin/cos.js?v=1"></script>
 <script>
 // ---------- タイトルの左のオレンジのキャラクター（歩く） ----------
 (function titleMascot() {
   const c = document.getElementById('ccTitle'), g = c.getContext('2d'), q = 4, oy = 5;
-  if (window.ccHenshin) { ccHenshin.title(c, () => 'walk'); return; } // 30人に変身する（henshin/cos.js）
   function draw(now) {
     const t = now / 1000 / 1.4;
     const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x * q), Math.round(y * q), Math.round(w * q), Math.round(h * q)); };

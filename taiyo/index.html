@@ -72,7 +72,6 @@
   </div>
 </div>
 
-<script src="../henshin/cos.js?v=1"></script>
 <script>
 const W = 180, H = 260, S = 3, SH = 216, DUR = 13;
 const cv = document.getElementById('cv');
@@ -756,7 +755,6 @@ showVoice(); (voiceNo === MIX ? [0, 1, 2, 3] : [voiceNo]).forEach(loadVoice);
 let lastVT = 0;
 (function titleMascot() {
   const c = document.getElementById('ccTitle'); if (!c) return;
-  if (window.ccHenshin) { ccHenshin.title(c, () => !playing ? 'walk' : lastVT >= DUR ? 'walk' : lastVT >= 11 ? 'jump' : 'talk'); return; } // 30人に変身する（henshin/cos.js）
   const g = c.getContext('2d'), q = 4, oy = 5; // 1ドット4画素。上にジャンプの分をあける
   function draw(now) {
     const t = now / 1000 / 1.4;
