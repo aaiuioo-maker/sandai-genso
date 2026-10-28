@@ -33,7 +33,7 @@
 </head>
 <body>
 <h1>ハンター×ハンターごっこ</h1>
-<p class="sub">オレンジのキャラクターが 7人に変身（約80秒・音が出ます）</p>
+<p class="sub">オレンジのキャラクターが 7人に変身（約1分半・声と音が出ます）<br>声：VOICEVOX:白上虎太郎・玄野武宏・剣崎雌雄・猫使ビィ・雀松朱司・麒ヶ島宗麟・青山龍星</p>
 <div class="wrap">
   <div class="stage"><canvas id="cv"></canvas></div>
   <div class="bar"><i id="bar"></i></div>
@@ -67,6 +67,14 @@ const TSE = {
 // 目をとじた ツェリードニヒ（「絶」）
 const TSE_ZETSU = { ...TSE, eye: '#d97757', front(d) { TSE.front(d); d.b(2.8, 1.6, 1.4, .3, '#1a1612'); d.b(7.8, 1.6, 1.4, .3, '#1a1612'); } };
 
+// ---------- 声（VOICEVOX で作った hxh-koe/*.wav。数字は長さ（秒）） ----------
+// ゴン：白上虎太郎、キルア：玄野武宏、ヒソカ：剣崎雌雄、ピトー：猫使ビィ、ツェリードニヒ：雀松朱司、ネテロ：麒ヶ島宗麟、メルエム：青山龍星
+const VD = { gon1: 3.06, gon2: 1.7, gon3: .57, gon4: .53, gon5: .62, kil1: 1.34, kil2: 2.37, kil3: .61, his1: 1.42, his2: 4.55, his3: 1.95, his4: .77,
+  pit1: 3.4, pit2: .48, pit3: 2.49, tse1: 3.49, tse2: 3.17, tse3: 3.57, net1: 2.91, net2: 2.81, net3: 1.15, net4: .73, mer1: 1.46, mer2: 1.47, mer3: .79, mer4: 1.96, end1: 2.62 };
+const VBUF = {};   // 声のファイルの中身（ArrayBuffer）
+const voiceReady = Promise.all(Object.keys(VD).map(k => fetch(`hxh-koe/${k}.wav`).then(r => r.arrayBuffer()).then(b => { VBUF[k] = b; }).catch(() => {})));
+let TALK = false;  // いま だれかが しゃべっている（キャラクターの口を動かす）
+
 // ---------- 画面 ----------
 // 上の舞台（32×21マス・1マス＝15画素）と、下の字幕の帯
 const W = 480, SH = 320, HH = 400, U = 15;
@@ -91,6 +99,7 @@ function txt(s, x, y, size, col, a = 1) {   // x・y はマス
 }
 // キャラクター（x・y は体の左上のマス、s は大きさ、a はうすさ）
 function C(cos, x, y, t, mode = 'stand', s = 1, a = 1) {
+  if (TALK && mode === 'stand') mode = 'talk';
   g.globalAlpha = a; drawChar(g, U * s, x / s, y / s, t, mode, cos); g.globalAlpha = 1;
 }
 function line(x0, y0, x1, y1, col, w = .4, a = 1) {
@@ -138,13 +147,19 @@ function hop(t) { return Math.floor(t * 6) % 4 % 2 ? -1 : 0; }   // drawChar の
 // ---------- 場面 ----------
 // 1人の場面：はじめは もとのオレンジのキャラクター → 「！」→ ぽん！と変身 → 名前 → その人の技
 // caps：[秒, 字幕]、snd：[秒, 高さ, 長さ, 音色, 大きさ, 終わりの高さ]（音色 'noise' は ザーッという音）
+// pads：[動きの秒, 待つ秒]（声が終わるまで その場面の動きを止めて待つ）。o.snd・o.shake・o.draw の秒は 動きの秒、lines の秒は 本当の秒
+// lines：[秒, 声, 字幕]
 function person(o) {
+  const pads = o.pads || [], add = pads.reduce((a, p) => a + p[1], 0);
+  const real = v => v + pads.reduce((a, [pv, pa]) => a + (pv <= v ? pa : 0), 0);
+  const warp = s => { let off = 0; for (const [v, a] of pads) { if (s - off < v) break; if (s - off < v + a) return v; off += a; } return s - off; };
   return {
-    dur: o.dur, caps: o.caps,
+    dur: o.dur + add, lines: o.lines,
     snd: [[.1, 880, .08, 'square', .04], [.2, 1320, .1, 'square', .04], [.55, 150, .3, 'triangle', .14, 60],
-          ...[784, 988, 1175, 1568].map((f, i) => [.6 + i * .08, f, .3, 'triangle', .05]), ...o.snd],
-    shake: o.shake,
+          ...[784, 988, 1175, 1568].map((f, i) => [.6 + i * .08, f, .3, 'triangle', .05]), ...o.snd.map(([T, ...r]) => [real(T), ...r])],
+    shake: o.shake && (s => o.shake(warp(s))),
     draw(s, t) {
+      s = warp(s);
       o.bg(s, t);
       if (s < .62) {
         C(PLAIN, X0, Y0, t, 'stand');
@@ -164,14 +179,14 @@ function person(o) {
 
 const SC = [
   // ---- はじまり ----
-  { dur: 5, caps: [[0, 'オレンジのキャラクターが'], [1.6, 'ハンター×ハンターの 7人に変身するよ！']],
+  { dur: 5, caps: [[0, 'オレンジのキャラクターが'], [1.6, 'ハンター×ハンターの 7人に変身するよ！']], lines: [],
     snd: [[.2, 523, .15, 'square', .04], [.4, 659, .15, 'square', .04], [.6, 784, .15, 'square', .04], [1.6, 1047, .5, 'triangle', .07],
           [1.6, 262, .6, 'triangle', .08], [2.2, 784, .12, 'square', .04], [2.35, 988, .12, 'square', .04], [2.5, 1175, .4, 'square', .05]],
     draw(s, t) {
       sky('#071a10', '#123a22'); stars(t, '#b8ffcf', 34);
       ground('#0a2414', '#2f8a4a');
       const x = -12 + ease(s / 2.4) * (X0 + 12);
-      C(PLAIN, x, Y0, t, s < 2.4 ? 'walk' : 'talk');
+      C(PLAIN, x, Y0, t, s < 2.4 ? 'walk' : 'stand');
       const k = ease((s - 1.4) / .5);
       txt('HUNTER×HUNTER', 16, 3 + (1 - k) * -3, 34, '#7cf09a', k);
       txt('ごっこ', 16, 5.6, 26, '#ffcf8a', ease((s - 2) / .4));
@@ -179,8 +194,9 @@ const SC = [
 
   // ---- ゴン ----
   person({ dur: 9, name: 'ゴン＝フリークス・強化系', col: '#7cf09a',
-    caps: [[0, ''], [.9, 'ぼく、ゴン！ くじら島から来たんだ'], [2.5, 'オーラを こぶしに ぜんぶ集めて…'], [5.6, '必殺の ジャジャン拳！']],
-    snd: [[2.5, 392, .25, 'square', .05], [3.5, 440, .25, 'square', .05], [4.5, 494, .25, 'square', .05],
+    pads: [[2.5, 1.6]],
+    lines: [[.9, 'gon1', 'ぼく、ゴン！ くじら島から来たんだ！'], [4.15, 'gon2', '最初は グー！'], [5.9, 'gon3', 'ジャン！'], [6.55, 'gon4', 'ケン！'], [7.2, 'gon5', 'グー！！（ジャジャン拳）']],
+    snd: [[2.5, 392, .25, 'square', .05], [4.3, 440, .25, 'square', .05], [4.95, 494, .25, 'square', .05],
           [2.5, 60, 3.1, 'sawtooth', .025, 220], [5.6, 'noise', .9, 'noise', .25], [5.6, 120, .6, 'triangle', .2, 40], [5.62, 1568, .3, 'square', .04, 600]],
     shake: s => s > 5.6 && s < 6.3 ? (6.3 - s) * 1.2 : s > 2.5 && s < 5.6 ? (s - 2.5) * .05 : 0,
     bg(s, t) { sky('#5ab8e8', '#cfeefa'); R(0, 13, 32, 5, '#2f8a4a'); R(3, 11, 6, 2, '#3aa058'); R(20, 12, 9, 1, '#3aa058'); ground('#6a4a2a', '#8ac04a'); },
@@ -188,10 +204,10 @@ const SC = [
       const charge = s > 2.5 && s < 5.6, k = cl((s - 2.5) / 3.1);
       const x = s >= 5.6 ? X0 + ease((s - 5.6) / .12) * 3 : X0;
       if (charge) aura(x + 6, Y0 + 2.5, 6.5 + k * 2, 6 + k * 2, '#ffe14a', t, .35 + k * .5);
-      C(GON, x, Y0, t, s < 2.5 ? 'talk' : 'stand');
+      C(GON, x, Y0, t, 'stand');
       const fx = x + 12.6, fy = Y0 + 3 + hop(t);
       if (charge) { const r = .5 + k * 1.6; oval(fx, fy, r + .6, r + .6, '#ffe14a', .4); oval(fx, fy, r, r, '#fffbd0'); }
-      if (charge) txt(s < 3.5 ? '最初は グー' : s < 4.5 ? 'ジャン…' : 'ケン…', 16, 3.3, 28, '#ffe14a');
+      if (charge) txt(s < 4.3 ? '最初は グー' : s < 4.95 ? 'ジャン…' : 'ケン…', 16, 3.3, 28, '#ffe14a');
       if (s >= 5.6) {
         const p = s - 5.6;
         burst(fx + 2, fy, p / 1.2, '#fffbd0', '#ffb030', 1.6);
@@ -202,7 +218,8 @@ const SC = [
 
   // ---- キルア ----
   person({ dur: 9, name: 'キルア＝ゾルディック・変化系', col: '#9ad8ff',
-    caps: [[0, ''], [.9, 'おれは キルア。殺し屋の家に 生まれたんだ'], [2.5, 'オーラを 電気に変えて…'], [4, '神速（カンムル）！ 目にも とまらない速さ']],
+    pads: [[2.5, 1]],
+    lines: [[.9, 'kil1', 'おれは キルア。'], [2.5, 'kil2', 'オーラを 電気に 変えて…'], [5, 'kil3', '神速（カンムル）！']],
     snd: [...[2.5, 2.8, 3.1, 3.4, 3.7].map(T => [T, 'noise', .08, 'noise', .07]),
           ...[4, 4.55, 5.1, 5.65, 6.2, 6.75, 7.3].map(T => [T, 2400, .12, 'sawtooth', .04, 300]),
           ...[4, 4.55, 5.1, 5.65, 6.2, 6.75, 7.3].map(T => [T, 'noise', .12, 'noise', .08])],
@@ -214,7 +231,7 @@ const SC = [
     draw(s, t) {
       const P = [X0, 2, 19, 5, 18, 3, 20, X0];
       if (s < 4) {
-        C(KIL, X0, Y0, t, s < 2.5 ? 'talk' : 'stand');
+        C(KIL, X0, Y0, t, 'stand');
         if (s > 2.5) for (let i = 0; i < 3; i++) { const sd = Math.floor(t * 14) * 3 + i, a = hash(sd) * 6.28; bolt(X0 + 6, Y0 + 3, X0 + 6 + Math.cos(a) * 7, Y0 + 3 + Math.sin(a) * 6, sd); }
         return;
       }
@@ -232,7 +249,8 @@ const SC = [
 
   // ---- ヒソカ ----
   person({ dur: 9, name: 'ヒソカ・変化系', col: '#ff8ac8',
-    caps: [[0, ''], [.9, 'ボクは ヒソカ。強い人と 戦うのが 大好き♥'], [2.5, 'バンジーガム♠ ガムとゴム 両方の 性質を もつ'], [5.2, 'トランプも 武器になるのさ♦'], [7.6, 'くっくっく…♣']],
+    pads: [[2.5, 2]],
+    lines: [[.9, 'his1', 'ボクは ヒソカ。'], [2.6, 'his2', 'バンジーガム♠ ガムとゴム、両方の性質を あわせもつ'], [7.25, 'his3', 'トランプも 武器になるのさ♦'], [9.65, 'his4', 'くっくっく…♣']],
     snd: [[2.6, 300, .7, 'sine', .06, 900], [3.8, 900, .5, 'sine', .06, 250], [4.6, 1760, .1, 'square', .04],
           ...[5.2, 5.6, 6, 6.4, 6.8].map(T => [T, 3000, .1, 'square', .03, 1500]), [7.6, 220, .15, 'square', .04], [7.8, 196, .15, 'square', .04], [8, 175, .3, 'square', .04]],
     bg(s, t) {
@@ -240,7 +258,7 @@ const SC = [
       for (let i = 0; i < 6; i++) txt('♠♥♦♣'[i % 4], 2 + i * 5.6, 3 + Math.sin(t + i) * 1.2 + 5, 20, i % 2 ? '#ff5a8a' : '#7a4aa8', .25);
     },
     draw(s, t) {
-      C(HIS, X0, Y0, t, s < 2.5 || s > 7.6 ? 'talk' : 'stand');
+      C(HIS, X0, Y0, t, 'stand');
       const hx = X0 + 12.2, hy = Y0 + 3 + hop(t);
       if (s > 2.5 && s < 5.2) {
         let cx = 27, cy = 6;
@@ -264,7 +282,8 @@ const SC = [
 
   // ---- ネフェルピトー ----
   person({ dur: 9, name: 'ネフェルピトー・特質系', col: '#f0f0ff',
-    caps: [[0, ''], [.9, 'ボクは ネフェルピトー。王の 護衛軍だニャ'], [2.5, 'ねこみたいに びょーんと とびかかる！'], [5, 'ピトーの「円」は とっても 広い…']],
+    pads: [[2.5, 1.9]],
+    lines: [[.9, 'pit1', 'ボクは ネフェルピトー。王の 護衛軍だニャ'], [5, 'pit2', 'ニャッ！'], [7, 'pit3', 'ボクの「円」は とっても 広いんだニャ']],
     snd: [[.95, 700, .25, 'triangle', .05, 1100], [1.2, 1100, .3, 'triangle', .05, 700], [3.1, 300, .5, 'square', .05, 1400], [3.9, 100, .25, 'triangle', .14, 50],
           [4.4, 300, .35, 'square', .04, 1000], [4.85, 100, .2, 'triangle', .12, 50], [5, 80, 3.6, 'sine', .08, 40],
           ...[5, 5.9, 6.8, 7.7].map(T => [T, 220, .8, 'sine', .05, 110])],
@@ -274,7 +293,7 @@ const SC = [
       ground('#0a1e12', '#4a8a5a');
     },
     draw(s, t) {
-      let x = X0, y = Y0, mode = s < 2.5 ? 'talk' : 'stand';
+      let x = X0, y = Y0, mode = 'stand';
       if (s > 2.6 && s < 3.1) y = Y0 + 1;
       if (s >= 3.1 && s < 3.9) { const p = (s - 3.1) / .8; x = X0 + p * 9; y = Y0 - Math.sin(p * 3.14) * 6; mode = 'jump'; }
       if (s >= 3.9 && s < 4.4) x = X0 + 9;
@@ -291,8 +310,9 @@ const SC = [
     } }),
 
   // ---- ツェリードニヒ ----
-  person({ dur: 9, name: 'ツェリードニヒ・特質系', col: '#e8c040',
-    caps: [[0, ''], [.9, 'カキン帝国の 第4王子 ツェリードニヒ'], [2.5, 'うしろには こわ〜い 守護霊獣が…'], [5.3, '「絶」をすると 10秒先の 未来が見える！']],
+  person({ dur: 9.4, name: 'ツェリードニヒ・特質系', col: '#e8c040',
+    pads: [[2.5, 2], [5.3, 1]],
+    lines: [[.9, 'tse1', 'カキン帝国 第4王子 ツェリードニヒだ'], [4.7, 'tse2', 'なんだ？ うしろに 何か いるのか？'], [8.35, 'tse3', '「絶」… 10秒先の 未来が 見える']],
     snd: [[.95, 523, .2, 'square', .04], [1.15, 659, .2, 'square', .04], [1.35, 784, .4, 'square', .04],
           [2.5, 55, 2.6, 'sawtooth', .05, 45], [2.8, 400, .15, 'square', .03, 200], [3.4, 400, .15, 'square', .03, 200],
           [5.3, 1200, .6, 'sine', .05, 300], ...[...Array(10)].map((_, i) => [5.6 + i * .3, 1000, .05, 'square', .03])],
@@ -312,10 +332,10 @@ const SC = [
         });
       }
       const zetsu = s >= 5.3;
-      C(zetsu ? TSE_ZETSU : TSE, X0, Y0, t, s < 2.5 ? 'talk' : 'stand');
+      C(zetsu ? TSE_ZETSU : TSE, X0, Y0, t, 'stand');
       if (zetsu) {
         flash(.35, '#000000');
-        const n = Math.max(0, 10 - Math.floor((s - 5.6) / .3));
+        const n = cl(10 - Math.floor((s - 5.6) / .3), 0, 10);
         ring(26, 6, 2.6, '#e8c040', 1); line(26, 6, 26, 4.2, '#e8c040', .4); line(26, 6, 26 + Math.sin((s - 5.6) * 6) * 1.6, 6 - Math.cos((s - 5.6) * 6) * 1.6, '#ffffff', .3);
         txt(n ? `${n}` : '未来！', 26, 9.6, 22, '#ffffff');
         txt('「絶」…', 16, 3.3, 30, '#e8c040', ease((s - 5.3) / .3));
@@ -324,7 +344,8 @@ const SC = [
 
   // ---- ネテロ ----
   person({ dur: 10, name: 'アイザック＝ネテロ・強化系', col: '#ffd06a',
-    caps: [[0, ''], [.9, 'ハンター協会の 会長 ネテロじゃ'], [2.5, '毎日 感謝の 正拳突き 1万回！'], [5.2, '念能力「百式観音」'], [7.2, '壱乃掌（いちのて）！']],
+    pads: [[2.5, 1.4], [5.2, .3]],
+    lines: [[.9, 'net1', 'ハンター協会 会長 ネテロじゃ'], [3.95, 'net2', '感謝の 正拳突き 1万回！'], [7, 'net3', '百式観音（ひゃくしきかんのん）'], [8.9, 'net4', '壱乃掌（いちのて）！']],
     snd: [...[...Array(10)].map((_, i) => [2.5 + i * .25, 'noise', .05, 'noise', .06]),
           [5.2, 196, 1.6, 'triangle', .06], [5.2, 294, 1.6, 'triangle', .05], [5.2, 392, 1.6, 'triangle', .05],
           [7.2, 'noise', 1.1, 'noise', .3], [7.2, 90, .8, 'triangle', .22, 35]],
@@ -344,7 +365,7 @@ const SC = [
         R(15.4, y + 1.6, .5, .4, '#5a3a10', k); R(16.4, y + 1.6, .5, .4, '#5a3a10', k);
       }
       const punch = s > 2.5 && s < 5.2, ph = Math.floor((s - 2.5) * (6 + (s - 2.5) * 8)) % 2;
-      C(NET, X0, Y0, t, s < 2.5 ? 'talk' : 'stand');
+      C(NET, X0, Y0, t, 'stand');
       if (punch) {
         const hy = Y0 + 2.6 + hop(t);
         if (ph) { R(X0 + 12, hy, 3, 1.4, '#f4f0e8'); R(X0 + 14.6, hy - .1, 1.6, 1.6, '#d97757'); for (let i = 0; i < 3; i++) R(X0 + 17 + i, hy + .2 + i * .4, 1.2, .25, '#ffffff', .7); }
@@ -362,8 +383,9 @@ const SC = [
     } }),
 
   // ---- メルエム ----
-  person({ dur: 10, name: 'メルエム・特質系', col: '#9ad8a0',
-    caps: [[0, ''], [.9, 'キメラアントの 王 メルエム'], [2.5, '生まれたときから 世界で いちばん 強い…'], [5.6, 'でも 軍儀だけは コムギに 勝てない'], [8, 'コムギ… もう1局だ']],
+  person({ dur: 10.3, name: 'メルエム・特質系', col: '#9ad8a0',
+    pads: [],
+    lines: [[.9, 'mer1', '余は メルエム'], [2.8, 'mer2', '余は 王（キング）だ'], [6, 'mer3', '軍儀か…'], [8, 'mer4', 'コムギ… もう1局だ']],
     snd: [[2.5, 65, 3, 'sawtooth', .05, 90], [2.5, 98, 3, 'triangle', .05], [3.2, 'noise', .5, 'noise', .05],
           ...[6.2, 6.9, 7.4, 8.4, 9.1].map(T => [T, 1800, .06, 'square', .05, 900]), [8, 392, .3, 'triangle', .05], [8.3, 330, .5, 'triangle', .05]],
     shake: s => s > 2.5 && s < 5.4 ? .12 : 0,
@@ -379,7 +401,7 @@ const SC = [
         aura(x + 6, Y0 + 2, 8, 7.5, '#7a4fa8', t, .7 * k); aura(x + 6, Y0 + 2.5, 6, 5.5, '#4e8a62', t + .5, .7 * k);
         txt('余は 王（キング）だ', 16, 3.3, 28, '#c8a8ff', ease((s - 2.7) / .4));
       }
-      C(MER, x, Y0, t, s < 2.5 || s > 8 ? 'talk' : 'stand');
+      C(MER, x, Y0, t, 'stand');
       if (s > 5.6) {                                                           // 軍儀の盤
         const a = ease((s - 5.6) / .5), bx = 17, by = 10.2;
         R(bx - .4, by + 6.6, 12.8, 1.2, '#5a3a1a', a);
@@ -393,7 +415,7 @@ const SC = [
     } }),
 
   // ---- おしまい：7人ならぶ ----
-  { dur: 8, caps: [[0, 'ゴン・キルア・ヒソカ・ピトー'], [2, 'ツェリードニヒ・ネテロ・メルエム'], [4.5, 'ハンター×ハンターごっこ おしまい！']],
+  { dur: 8, caps: [[0, 'ゴン・キルア・ヒソカ・ピトー'], [2, 'ツェリードニヒ・ネテロ・メルエム']], lines: [[4.6, 'end1', 'ハンター×ハンターごっこ おしまい！']],
     snd: [...[0, .4, .8, 1.2, 1.6, 2, 2.4].map((T, i) => [T + .3, 523 * 2 ** ([0, 2, 4, 5, 7, 9, 11][i] / 12), .2, 'square', .045]),
           [4.5, 523, .5, 'triangle', .07], [4.5, 659, .5, 'triangle', .06], [4.5, 784, .5, 'triangle', .06], [5, 1047, 1.2, 'triangle', .07], [5, 262, 1.2, 'triangle', .08]],
     draw(s, t) {
@@ -421,6 +443,7 @@ function render(T) {
   const sc = SC[i], s = T - sc.t0;
   g.clearRect(0, 0, W, HH);
   g.save(); g.beginPath(); g.rect(0, 0, W, SH); g.clip();
+  TALK = sc.lines.some(([at, k]) => s >= at && s < at + VD[k] - .1);
   const sh = sc.shake ? sc.shake(s) : 0;
   if (sh) g.translate(Math.round((hash(Math.floor(T * 30)) - .5) * sh * 12), Math.round((hash(Math.floor(T * 30), 1) - .5) * sh * 8));
   sc.draw(s, T);
@@ -428,7 +451,7 @@ function render(T) {
   g.restore();
   // 字幕の帯
   g.fillStyle = '#05040d'; g.fillRect(0, SH, W, HH - SH); g.fillStyle = '#2a2540'; g.fillRect(0, SH, W, 2);
-  let cap = ''; sc.caps.forEach(([at, c]) => { if (s >= at) cap = c; });
+  let cap = '', capAt = -1; [...(sc.caps || []), ...sc.lines.map(([at, , c]) => [at, c])].forEach(([at, c]) => { if (s >= at && at > capAt) { cap = c; capAt = at; } });
   if (cap) {
     g.font = '18px "DotGothic16", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#f3ead6';
     g.fillText(cap, W / 2, SH + (HH - SH) / 2, W - 24);
@@ -436,7 +459,19 @@ function render(T) {
 }
 
 // ---------- 音（その場で鳴らす・録画用に書き出す の両方で使う） ----------
-function schedule(ac, out, at0) {
+// 声を その音の出口（ac）で使える形に（ac ごとに1回）
+async function decodeVoices(ac) {
+  await voiceReady;
+  const vb = {};
+  await Promise.all(Object.keys(VBUF).map(k => new Promise(res => ac.decodeAudioData(VBUF[k].slice(0), b => { vb[k] = b; res(); }, () => res()))));
+  return vb;
+}
+function schedule(ac, out, at0, vb) {
+  const vg = ac.createGain(); vg.gain.value = 1.4; vg.connect(out);
+  SC.forEach(sc => sc.lines.forEach(([T, k]) => {
+    if (!vb[k]) return;
+    const src = ac.createBufferSource(); src.buffer = vb[k]; src.connect(vg); src.start(at0 + sc.t0 + T);
+  }));
   const nb = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), nd = nb.getChannelData(0);
   for (let i = 0; i < nd.length; i++) nd[i] = hash(i, 9) * 2 - 1;
   SC.forEach(sc => sc.snd.forEach(([T, f, dur, type, vol, f2]) => {
@@ -451,7 +486,7 @@ function schedule(ac, out, at0) {
 // 録画用：音を WAV（base64）にして返す
 window.renderWav = async function () {
   const rate = 44100, ac = new OfflineAudioContext(1, Math.ceil(rate * TOTAL), rate);
-  schedule(ac, ac.destination, 0);
+  schedule(ac, ac.destination, 0, await decodeVoices(ac));
   const d = (await ac.startRendering()).getChannelData(0);
   const buf = new DataView(new ArrayBuffer(44 + d.length * 2)), ws = (o, s) => [...s].forEach((c, i) => buf.setUint8(o + i, c.charCodeAt(0)));
   ws(0, 'RIFF'); buf.setUint32(4, 36 + d.length * 2, true); ws(8, 'WAVEfmt '); buf.setUint32(16, 16, true); buf.setUint16(20, 1, true); buf.setUint16(22, 1, true);
@@ -466,18 +501,20 @@ window.TOTAL = TOTAL;
 
 // ---------- 再生 ----------
 const playBtn = document.getElementById('playBtn'), bar = document.getElementById('bar');
-let ac = null, bus = null, start = -1;
+let ac = null, bus = null, start = -1, vbuf = null, loading = false;
 function stop() {
   start = -1; playBtn.textContent = '▶ 再生';
   if (bus) { const b = bus; b.gain.setTargetAtTime(0, ac.currentTime, .02); setTimeout(() => b.disconnect(), 200); bus = null; }
 }
-playBtn.addEventListener('click', () => {
+playBtn.addEventListener('click', async () => {
+  if (loading) return;
   if (start >= 0) { stop(); return; }
   try {
     ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume();
+    if (!vbuf) { loading = true; playBtn.textContent = '声を読みこみ中…'; vbuf = await decodeVoices(ac); loading = false; }
     bus = ac.createGain(); bus.connect(ac.destination);
-    start = ac.currentTime + .1; schedule(ac, bus, start);
-  } catch (e) { ac = null; start = performance.now() / 1000; }
+    start = ac.currentTime + .1; schedule(ac, bus, start, vbuf);
+  } catch (e) { ac = null; loading = false; start = performance.now() / 1000; }
   playBtn.textContent = '■ とめる';
 });
 const now = () => ac ? ac.currentTime : performance.now() / 1000;
