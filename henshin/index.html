@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="変身図鑑">
+<title>変身図鑑</title>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05040d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  body { font-family: "DotGothic16", sans-serif; display: flex; flex-direction: column; align-items: center;
+         padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  h1 { font-size: 18px; font-weight: 400; margin: 0 0 4px; letter-spacing: .08em; }
+  .sub { font-size: 11px; opacity: .6; margin: 0 0 10px; text-align: center; }
+  .wrap { width: 100%; max-width: 480px; }
+  /* 上の大きな舞台：えらんだ変身を大きく見せる */
+  .stage { position: relative; background: #0f1028; border: 2px solid #2a2540; border-radius: 6px; overflow: hidden; }
+  #big { width: 100%; display: block; image-rendering: pixelated; }
+  .name { text-align: center; font-size: 16px; margin-top: 8px; color: #ffcf8a; }
+  .note { text-align: center; font-size: 11px; color: #8a84a8; margin-top: 2px; min-height: 1.4em; }
+  .btns { display: flex; gap: 6px; margin-top: 8px; }
+  button { font-family: inherit; color: var(--fg); background: #1c1930; border: 2px solid #3a3358; border-radius: 6px; cursor: pointer; }
+  button:active { transform: translateY(1px); }
+  .btns button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 7px 2px; color: #8a84a8; }
+  .btns button.on { border-color: var(--accent); color: var(--fg); }
+  /* 20個の一覧 */
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 12px; }
+  .tile { padding: 4px 2px 5px; background: #12101f; border-color: #2a2540; display: flex; flex-direction: column; align-items: center; }
+  .tile.on { border-color: var(--accent); background: #1c1930; }
+  .tile canvas { width: 100%; max-width: 80px; image-rendering: pixelated; display: block; }
+  .tile span { font-size: 9px; line-height: 1.2; margin-top: 2px; color: #cfc6e8; text-align: center; }
+  .tile b { font-weight: 400; color: #8a84a8; font-size: 9px; }
+</style>
+</head>
+<body>
+<h1>変身図鑑</h1>
+<p class="sub">オレンジのキャラクターの変身 30種（押すと もとの姿から変身します・音が出ます）</p>
+<div class="wrap">
+  <div class="stage"><canvas id="big"></canvas></div>
+  <div class="name" id="bigName"></div>
+  <div class="note" id="bigNote"></div>
+  <div class="btns" id="modes">
+    <button data-m="walk" class="on">歩く</button>
+    <button data-m="talk">しゃべる</button>
+    <button data-m="jump">ジャンプ</button>
+    <button id="randBtn">🎲 おまかせ</button>
+  </div>
+  <div class="btns"><button id="allBtn">▶ 30人 つづけて</button></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script src="cos.js?v=1"></script>
+<script>
+// 絵（drawChar・COS）は cos.js にある
+const { drawChar, COS } = ccHenshin;
+
+// ---------- 一覧を作る ----------
+const grid = document.getElementById('grid');
+const tiles = COS.map((c, i) => {
+  const b = document.createElement('button'); b.className = 'tile';
+  const cv = document.createElement('canvas'); cv.width = 20 * 4; cv.height = 18 * 4; // 1マス＝4画素
+  const sp = document.createElement('span'); sp.innerHTML = `${c.who}<br><b>${c.zodiac ? c.zodiac + '・' : ''}${c.name}</b>`;
+  b.append(cv, sp); grid.append(b);
+  b.addEventListener('click', () => { stopAll(); pick(i); });
+  return { b, g: cv.getContext('2d'), cv };
+});
+
+// ---------- 大きな舞台 ----------
+const big = document.getElementById('big');
+const BW = 40, BH = 26, BQ = 12;
+big.width = BW * BQ; big.height = BH * BQ;
+const bg = big.getContext('2d');
+let cur = 0, mode = 'walk', changeAt = -10;
+let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const stars = [...Array(40)].map(() => ({ x: rnd() * BW, y: rnd() * 18, p: rnd() * 6.28 }));
+const PLAIN = {};                          // 変身する前の、もとのオレンジのキャラクター
+const BQQ = BQ * 1.25, OX = 10, OY = 9.6;  // 舞台のキャラクターは 1マス＝15画素
+const CX = (OX + 6) * BQQ;                 // キャラクターのまんなか（画素）
+
+// ---------- 変身の流れ（秒） ----------
+// 0〜0.5 もとの姿で「！」 → 0.5〜3.1 キャラクターごとに ちがう変身（FX） → 3.1〜5.3 ぱっと光って 名前を出し、その人らしい 決めの動き（ACT）
+const SEQ = { notice: .5, fx: 3.1, end: 5.3 };
+const ACTLEN = SEQ.end - SEQ.fx;
+const FXLEN = SEQ.fx - SEQ.notice;
+
+function txt(s, x, y, size, c) {
+  bg.font = `${size}px "DotGothic16", monospace`; bg.textAlign = 'center'; bg.textBaseline = 'middle';
+  bg.lineWidth = 6; bg.lineJoin = 'round'; bg.strokeStyle = '#000'; bg.strokeText(s, x, y);
+  bg.fillStyle = c; bg.fillText(s, x, y);
+}
+function burst(cx, cy, k, col1 = '#ffffff', col2 = '#ffd84a') {
+  bg.globalAlpha = Math.max(0, 1 - k * 1.4);
+  const r = (3 + k * 12) * BQ;
+  bg.fillStyle = col1;
+  for (let a = 0; a < 12; a++) { const an = a * Math.PI / 6; bg.fillRect(cx + Math.cos(an) * r * .6 - BQ, cy + Math.sin(an) * r * .5 - BQ, BQ * 2.4, BQ * 2.4); }
+  bg.fillStyle = col2;
+  for (let a = 0; a < 8; a++) { const an = a * Math.PI / 4 + .4; bg.fillRect(cx + Math.cos(an) * r - BQ / 2, cy + Math.sin(an) * r * .7 - BQ / 2, BQ, BQ); }
+  bg.globalAlpha = 1;
+}
+
+// ---------- 変身の道具 ----------
+// 位置はすべて「舞台の1マス（15画素）」単位。H.cx・H.cy は体のまんなか、H.top は頭の上、H.feet は足もと
+const ease = k => (k = Math.max(0, Math.min(1, k))) * k * (3 - 2 * k);
+const hash = (a, b = 0, c = 0) => { const x = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453; return x - Math.floor(x); };
+const mkCv = () => { const c = document.createElement('canvas'); c.width = big.width; c.height = big.height; return c; };
+const offs = [mkCv(), mkCv(), mkCv(), mkCv()], mixCv = mkCv(), mixG = mixCv.getContext('2d');
+function snapTo(cv, cos, dx = 0, dy = 0, m = 'talk', tt = 0) {
+  const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height);
+  drawChar(g, BQQ, OX + dx, OY + dy, tt, m, cos); return cv;
+}
+const CELL = 5, MX0 = Math.floor((OX - 7) * BQQ), MX1 = Math.ceil((OX + 19) * BQQ), MY0 = Math.floor((OY - 9) * BQQ), MY1 = Math.ceil((OY + 8.6) * BQQ);
+const H = {
+  cx: OX + 6, cy: OY + 3, top: OY - 6, feet: OY + 8, t: 0,
+  A: (dx, dy, m, tt) => snapTo(offs[0], PLAIN, dx, dy, m, tt),          // もとの姿
+  B: (dx, dy, m, tt) => snapTo(offs[1], COS[cur], dx, dy, m, tt),       // 変身したあと
+  X: (n, cos, dx, dy, m, tt) => snapTo(offs[n], cos, dx, dy, m, tt),
+  // 絵をおく（a：うすさ、s/sx/sy：大きさ、rot：回転、dx/dy：ずらす、px/py：大きさを変える中心、clipY：これより下を消す、poly：この形だけ見せる）
+  put(cv, o = {}) {
+    bg.save();
+    if (o.clipY != null) { bg.beginPath(); bg.rect(0, 0, big.width, o.clipY * BQQ); bg.clip(); }
+    if (o.poly) { bg.beginPath(); o.poly.forEach(([x, y], i) => i ? bg.lineTo(x * BQQ, y * BQQ) : bg.moveTo(x * BQQ, y * BQQ)); bg.closePath(); bg.clip(); }
+    bg.globalAlpha = Math.max(0, Math.min(1, o.a ?? 1));
+    const px = (o.px ?? H.cx) * BQQ, py = (o.py ?? H.cy) * BQQ;
+    bg.translate(px + (o.dx || 0) * BQQ, py + (o.dy || 0) * BQQ); bg.rotate(o.rot || 0);
+    bg.scale(o.sx ?? o.s ?? 1, o.sy ?? o.s ?? 1); bg.translate(-px, -py);
+    bg.drawImage(cv, 0, 0); bg.restore();
+  },
+  // 2つの姿を こまかいマスごとに まぜる。fn(u, v, i, j) が true のマスは 変身後（u：左0〜右1、v：頭の上0〜足1）
+  mix(a, b, fn) {
+    mixG.clearRect(0, 0, mixCv.width, mixCv.height); mixG.drawImage(a, 0, 0);
+    for (let y = MY0, j = 0; y < MY1; y += CELL, j++) for (let x = MX0, i = 0; x < MX1; x += CELL, i++) {
+      const u = (x / BQQ - OX) / 12, v = (y / BQQ - H.top) / 14;
+      if (fn(u, v, i, j)) { mixG.clearRect(x, y, CELL, CELL); mixG.drawImage(b, x, y, CELL, CELL, x, y, CELL, CELL); }
+    }
+    return mixCv;
+  },
+  sq(x, y, w, h, col, al = 1) { bg.globalAlpha = Math.max(0, Math.min(1, al)); bg.fillStyle = col; bg.fillRect(x * BQQ, y * BQQ, w * BQQ, h * BQQ); bg.globalAlpha = 1; },
+  oval(cx, cy, rx, ry, col, al = 1, from = -1, to = 1) {
+    for (let yy = -ry; yy < ry; yy += .5) {
+      if (yy / ry < from || yy / ry > to) continue;
+      const w = rx * Math.sqrt(Math.max(0, 1 - ((yy + .25) / ry) ** 2)); H.sq(cx - w, cy + yy, w * 2, .5, col, al);
+    }
+  },
+  ring(cx, cy, r, col, al = 1, ry = r) { const n = Math.max(12, r * 6 | 0); for (let i = 0; i < n; i++) { const a = i / n * 6.283; H.sq(cx + Math.cos(a) * r - .25, cy + Math.sin(a) * ry - .25, .5, .5, col, al); } },
+  line(x0, y0, x1, y1, col, w = .5, al = 1) { const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / .3)); for (let i = 0; i <= n; i++) { const k = i / n; H.sq(x0 + (x1 - x0) * k - w / 2, y0 + (y1 - y0) * k - w / 2, w, w, col, al); } },
+  bolt(x, y0, y1, sd, col = '#ffe866', w = .6) { let px = x, py = y0; for (let i = 0; py < y1 && i < 40; i++) { const nx = x + (hash(sd, i) - .5) * 4, ny = Math.min(y1, py + 1.6); H.line(px, py, nx, ny, col, w); px = nx; py = ny; } },
+  star(x, y, col, al = 1) { H.sq(x, y - .5, .5, 1.5, col, al); H.sq(x - .5, y, 1.5, .5, col, al); },
+  heart(x, y, col, al = 1) { H.sq(x, y, .5, .5, col, al); H.sq(x + 1, y, .5, .5, col, al); H.sq(x - .2, y + .5, 1.9, .5, col, al); H.sq(x + .2, y + 1, 1.1, .5, col, al); H.sq(x + .5, y + 1.5, .5, .4, col, al); },
+  dark(a, col = '#000') { bg.globalAlpha = Math.max(0, Math.min(1, a)); bg.fillStyle = col; bg.fillRect(0, 0, big.width, big.height); bg.globalAlpha = 1; },
+  say(s, x, y, size, col, al = 1) { bg.globalAlpha = Math.max(0, Math.min(1, al)); txt(s, x * BQQ, y * BQQ, size, col); bg.globalAlpha = 1; },
+};
+
+// ---------- 30の変身のしかた（COS と同じ順番） ----------
+// run(k, H)：k は 0→1（変身の進み）。snd(s)：s(秒, 高さ, 長さ, 音色, 大きさ, 終わりの高さ) で 音を予約
+const FX = [
+  { label: 'ぴょんぴょん変身', col: '#ff9db8',   // ピヨン：3回はねるたびに 下から3分の1ずつ変わる
+    run(k, H) {
+      const hop = Math.min(3, Math.floor(k / .3)), p = (k % .3) / .3, hy = k < .9 ? Math.sin(p * Math.PI) * 5 : 0;
+      const lvl = hop / 3;
+      H.put(H.mix(H.A(0, -hy), H.B(0, -hy), (u, v) => v > 1 - lvl));
+      if (k > .25 && k < .95 && p < .3) for (let i = 0; i < 6; i++) { const a = i / 6 * 6.28; H.heart(H.cx + Math.cos(a) * (4 + p * 18), H.feet - 1 + Math.sin(a) * 2 - p * 8, '#ff9db8', 1 - p * 3); }
+    },
+    snd(s) { [0, .78, 1.56].forEach((T, i) => { s(T, 300 + i * 120, .25, 'square', .05, 900 + i * 250); s(T + .76, 180, .1, 'triangle', .12, 90); }); } },
+
+  { label: '一刀両断', col: '#c8b0ff',   // サッチョウ：ななめに 刀の光が走り、もとの姿が まっぷたつに ずれて消える
+    run(k, H) {
+      const x0 = H.cx + 9, y0 = H.top - 1, x1 = H.cx - 9, y1 = H.feet + .5;
+      const P0 = [x0 + (x0 - x1) * 3, y0 + (y0 - y1) * 3], P1 = [x1 + (x1 - x0) * 3, y1 + (y1 - y0) * 3];
+      if (k < .4) {
+        H.put(H.A()); const g = ease(k / .35);
+        H.line(x0, y0, x0 + (x1 - x0) * g, y0 + (y1 - y0) * g, '#ffffff', .4);
+      } else {
+        const s = ease((k - .4) / .5), off = s * 7;
+        H.put(H.B(), { a: s * 1.4 });
+        const a = H.A();
+        H.put(a, { poly: [P0, P1, [-99, -99]], dx: -off, dy: -off * .8, a: 1 - s });
+        H.put(a, { poly: [P0, P1, [99, 99]], dx: off, dy: off * .8, a: 1 - s });
+        if (k < .5) H.line(x0, y0, x1, y1, '#ffffff', 1.2 * (1 - (k - .4) / .1));
+      }
+    },
+    snd(s) { s(.2, 2400, .5, 'sawtooth', .03, 300); s(1.04, 3000, .25, 'square', .04, 600); s(1.04, 120, .4, 'triangle', .13, 50); } },
+
+  { label: 'かげに しずむ', col: '#8a6ab8',   // ゲル：足もとの黒いかげに しずんで、変わって 浮かび上がる
+    run(k, H) {
+      const sh = Math.min(1, k / .2) * (k > .85 ? 1 - (k - .85) / .15 : 1);
+      H.oval(H.cx, H.feet, 9 * sh, 1.4 * sh, '#000000', .9);
+      let dy, cv;
+      if (k < .2) { dy = 0; cv = H.A(); }
+      else if (k < .55) { dy = ease((k - .2) / .35) * 9; cv = H.A(0, dy); }
+      else if (k < .65) { dy = 9; cv = null; }
+      else { dy = 9 * (1 - ease((k - .65) / .3)); cv = H.B(0, dy); }
+      if (cv) H.put(cv, { clipY: H.feet });
+      if (k > .45 && k < .75) for (let i = 0; i < 3; i++) { const r = ((k - .45) * 20 + i * 2) % 6; H.ring(H.cx, H.feet, 3 + r * 1.4, '#6a4a98', .7 - r / 9, .5 + r * .15); }
+    },
+    snd(s) { s(.5, 300, .9, 'sine', .08, 60); s(1.2, 80, .6, 'sine', .1, 40); s(1.7, 60, .8, 'sine', .08, 400); } },
+
+  { label: 'かみなり', col: '#ffe866',   // ボトバイ：空が暗くなり、かみなりが落ちるたびに 姿が入れかわる
+    run(k, H) {
+      H.dark(.55 * Math.min(1, k / .15) * (k > .85 ? (1 - k) / .15 : 1));
+      const strikes = [.25, .4, .55, .7], passed = strikes.filter(s => k >= s).length;
+      const showB = passed === 4 || passed % 2 === 1;
+      H.put(showB ? H.B() : H.A());
+      strikes.forEach((s, i) => {
+        if (k >= s && k < s + .07) {
+          H.dark(.35 * (1 - (k - s) / .07), '#ffffff');
+          H.bolt(H.cx + (i % 2 ? 2 : -2), -1, H.top + 2, i * 7 + 1, '#ffe866', .8);
+          H.bolt(H.cx + (i % 2 ? 2 : -2), -1, H.top + 2, i * 7 + 1, '#ffffff', .3);
+        }
+      });
+    },
+    snd(s) { [.65, 1.04, 1.43, 1.82].forEach(T => { s(T, 2200, .06, 'square', .05, 800); s(T, 110, .5, 'sawtooth', .07, 35); }); } },
+
+  { label: 'もこもこ雲', col: '#f4f4f4',   // ギンタ：もこもこの雲に つつまれて、雲が はじけると変わっている
+    run(k, H) {
+      const cover = k < .45 ? ease(k / .45) : k < .6 ? 1 : 1 - ease((k - .6) / .35);
+      const spread = k > .6 ? ease((k - .6) / .4) * 7 : 0;
+      H.put(k < .52 ? H.A() : H.B());
+      const P = [[0, -4], [-4, -2], [4, -2], [-5, 2], [5, 2], [-3, 5], [3, 5], [0, 1], [0, 6]];
+      P.forEach(([x, y], i) => {
+        const r = (3.2 + Math.sin(H.t * 9 + i) * .3) * cover; if (r <= .2) return;
+        const n = Math.hypot(x, y) || 1, px = H.cx + x + x / n * spread, py = H.cy + y + y / n * spread;
+        H.oval(px, py, r, r, '#c8d0e0'); H.oval(px - .4, py - .4, r * .85, r * .85, '#f4f4f4');
+      });
+    },
+    snd(s) { [0, .25, .5, .75, 1.0].forEach(T => s(T, 220, .18, 'sine', .07, 420)); s(1.55, 500, .3, 'triangle', .08, 1500); } },
+
+  { label: 'もうダッシュ', col: '#f4f4f4',   // ミザイストム：左へ 走り去って、右から 変身して もどってくる
+    run(k, H) {
+      if (k < .35) {
+        const dx = -ease(k / .35) * 28; H.put(H.A(dx, 0, 'walk', H.t * 3));
+        for (let i = 0; i < 4; i++) H.oval(H.cx + dx + 6 + i * 2.2, H.feet - .5 - i * .3, 1.2 - i * .2, .8, '#c8b8a0', .7 - i * .15);
+      } else if (k < .5) {
+        for (let i = 0; i < 5; i++) H.oval(H.cx - 10 + i * 3, H.feet - .5, 1.4 - (k - .35) * 6, .8, '#c8b8a0', .5);
+      } else {
+        const p = ease((k - .5) / .45), dx = 28 * (1 - p);
+        H.put(H.B(dx, 0, p < 1 ? 'walk' : 'talk', H.t * 3));
+        if (p > .6 && p < 1) for (let i = 0; i < 4; i++) H.oval(H.cx + dx + 8 + i * 1.6, H.feet - .6 - i * .4, 1.3, .9, '#c8b8a0', (1 - p) * 2);
+      }
+    },
+    snd(s) { for (let i = 0; i < 8; i++) s(i * .11, 160, .05, 'triangle', .09); for (let i = 0; i < 8; i++) s(1.3 + i * .11, 160, .05, 'triangle', .09); s(2.1, 900, .4, 'sawtooth', .03, 200); } },
+
+  { label: '羽が まう', col: '#3cb0d8',   // クルック：白い羽が ふりそそぎ、ばらばらの マスから 変わっていく
+    run(k, H) {
+      H.put(H.mix(H.A(), H.B(), (u, v, i, j) => hash(i, j) < k * 1.25 - .15));
+      for (let i = 0; i < 16; i++) {
+        const x = H.cx - 12 + hash(i, 9) * 24 + Math.sin(H.t * 3 + i) * 1.5, y = -2 + ((k * 1.3 + hash(i, 1)) % 1) * 22;
+        H.sq(x, y, 1.6, .6, '#f4f4f4'); H.sq(x + 1.2, y, .6, .6, '#3cb0d8');
+      }
+    },
+    snd(s) { for (let i = 0; i < 10; i++) s(i * .24, [1047, 1175, 1319, 1568][i % 4], .35, 'sine', .03); } },
+
+  { label: 'とらの しま', col: '#ffd23a',   // カンザイ：たてじまの半分が 上から、のこりが 下から 変わる
+    run(k, H) {
+      H.put(H.mix(H.A(), H.B(), (u, v) => { const s = Math.abs(Math.floor(u * 8)) % 2; return s ? v > 1 - (k - .45) * 2 : v < k * 2.1; }));
+      const y = k < .5 ? H.top + k * 2 * 14 : H.feet - (k - .5) * 2 * 14;
+      if (k < .98) for (let i = 0; i < 8; i++) if ((i % 2) === (k < .5 ? 0 : 1)) H.sq(OX + i * 1.5, y - .3, 1.5, .6, i % 4 < 2 ? '#ffd23a' : '#1a1a1a');
+    },
+    snd(s) { s(0, 110, .6, 'sawtooth', .06, 70); for (let i = 0; i < 8; i++) s(.3 + i * .27, 400 + i * 80, .1, 'square', .035); } },
+
+  { label: 'おいしゃさんの 十字', col: '#6fe0a0',   // チードル：緑の十字が ピコピコ光り、十字の形に 広がって変わる
+    run(k, H) {
+      const w = Math.max(0, (k - .3) / .7) * .8;
+      H.put(H.mix(H.A(), H.B(), (u, v) => Math.abs(u - .5) < w || Math.abs(v - .64) < w * .9));
+      if (k < .4) { const on = Math.floor(k * 25) % 2; if (on) { H.sq(H.cx - .8, H.cy - 4, 1.6, 8, '#6fe0a0', .85); H.sq(H.cx - 4, H.cy - .8, 8, 1.6, '#6fe0a0', .85); } }
+      else if (k < .95) { const r = (k - .3) / .7 * 10; H.sq(H.cx - .3, H.cy - r, .6, r * 2, '#c8ffe0', .6); H.sq(H.cx - r, H.cy - .3, r * 2, .6, '#c8ffe0', .6); }
+    },
+    snd(s) { [0, .26, .52, .78].forEach(T => s(T, 1000, .1, 'sine', .05)); s(1.0, 600, 1.2, 'sine', .05, 1400); } },
+
+  { label: '風が ふく', col: '#9ad890',   // ジン：左から 風が ふきぬけ、波うつ線で 変わっていく
+    run(k, H) {
+      H.put(H.mix(H.A(), H.B(), (u, v) => u < k * 1.4 - .2 + Math.sin(v * 14 + H.t * 10) * .06));
+      for (let i = 0; i < 9; i++) {
+        const y = H.top + hash(i, 3) * 15, x = ((H.t * 30 + hash(i, 2) * 40) % 40) - 20 + H.cx;
+        H.sq(x, y, 4, .3, '#dfe8f4', .7);
+        if (i % 3 === 0) H.sq(x + 4.5, y - .3, .7, .5, '#5ab05a');
+      }
+    },
+    snd(s) { s(0, 300, 1.3, 'sawtooth', .015, 1200); s(1.3, 1200, 1.3, 'sawtooth', .015, 300); } },
+
+  { label: 'カーテンコール', col: '#ff6a7a',   // パリストン：赤いまくが しまって、ひらくと 変わっている。紙ふぶき
+    run(k, H) {
+      const close = k < .4 ? ease(k / .4) : k < .55 ? 1 : 1 - ease((k - .55) / .45);
+      H.put(k < .47 ? H.A() : H.B());
+      const W = big.width / BQQ, half = W / 2 * close, G = 22 * BQ / BQQ;
+      for (let x = 0; x < half; x += 1.5) { H.sq(x, 0, 1.5, G, (x / 1.5 | 0) % 2 ? '#a01826' : '#c02232'); H.sq(W - x - 1.5, 0, 1.5, G, (x / 1.5 | 0) % 2 ? '#a01826' : '#c02232'); }
+      H.sq(0, 0, W, 1.2, '#c8a040');
+      if (k > .55) for (let i = 0; i < 24; i++) { const x = hash(i, 4) * W, y = ((k - .55) * 30 + hash(i, 5) * 8) % 18; H.sq(x + Math.sin(H.t * 5 + i), y, .6, .6, ['#ffd23a', '#ff6a9a', '#6ad0ff', '#9aff6a'][i % 4]); }
+    },
+    snd(s) { for (let i = 0; i < 12; i++) s(.5 + i * .05, 140, .05, 'triangle', .08); [523, 659, 784, 1047].forEach((f, i) => s(1.45 + i * .1, f, .25, 'square', .04)); } },
+
+  { label: 'きんとうん', col: '#ffd84a',   // サイユウ：黄色い雲に乗って 空へ飛び、変身して おりてくる
+    run(k, H) {
+      let cx = 0, dy = 0, cv = null, cloud = true;
+      if (k < .25) { cx = -20 * (1 - ease(k / .25)); cv = H.A(); }
+      else if (k < .5) { dy = -ease((k - .25) / .25) * 22; cv = H.A(0, dy); }
+      else if (k < .6) { dy = -22; cloud = false; }
+      else if (k < .85) { dy = -22 * (1 - ease((k - .6) / .25)); cv = H.B(0, dy); }
+      else { cx = ease((k - .85) / .15) * 24; cv = H.B(); }
+      if (cv) H.put(cv);
+      if (cloud) { const x = H.cx + cx, y = H.feet + dy; H.oval(x, y, 7, 1.6, '#f2c230'); H.oval(x - 3, y - .6, 3, 1.4, '#ffe066'); H.oval(x + 3, y - .6, 3, 1.4, '#ffe066'); H.oval(x - 7, y + .3, 3, .8, '#f2c230', .6); }
+      if (k > .5 && k < .6) for (let i = 0; i < 5; i++) H.sq(H.cx - 4 + i * 2, 1 + hash(i, Math.floor(H.t * 10)) * 2, .6, .6, '#ffe066');
+    },
+    snd(s) { s(0, 400, .6, 'triangle', .04, 800); s(.65, 300, .6, 'triangle', .06, 1400); s(1.56, 1400, .65, 'triangle', .06, 300); s(2.2, 600, .4, 'triangle', .04, 1200); } },
+
+  { label: 'パワーを ためる', col: '#ffe066',   // ゴン：ふるえながら力をためて「ジャン・ケン・グー！」
+    run(k, H) {
+      if (k < .7) {
+        const sh = (hash(Math.floor(H.t * 30)) - .5) * .8 * k;
+        const g = k / .7, r = 1 + g * 3;
+        H.oval(H.cx, H.cy + 1, 7 + r + Math.sin(H.t * 30) * .3, 6 + r, '#ffe066', .25 + g * .2);
+        H.put(H.A(sh, 0));
+        for (let i = 0; i < 8; i++) H.sq(H.cx - 8 + hash(i, 6) * 16, H.feet - ((k * 4 + hash(i, 7)) % 1) * 15, .5, 1, '#fff6a8', .8);
+        if (k > .1) H.say('ジャン', H.cx - 6, H.top - 1, 20, '#ffe066', Math.min(1, (k - .1) * 8));
+        if (k > .4) H.say('ケン', H.cx + 6, H.top - 1, 20, '#ffe066', Math.min(1, (k - .4) * 8));
+      } else {
+        H.put(H.B());
+        const p = (k - .7) / .3;
+        H.ring(H.cx, H.cy, 3 + p * 14, '#fff6a8', 1 - p);
+        if (k < .76) H.dark(1 - (k - .7) / .06, '#ffffff');
+        H.say('グー！', H.cx, H.top - 1.5, 30, '#ff8a3a', 1.5 - p);
+      }
+    },
+    snd(s) { s(0, 100, 1.8, 'sawtooth', .04, 600); s(.27, 500, .12, 'square', .05); s(1.05, 650, .12, 'square', .05); s(1.82, 80, .5, 'triangle', .18, 40); s(1.82, 1500, .3, 'square', .04, 300); } },
+
+  { label: 'でんげき', col: '#7ad0ff',   // キルア：青い電気が バチバチ。マスが ちらちら 入れかわる
+    run(k, H) {
+      const step = Math.floor(H.t * 16);
+      H.put(H.mix(H.A(), H.B(), (u, v, i, j) => k > .95 || hash(i, j, step) < k * 1.15 - .1));
+      if (k < .95) for (let i = 0; i < 3; i++) {
+        const x = H.cx - 8 + hash(step, i) * 16, y = H.top + hash(step, i + 5) * 6;
+        H.bolt(x, y, y + 5 + hash(step, i + 9) * 5, step * 3 + i, '#7ad0ff', .5);
+      }
+      if (k < .95 && step % 7 === 0) H.dark(.15, '#7ad0ff');
+    },
+    snd(s) { for (let i = 0; i < 22; i++) s(i * .11, 1500 + hash(i, 2) * 1800, .04, 'square', .03); } },
+
+  { label: 'くさりが まく', col: '#c8ccd8',   // クラピカ：くさりが 下から ぐるぐる 巻きついて、ほどけると 変わっている
+    run(k, H) {
+      const L = Math.min(1, k / .6), drop = k > .7 ? ease((k - .7) / .3) : 0;
+      const links = [];
+      for (let s = 0; s < L * 15; s += .16) { const ang = s * 1.1 + H.t * 4; links.push([H.cx + Math.cos(ang) * 8, H.feet - s, Math.sin(ang) > 0, s]); }
+      const link = ([x, y, , s], col) => H.sq(x - .5, y + drop * (6 + s * .6) - .4, (s * 4 | 0) % 2 ? .5 : .9, .7, col, 1 - drop);
+      links.filter(l => !l[2]).forEach(l => link(l, '#8a90a0'));
+      H.put(H.mix(H.A(), H.B(), (u, v) => v > 1 - L * 1.02));
+      links.filter(l => l[2]).forEach(l => link(l, '#e8ecf4'));
+    },
+    snd(s) { for (let i = 0; i < 11; i++) s(i * .14, 1900 + (i % 3) * 350, .06, 'square', .03); s(1.85, 2400, .3, 'square', .03, 800); s(2.0, 1800, .3, 'square', .03, 600); } },
+
+  { label: 'トランプ', col: '#e8503a',   // ヒソカ：トランプが まわりを まわり、くるっと うらがえると 変わっている
+    run(k, H) {
+      const cards = [];
+      for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283 + H.t * 3; cards.push([H.cx + Math.cos(a) * 10, H.cy + Math.sin(a) * 2.5, Math.sin(a) > 0, i]); }
+      const card = ([x, y, , i], al) => { H.sq(x - .7, y - 1, 1.4, 2, '#f4f4f4', al); H.sq(x - .25, y - .3, .5, .6, i % 2 ? '#1a1a1a' : '#e02a3a', al); };
+      cards.filter(c => !c[2]).forEach(c => card(c, .55));
+      const sx = Math.cos(k * Math.PI);
+      H.put(k < .5 ? H.A() : H.B(), { sx: Math.max(.08, Math.abs(sx)) });
+      cards.filter(c => c[2]).forEach(c => card(c, 1));
+    },
+    snd(s) { for (let i = 0; i < 13; i++) s(i * .18, 2600, .03, 'square', .03, 1200); s(1.2, 400, .3, 'triangle', .05, 1200); } },
+
+  { label: 'はこに 入って', col: '#d8b070',   // レオリオ：上から 箱がかぶさり、がたがた ゆれて、箱が上がると 変わっている
+    run(k, H) {
+      let yb, shake = 0;
+      if (k < .25) yb = H.feet - (1 - ease(k / .25)) * 26;
+      else if (k < .6) { yb = H.feet; shake = Math.sin(H.t * 45) * .4; }
+      else yb = H.feet - ease((k - .6) / .3) * 26;
+      H.put(k < .4 ? H.A() : H.B());
+      const x = H.cx - 7.5 + shake, y = yb - 14;
+      H.sq(x, y, 15, 14, '#b07a40'); H.sq(x, y, 15, .6, '#8a5a28'); H.sq(x + 6.5, y, 2, 14, '#d8b070');
+      H.sq(x + 1, y + 10, 4, 2.5, '#f4ead0'); H.sq(x + 1.5, y + 10.6, 3, .4, '#8a5a28'); H.sq(x + 1.5, y + 11.5, 2, .4, '#8a5a28');
+      if (k > .3 && k < .6) H.say('？', H.cx + 6, y - 2, 30, '#ffe066', Math.sin((k - .3) * 30) > 0 ? 1 : .4);
+    },
+    snd(s) { s(.62, 90, .3, 'triangle', .16, 45); for (let i = 0; i < 6; i++) s(.8 + i * .14, 140, .06, 'square', .05); s(1.56, 400, .25, 'square', .05, 1300); } },
+
+  { label: 'ひろがる 円', col: '#c8a8e8',   // ネフェルピトー：体のまんなかから 円が広がって、円の中が 変わっていく
+    run(k, H) {
+      const r = ease(k) * 1.25;
+      H.put(H.mix(H.A(), H.B(), (u, v) => Math.hypot(u - .5, (v - .6) * 1.15) < r));
+      if (k < .97) { H.ring(H.cx, H.cy, r * 12, '#e8d8ff', .9); H.ring(H.cx, H.cy, r * 12 + .7, '#8a6ab8', .5); }
+    },
+    snd(s) { s(0, 80, 2.4, 'sine', .1, 160); s(0, 400, 2.4, 'triangle', .02, 900); } },
+
+  { label: 'まゆから 生まれる', col: '#5aa070',   // メルエム：まゆに つつまれ、ドクンドクン。ひびが入って われる
+    run(k, H) {
+      const L = Math.min(1, k / .35);
+      if (k < .7) {
+        H.put(H.A());
+        const pulse = k > .35 ? Math.max(0, Math.sin((k - .35) * 30)) * .15 : 0;
+        H.oval(H.cx, H.cy + .5, 8.5 + pulse * 3, 10, '#8a9a80', 1, 1 - L * 2, 1);
+        H.oval(H.cx - 1, H.cy, 6, 8, '#a8b89c', 1, 1 - L * 2, 1);
+        if (k > .45) { const n = (k - .45) / .25 * 6; for (let i = 0; i < n; i++) H.line(H.cx - 3 + hash(i, 1) * 6, H.cy - 6 + i * 2, H.cx - 3 + hash(i, 2) * 6, H.cy - 4 + i * 2, '#3a4a30', .3); }
+      } else {
+        H.put(H.B());
+        const p = ease((k - .7) / .3);
+        for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283; H.sq(H.cx + Math.cos(a) * (3 + p * 10) - 1, H.cy + Math.sin(a) * (3 + p * 6) + p * p * 8 - 1, 2, 2, i % 2 ? '#8a9a80' : '#a8b89c', 1 - p); }
+      }
+    },
+    snd(s) { [.95, 1.25, 1.55].forEach(T => { s(T, 70, .15, 'sine', .16); s(T + .15, 60, .12, 'sine', .12); }); s(1.82, 3000, .1, 'square', .04, 900); s(1.85, 200, .4, 'triangle', .1, 60); } },
+
+  { label: 'いのりの 手', col: '#f2c230',   // ネテロ：大きな金色の手が 両側から パン！と合わさる
+    run(k, H) {
+      const gap = k < .4 ? 2 + (1 - ease(k / .4)) * 18 : k < .5 ? 2 : 2 + ease((k - .5) / .4) * 20;
+      H.put(k < .45 ? H.A() : H.B());
+      const palm = (x0, dir) => {
+        H.sq(x0, H.top - 1, 8 * dir, 16, '#e0b030'); H.sq(x0 + .6 * dir, H.top - .4, 7 * dir, 15, '#f2c230');
+        for (let f = 0; f < 4; f++) H.sq(x0 + (1.2 + f * 1.7) * dir, H.top - 2.6, 1.2 * dir, 2.2, '#f2c230');
+        H.sq(x0 + 5 * dir, H.cy + 3, 2.5 * dir, .4, '#c89020');
+      };
+      if (gap < 21) { palm(H.cx - gap, -1); palm(H.cx + gap, 1); }
+      if (k >= .4 && k < .5) { H.dark(.6 * (1 - (k - .4) / .1), '#fff6d8'); H.say('パン！', H.cx, H.top - 2, 32, '#ffffff'); }
+    },
+    snd(s) { s(.2, 300, .8, 'sawtooth', .02, 900); s(1.04, 1200, .08, 'square', .1, 200); s(1.04, 200, .25, 'triangle', .16, 60); s(1.2, 523, 1.3, 'sine', .07); s(1.2, 784, 1.3, 'sine', .03); } },
+
+  { label: 'りんぷん', col: '#c8a8e8',   // シャウアプフ：むらさきの こなと 小さなちょうちょ。上から ふわふわ 変わる
+    run(k, H) {
+      H.put(H.mix(H.A(), H.B(), (u, v, i, j) => v + hash(i, j, 3) * .5 < k * 1.55));
+      for (let i = 0; i < 22; i++) { const x = H.cx - 10 + hash(i, 11) * 20 + Math.sin(H.t * 2 + i) * 2, y = H.feet - ((k * 1.5 + hash(i, 12)) % 1) * 18; H.sq(x, y, .4, .4, i % 3 ? '#c8a8e8' : '#ffffff', .8); }
+      for (let i = 0; i < 4; i++) {
+        const a = H.t * 2 + i * 1.6, x = H.cx + Math.cos(a) * 9, y = H.cy - 2 + Math.sin(a * 2) * 4, f = Math.sin(H.t * 20 + i) > 0 ? .8 : .4;
+        H.sq(x - f, y, f, .8, '#8a6ab8'); H.sq(x + .2, y, f, .8, '#8a6ab8'); H.sq(x - .1, y, .3, .9, '#1a1a1a');
+      }
+    },
+    snd(s) { for (let i = 0; i < 16; i++) s(i * .15, 1800 + hash(i, 4) * 1400, .15, 'sine', .022); } },
+
+  { label: 'ほんとうの すがた', col: '#ff7ab8',   // ビスケ：むくむく大きくなって ポン！小さくなって もどると 変わっている
+    run(k, H) {
+      if (k < .4) { const g = ease(k / .4); H.put(H.A((hash(Math.floor(H.t * 25)) - .5) * g * .6), { s: 1 + g * .75, py: H.feet }); }
+      else if (k < .48) { H.dark(1 - (k - .4) / .08, '#ffffff'); H.say('ポン！', H.cx, H.cy, 34, '#ff7ab8'); }
+      else {
+        const p = ease((k - .48) / .4);
+        H.put(H.B(), { s: .2 + p * .8, py: H.feet });
+        for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283 + H.t; H.heart(H.cx + Math.cos(a) * (4 + p * 6), H.cy + Math.sin(a) * (3 + p * 4), '#ff7ab8', 1 - p * .7); }
+      }
+    },
+    snd(s) { s(0, 200, 1.04, 'square', .03, 520); s(1.04, 900, .12, 'square', .07, 200); [784, 988, 1175, 1319, 1568].forEach((f, i) => s(1.3 + i * .12, f, .2, 'sine', .04)); } },
+
+  { label: '本の ページ', col: '#e0c080',   // クロロ：ページを めくるたびに ちがう人になり、3まい目で 変身
+    run(k, H) {
+      const stage = Math.min(2, Math.floor(k * 3)), p = ease((k * 3 - stage) / .8);
+      const others = [PLAIN, COS[(cur + 7) % COS.length], COS[(cur + 17) % COS.length], COS[cur]];
+      const a = H.X(0, others[stage]), b = H.X(1, others[stage + 1]);
+      const edge = 1.15 - p * 1.3;
+      H.put(H.mix(a, b, u => u > edge));
+      if (p < 1) { const x = OX + edge * 12, w = Math.sin(p * Math.PI) * 2.5; H.sq(x - w, H.top - 1, w, 16, '#f4ead0', .9); H.sq(x - .3, H.top - 1, .3, 16, '#8a6a4a', .8); }
+    },
+    snd(s) { [0, .87, 1.73].forEach(T => { s(T + .1, 2500, .25, 'sawtooth', .015, 600); s(T + .35, 600, .08, 'triangle', .04); }); } },
+
+  { label: 'スロット', col: '#ffd23a',   // カイト：スロットが まわって、ゆっくり止まると 変身
+    run(k, H) {
+      const X0 = H.cx - 9, Y0 = H.top - 2.5, W = 18, Hh = 18;
+      H.sq(X0 - 1, Y0 - 1, W + 2, Hh + 2, '#c8a040'); H.sq(X0, Y0, W, Hh, '#0f1028');
+      for (let i = 0; i < 10; i++) H.sq(X0 - 1 + i * 2.2, Y0 - 1, .8, .8, (i + Math.floor(H.t * 8)) % 2 ? '#ff5a5a' : '#ffe066');
+      let cos;
+      if (k < .1) cos = PLAIN;
+      else if (k < .85) { let tt = 0, n = 0; const kk = (k - .1) * FXLEN; while (tt < kk) { tt += .04 + (tt / FXLEN) ** 2 * .9; n++; } cos = COS[Math.floor(hash(n, 13) * COS.length)]; }
+      else cos = COS[cur];
+      const cv = H.X(0, cos);
+      H.put(cv, { poly: [[X0, Y0], [X0 + W, Y0], [X0 + W, Y0 + Hh], [X0, Y0 + Hh]] });
+      if (k > .85) H.say('★ ★ ★', H.cx, Y0 - 2, 22, '#ffe066', Math.sin(H.t * 20) > 0 ? 1 : .4);
+    },
+    snd(s) { let tt = 0; while (tt < 1.95) { s(.26 + tt, 1200, .03, 'square', .03); tt += .04 + (tt / 2.6) ** 2 * .9; } [784, 988, 1175, 1568, 1976].forEach((f, i) => s(2.21 + i * .07, f, .2, 'square', .04)); } },
+
+  { label: 'まっくら おねがい', col: '#ff9dc8',   // アルカ：まっくらになって 光る目だけ。明るくなると 変わっている
+    run(k, H) {
+      const d = k < .3 ? k / .3 : k < .65 ? 1 : 1 - ease((k - .65) / .35);
+      H.put(k < .47 ? H.A() : H.B());
+      H.dark(d);
+      if (d > .7) {
+        const blink = k > .48 && k < .52;
+        [[OX + 3, OY + 1], [OX + 8, OY + 1]].forEach(([x, y]) => { H.sq(x - .5, y - .5, 2, 2, '#3a3a8a', .6); if (!blink) H.sq(x, y, 1, 1, '#c8d8ff'); });
+        if (k > .52 && k < .65) H.say('おねがい', H.cx, H.top - 1, 22, '#c8a8e8', (k - .52) * 15);
+      }
+    },
+    snd(s) { s(0, 70, 1.6, 'sine', .08); s(1.25, 1568, .7, 'sine', .03); [523, 659, 784, 1047].forEach((f, i) => s(1.75 + i * .1, f, .3, 'triangle', .04)); } },
+
+  { label: 'ふくらんで ばくはつ', col: '#ff5a3a',   // モントゥトゥユピー：ぷくーっと ふくらんで、ばくはつ！けむりが はれると 変わっている
+    run(k, H) {
+      if (k < .55) {
+        const g = ease(k / .55), sh = (hash(Math.floor(H.t * 30)) - .5) * g * 1.2;
+        H.put(H.A(sh), { s: 1 + g, py: H.feet });
+        if (g > .5) for (let i = 0; i < 3; i++) H.oval(H.cx - 8 + i * 8, H.top - 2 - ((H.t * 3 + i * .3) % 1) * 4, .8, .8, '#f4f4f4', .6);
+      } else {
+        H.put(H.B());
+        const p = (k - .55) / .45;
+        for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283, r = 3 + ease(p) * 9; H.oval(H.cx + Math.cos(a) * r, H.cy + Math.sin(a) * r * .7, 4 - p * 2, 3.5 - p * 2, i % 2 ? '#8a8a90' : '#b8b8c0', 1.2 - p); }
+        H.oval(H.cx, H.cy, 7 * (1 - p), 6 * (1 - p), '#c8c8d0', 1 - p);
+        if (p < .15) H.dark(.8 * (1 - p / .15), '#ff8a3a');
+      }
+    },
+    snd(s) { s(0, 150, 1.43, 'sawtooth', .035, 420); s(1.43, 60, .9, 'sawtooth', .13, 25); s(1.43, 300, .5, 'square', .04, 60); } },
+
+  { label: 'はりを さす', col: '#c8ccd8',   // イルミ：はりが 次々ささって、ザザッと 画面がみだれて 変わる
+    run(k, H) {
+      const pts = [[2, -3], [-3, -1], [4, 1], [-2, 2], [3, 3.5], [0, -4]];
+      let cv;
+      if (k < .5) cv = H.A();
+      else if (k < .85) {
+        const g = (k - .5) / .35, step = Math.floor(H.t * 14), a = H.A(), b = H.B();
+        mixG.clearRect(0, 0, mixCv.width, mixCv.height);
+        for (let y = MY0, j = 0; y < MY1; y += CELL, j++) {
+          const src = hash(j, step, 2) < g ? b : a, sh = (hash(j, step) - .5) * 4 * BQQ * Math.sin(g * Math.PI);
+          mixG.drawImage(src, 0, y, mixCv.width, CELL, sh, y, mixCv.width, CELL);
+        }
+        cv = mixCv;
+      } else cv = H.B();
+      H.put(cv);
+      pts.forEach(([x, y], i) => {
+        const at = .07 * (i + 1); if (k < at - .07) return;
+        const fly = Math.min(1, (k - (at - .07)) / .07), fall = k > .85 ? ease((k - .85) / .15) * 8 : 0;
+        const px = H.cx + x + (1 - fly) * 14, py = H.cy + y + fall;
+        H.line(px, py, px + 3, py - 1, '#c8ccd8', .3, 1 - fall / 8); H.sq(px + 2.8, py - 1.3, .6, .6, '#e8e8f0', 1 - fall / 8);
+      });
+    },
+    snd(s) { for (let i = 0; i < 6; i++) s(.18 * (i + 1), 3000, .04, 'square', .045); for (let i = 0; i < 9; i++) s(1.3 + i * .1, 120 + hash(i) * 200, .08, 'square', .04); } },
+
+  { label: 'かさで かくす', col: '#8a2030',   // フェイタン：かさが ひらいて体をかくし、くるくる回して、とじると 変わっている
+    run(k, H) {
+      const open = k < .25 ? ease(k / .25) : k < .7 ? 1 : 1 - ease((k - .7) / .3);
+      const up = k > .7 ? ease((k - .7) / .3) * 12 : 0;
+      H.put(k < .45 ? H.A() : H.B());
+      const R = 10 * open, cy = H.cy - up, rot = H.t * 6;
+      if (R > .5) {
+        for (let y = -R; y < R; y += .5) for (let x = -R; x < R; x += .5) {
+          if (x * x + y * y > R * R) continue;
+          const sec = Math.floor(((Math.atan2(y, x) + rot) / 6.283 * 8 % 8 + 8) % 8);
+          H.sq(H.cx + x, cy + y, .5, .5, sec % 2 ? '#2a2a30' : '#3a3a44');
+        }
+        H.ring(H.cx, cy, R, '#8a2030', 1); H.sq(H.cx - .4, cy - .4, .8, .8, '#8a2030');
+      }
+      H.sq(H.cx - .2, cy, .4, 3, '#5a5a60');
+    },
+    snd(s) { s(0, 600, .25, 'sawtooth', .04, 180); s(.65, 300, 1.17, 'triangle', .03, 520); s(1.82, 180, .25, 'sawtooth', .04, 600); } },
+
+  { label: '軍儀の 盤', col: '#e0c080',   // コムギ：盤のマスに こまを打つように、1マスずつ 変わっていく
+    run(k, H) {
+      const X0 = OX - 1, Y0 = H.top - 1, S = 15 / 9;
+      H.sq(X0, Y0, 15, 16, '#c8a060', .25 * Math.min(1, k * 5) * (k > .9 ? (1 - k) * 10 : 1));
+      H.put(H.mix(H.A(), H.B(), (u, v) => {
+        const ci = Math.floor(((u * 12 + OX) - X0) / S), cj = Math.floor(((v * 14 + H.top) - Y0) / S);
+        return hash(ci, cj, 5) < k * 1.12 - .06;
+      }));
+      if (k < .95) for (let i = 0; i <= 9; i++) { H.sq(X0 + i * S, Y0, .15, 15, '#8a6a3a', .7); H.sq(X0, Y0 + i * S, 15, .15, '#8a6a3a', .7); }
+    },
+    snd(s) { for (let i = 0; i < 14; i++) s(.1 + i * .17, 900, .05, 'square', .05, 500); } },
+
+  { label: '竜が まわる', col: '#8ad8f0',   // ゼノ：青い竜が 体のまわりを ひとまわり。竜が通ったところから 変わる
+    run(k, H) {
+      const turn = ease(k) * 1.05;
+      H.put(H.mix(H.A(), H.B(), (u, v) => ((Math.atan2(u - .5, -(v - .6)) / 6.283) + 1) % 1 < turn));
+      if (k < .97) for (let i = 13; i >= 0; i--) {
+        const a = turn * 6.283 - i * .16, x = H.cx + Math.sin(a) * 10, y = H.cy - Math.cos(a) * 7;
+        const s = i === 0 ? 1.8 : 1.2 - i * .05;
+        H.sq(x - s / 2, y - s / 2, s, s, i === 0 ? '#bfefff' : i % 2 ? '#8ad8f0' : '#5ab0d0');
+        if (i === 0) { H.sq(x - .2, y - .2, .4, .4, '#c0262c'); }
+      }
+    },
+    snd(s) { s(0, 150, 2.4, 'sawtooth', .025, 320); for (let i = 0; i < 8; i++) s(i * .3, [523, 587, 659, 784, 880, 988, 1175, 1319][i], .25, 'sine', .035); } },
+];
+
+// ---------- 変身したあとの 決めの動き（COS と同じ順番） ----------
+// run(k, H)：k は 0→1。snd(s)：変身が終わったところからの秒で 音を予約
+const ACT = [
+  { // ピヨン：左右に ぴょこぴょこ はねて、ハートが ふわり
+    run(k, H) {
+      const xs = [0, -4, 0, 4, 0], n = Math.min(3, Math.floor(k * 4)), p = k >= 1 ? 1 : (k * 4) % 1;
+      const dx = xs[n] + (xs[n + 1] - xs[n]) * ease(p), dy = -Math.sin(p * Math.PI) * 3;
+      H.put(H.B(dx, dy));
+      for (let i = 0; i < 4; i++) { const q = (k * 2 + i * .25) % 1; H.heart(H.cx - 6 + i * 4, H.top + 4 - q * 6, '#ff9db8', 1 - q); }
+    },
+    snd(s) { for (let i = 0; i < 4; i++) s(i * .55, 350, .25, 'square', .04, 900); } },
+
+  { // サッチョウ：かまえて ふみこみ、刀で シャキン
+    run(k, H) {
+      const dx = k < .3 ? -ease(k / .3) * .8 : k < .4 ? -.8 + ease((k - .3) / .1) * 3.8 : 3 - ease((k - .6) / .4) * 3 * (k > .6);
+      H.put(H.B(dx, k < .3 ? .4 : 0));
+      if (k > .35 && k < .7) {
+        const a = 1 - (k - .35) / .35;
+        for (let i = 0; i <= 20; i++) { const an = -1.3 + i / 20 * 2.6; H.sq(H.cx + dx + 5 + Math.cos(an) * 6, H.cy + Math.sin(an) * 7, .7, .7, '#ffffff', a); }
+        H.say('シャキン', H.cx + 6, H.top + 1.8, 24, '#c8b0ff', a * 1.5);
+      }
+    },
+    snd(s) { s(.75, 3200, .35, 'sawtooth', .04, 400); s(.8, 2400, .2, 'square', .03, 2800); } },
+
+  { // ゲル：へびのように 体を くねくね
+    run(k, H) {
+      const b = H.B(), amp = Math.sin(k * Math.PI) * 1.4;
+      mixG.clearRect(0, 0, mixCv.width, mixCv.height);
+      for (let y = MY0, j = 0; y < MY1; y += CELL, j++) mixG.drawImage(b, 0, y, mixCv.width, CELL, Math.sin(j * .35 + H.t * 7) * amp * BQQ, y, mixCv.width, CELL);
+      H.put(mixCv);
+      for (let i = 0; i < 6; i++) H.sq(H.cx - 9 + i * 1.2 + k * 10, H.feet - .6 + Math.sin(i + H.t * 8) * .3, 1.2, .6, '#6a4a98', Math.sin(k * Math.PI));
+    },
+    snd(s) { s(.2, 4000, .9, 'sawtooth', .012, 2500); s(1.2, 4000, .7, 'sawtooth', .01, 2500); } },
+
+  { // ボトバイ：ドン！ドン！と 足ぶみして、地面が ゆれる
+    run(k, H) {
+      const n = k < .5 ? 0 : 1, p = (k % .5) / .5;
+      const dy = p < .6 ? -Math.sin(p / .6 * Math.PI / 2) * 2 : 0, hit = p >= .6 && p < .8;
+      const sh = hit ? (hash(Math.floor(H.t * 40)) - .5) * 1.2 : 0;
+      H.put(H.B(sh, dy + sh * .5));
+      if (p >= .6) { const q = (p - .6) / .4; for (let i = -1; i <= 1; i += 2) H.oval(H.cx + i * (4 + q * 5), H.feet - .5, 2 - q, 1, '#c8b8a0', 1 - q); }
+      if (hit) H.say('ドン！', H.cx + (n ? 7 : -7), H.top + 1.8, 28, '#ff6a5a');
+    },
+    snd(s) { [.6, 1.7].forEach(T => { s(T, 70, .3, 'triangle', .2, 35); s(T, 160, .15, 'square', .05, 60); }); } },
+
+  { // ギンタ：びっくりして アフロごと ぼよんぼよん
+    run(k, H) {
+      const w = Math.sin(k * Math.PI * 6) * .15 * (1 - k);
+      H.put(H.B(), { sx: 1 - w, sy: 1 + w, py: H.feet });
+      H.say('！？', H.cx + 8, H.top + 1.8, 28, '#ffe066', k < .8 ? 1 : (1 - k) * 5);
+      const q = (k * 2) % 1; H.sq(H.cx + 5, H.top + 3 + q * 3, .6, .9, '#7ad0ff', 1 - q);
+    },
+    snd(s) { s(0, 900, .15, 'square', .05, 1500); for (let i = 0; i < 6; i++) s(.1 + i * .37, 160, .2, 'sine', .1, 320); } },
+
+  { // ミザイストム：のっしのっし 歩いて ふり返り「モ〜」
+    run(k, H) {
+      const right = k < .5, p = right ? k / .5 : (k - .5) / .5;
+      const dx = right ? Math.sin(p * Math.PI) * 5 : -Math.sin(p * Math.PI) * 5;
+      H.put(H.B(0, 0, 'walk', H.t * 1.5), { sx: right ? 1 : -1, dx });
+      if (k > .4 && k < .9) H.say('モ〜', H.cx + (right ? 7 : -7), H.top + 1.8, 26, '#f4f4f4', 1);
+    },
+    snd(s) { s(1.0, 150, .9, 'sawtooth', .05, 115); s(1.0, 300, .9, 'sine', .03, 230); } },
+
+  { // クルック：羽ばたいて 空へ、ふわりと おりてくる
+    run(k, H) {
+      const dy = -Math.sin(k * Math.PI) * 6;
+      H.put(H.B(0, dy, 'jump', 0));
+      for (let i = 0; i < 6; i++) { const q = (k * 1.5 + i / 6) % 1, x = H.cx - 6 + i * 2.4 + Math.sin(H.t * 3 + i) * 1.2; H.sq(x, H.cy + dy + q * 10, 1.4, .5, '#f4f4f4', 1 - q); H.sq(x + 1, H.cy + dy + q * 10, .5, .5, '#3cb0d8', 1 - q); }
+    },
+    snd(s) { for (let i = 0; i < 9; i++) s(i * .22, 500, .12, 'triangle', .05, 300); } },
+
+  { // カンザイ：バットで 打って「カキーン！」
+    run(k, H) {
+      H.put(H.B(k > .42 && k < .5 ? .6 : 0));
+      const pvx = H.cx + 6, pvy = H.cy + 1;
+      const ang = k < .4 ? -2.4 + ease(k / .4) * .4 : k < .5 ? -2 + ease((k - .4) / .1) * 3.6 : 1.6;
+      H.line(pvx, pvy, pvx + Math.cos(ang) * 6, pvy + Math.sin(ang) * 6, '#c08a50', .8);
+      if (k < .45) { const q = k / .45; H.sq(30 - q * (30 - pvx - 3), H.cy - 1 + q * 1.5, .9, .9, '#ffffff'); }
+      else { const q = (k - .45) / .55; H.sq(pvx + 2 - q * 20, H.cy - 1 - q * 14 + q * q * 4, .9, .9, '#ffffff', 1 - q * .5); }
+      if (k > .45 && k < .85) H.say('カキーン！', H.cx, H.top + 1.8, 28, '#ffd23a');
+    },
+    snd(s) { s(1.0, 1800, .05, 'square', .08, 900); s(1.0, 900, .5, 'triangle', .08, 1800); } },
+
+  { // チードル：うんうん うなずいて、メガネが キラッ
+    run(k, H) {
+      const dy = Math.max(0, Math.sin(k * Math.PI * 4)) * .7;
+      H.put(H.B(0, dy));
+      [.3, .75].forEach(t0 => { if (k > t0 && k < t0 + .1) { H.sq(H.cx - 3.4, H.cy - 2.4 + dy, 1.6, 1.6, '#ffffff', .9); H.sq(H.cx + 1.6, H.cy - 2.4 + dy, 1.6, 1.6, '#ffffff', .9); H.star(H.cx + 4.5, H.cy - 3.5 + dy, '#ffffff'); } });
+      H.say('フムフム', H.cx + 7, H.top + 1.8, 20, '#6fe0a0', k < .9 ? 1 : (1 - k) * 10);
+    },
+    snd(s) { s(.66, 2600, .12, 'sine', .05); s(1.65, 2600, .12, 'sine', .05); [.2, .75, 1.3, 1.85].forEach(T => s(T, 500, .06, 'triangle', .05)); } },
+
+  { // ジン：きょろきょろ 見回して、ニッと わらう
+    run(k, H) {
+      const flip = k < .25 ? 1 : k < .5 ? -1 : k < .7 ? 1 : 1;
+      H.put(H.B(0, k > .7 ? -Math.abs(Math.sin((k - .7) * 20)) * .8 : 0), { sx: flip });
+      if (k > .7) { H.say('ニッ', H.cx + 7, H.top + 1.8, 26, '#ffe066'); for (let i = 0; i < 4; i++) H.sq(H.cx - 7 + hash(i, 2) * 14, H.top + hash(i, 3) * 6, .6, .6, '#ffe066', Math.sin(H.t * 15 + i) > 0 ? 1 : .2); }
+    },
+    snd(s) { s(.5, 1200, .3, 'sine', .04, 1800); s(1.1, 1800, .3, 'sine', .04, 1200); s(1.6, 800, .1, 'square', .04); } },
+
+  { // パリストン：うやうやしく おじぎ。バラの花びらと はくしゅ
+    run(k, H) {
+      const bow = Math.max(0, Math.sin(k * Math.PI * 2)) * .4;
+      H.put(H.B(), { rot: bow, py: H.feet });
+      for (let i = 0; i < 10; i++) { const q = (k + hash(i, 8)) % 1; H.sq(H.cx - 10 + hash(i, 9) * 20 + Math.sin(H.t * 4 + i), q * 18, .7, .5, '#e02a4a', .9); }
+    },
+    snd(s) { for (let i = 0; i < 14; i++) s(.3 + i * .09 + hash(i) * .04, 1500 + hash(i, 1) * 1500, .03, 'square', .03); } },
+
+  { // サイユウ：くるっと ちゅうがえり「ウキッ」
+    run(k, H) {
+      const p = Math.min(1, k / .8), dy = -Math.sin(p * Math.PI) * 6;
+      H.put(H.B(0, dy), { rot: -ease(p) * Math.PI * 2 });
+      if (k > .8) H.say('ウキッ', H.cx + 7, H.top + 1.8, 26, '#ffd84a');
+    },
+    snd(s) { s(0, 300, .9, 'triangle', .05, 1200); s(1.8, 1400, .08, 'square', .05, 2200); s(1.9, 1600, .1, 'square', .05, 2400); } },
+
+  { // ゴン：グーに 力をこめて「ジャジャン拳！」
+    run(k, H) {
+      const punch = k > .55 ? Math.min(1, (k - .55) / .08) : 0;
+      if (k < .55) H.oval(H.cx + 7, H.cy, 2 + Math.sin(H.t * 30) * .3 + k * 2, 2 + k * 2, '#ffe066', .5);
+      H.put(H.B(punch * 2.5 - (k < .55 ? .6 : 0)));
+      if (k > .55) {
+        const q = (k - .55) / .45;
+        for (let i = 0; i < 6; i++) H.sq(H.cx + 9 + q * 6 + hash(i, 5) * 4, H.cy - 3 + i * 1.2, 3, .3, '#fff6a8', 1 - q);
+        H.oval(H.cx + 11.5, H.cy + .5, 1.5 + q * 4, 1.5 + q * 4, '#ffe066', 1 - q);
+        H.say('ジャジャン拳！', H.cx, H.top + 1.8, 26, '#ff8a3a');
+      }
+    },
+    snd(s) { s(0, 200, 1.2, 'sawtooth', .04, 700); s(1.2, 90, .5, 'triangle', .18, 40); s(1.2, 1200, .3, 'square', .05, 300); } },
+
+  { // キルア：神速で あちこちに 消えては あらわれる（残像つき）
+    run(k, H) {
+      const P = [[0, 0], [-7, -2], [6, -3], [-4, 0], [7, 0], [0, 0]];
+      const n = Math.min(P.length - 1, Math.floor(k * 6));
+      for (let i = Math.max(0, n - 2); i < n; i++) H.put(H.B(P[i][0], P[i][1]), { a: .25 + (i - n + 2) * .1 });
+      H.put(H.B(P[n][0], P[n][1]));
+      if (n > 0 && k < .95) { const [x0, y0] = P[n - 1], [x1, y1] = P[n]; H.bolt(H.cx + x0, H.cy + y0 - 3, H.cy + y0 + 3, n, '#7ad0ff', .4); H.line(H.cx + x0, H.cy + y0, H.cx + x1, H.cy + y1, '#bfe8ff', .3, .6); }
+    },
+    snd(s) { for (let i = 1; i < 6; i++) s(i * .367, 2400, .08, 'square', .04, 600); } },
+
+  { // クラピカ：くさりを 頭の上で ふり回し、目が 赤くなる
+    run(k, H) {
+      H.put(H.B());
+      for (let i = 0; i < 18; i++) { const a = i / 18 * 6.283 + H.t * 9; H.sq(H.cx + Math.cos(a) * 5 - .3, H.top + 2 + Math.sin(a) * 1.4, (i % 2 ? .4 : .8), .5, '#e8ecf4'); }
+      H.line(H.cx + 6.5, H.cy - 1, H.cx + 5, H.top + 2, '#c8ccd8', .3);
+      if (k > .35) { const a = Math.min(1, (k - .35) * 6); H.sq(H.cx - 3, H.cy - 2, 1, 1, '#ff2a3a', a); H.sq(H.cx + 2, H.cy - 2, 1, 1, '#ff2a3a', a); }
+    },
+    snd(s) { for (let i = 0; i < 14; i++) s(i * .15, 2200 + (i % 2) * 400, .05, 'square', .025); s(.77, 220, .8, 'sine', .06, 180); } },
+
+  { // ヒソカ：トランプを 3まい 投げる
+    run(k, H) {
+      H.put(H.B(0, 0), { rot: Math.sin(H.t * 3) * .06, py: H.feet });
+      for (let i = 0; i < 3; i++) {
+        const q = (k - i * .22) / .35; if (q < 0 || q > 1) continue;
+        const x = H.cx + 7 + q * 20, y = H.cy - 1 + i * 1.5 - Math.sin(q * Math.PI) * 2, w = Math.abs(Math.cos(q * 20)) * 1.4 + .2;
+        H.sq(x - w / 2, y - 1, w, 2, '#f4f4f4'); H.sq(x - .2, y - .3, .4, .6, i === 1 ? '#1a1a1a' : '#e02a3a');
+      }
+      H.say('♠♥♣', H.cx - 7, H.top + 1.8, 22, '#e8503a', Math.sin(k * Math.PI) * 1.5);
+    },
+    snd(s) { [0, .48, .97].forEach(T => s(T + .1, 3000, .15, 'sawtooth', .025, 900)); } },
+
+  { // レオリオ：地面を なぐると、こぶしが べつの場所から とび出す
+    run(k, H) {
+      const down = k > .3 && k < .5;
+      H.put(H.B(0, k < .3 ? -ease(k / .3) : down ? .5 : 0));
+      if (k > .3) { H.oval(H.cx - 7, H.feet, 1.6, .5, '#000000', .9); H.oval(H.cx + 9, H.feet, 1.6, .5, '#000000', .9); }
+      if (k > .45 && k < .9) { const q = Math.sin((k - .45) / .45 * Math.PI); H.sq(H.cx + 8, H.feet - q * 5, 2, q * 5, '#d97757'); H.sq(H.cx + 7.6, H.feet - q * 5 - .2, 2.8, 1.6, '#d97757'); H.sq(H.cx + 7.6, H.feet - q * 5 + .6, 2.8, .2, '#a85030'); }
+      if (down) H.say('ドゴッ', H.cx - 7, H.top + 1.8, 24, '#ffe066');
+    },
+    snd(s) { s(.66, 80, .3, 'triangle', .2, 40); s(1.0, 400, .2, 'square', .05, 1200); } },
+
+  { // ネフェルピトー：ねこのように かがんで、ぴょーんと とびかかる
+    run(k, H) {
+      let dx = 0, dy = 0, sy = 1;
+      if (k < .3) sy = 1 - ease(k / .3) * .2;
+      else if (k < .7) { const q = (k - .3) / .4; dx = q * 7; dy = -Math.sin(q * Math.PI) * 5; }
+      else { const q = (k - .7) / .3; dx = 7 - ease(q) * 7; dy = -Math.sin(q * Math.PI) * 1.5; }
+      H.put(H.B(dx, dy), { sy, py: H.feet });
+      if (k > .3 && k < .6) H.say('にゃ', H.cx + dx + 6, H.top + 1.8 + dy, 24, '#e8d8ff');
+    },
+    snd(s) { s(.66, 600, .3, 'triangle', .05, 1400); s(.75, 1300, .25, 'sine', .04, 900); s(1.54, 200, .1, 'triangle', .08); } },
+
+  { // メルエム：むらさきの オーラが うずまいて、ゆっくり うき上がる
+    run(k, H) {
+      const dy = -Math.sin(k * Math.PI) * 1.5;
+      H.oval(H.cx, H.cy + dy, 9 + Math.sin(H.t * 8) * .4, 9, '#3a1a5a', .55 * Math.sin(k * Math.PI));
+      for (let i = 0; i < 3; i++) { const r = ((k * 3 + i / 3) % 1); H.ring(H.cx, H.cy + dy, 5 + r * 10, '#8a4ab8', 1 - r, 4 + r * 7); }
+      H.put(H.B(0, dy));
+    },
+    snd(s) { s(0, 55, 2.1, 'sawtooth', .04, 45); s(0, 110, 2.1, 'sine', .05, 90); } },
+
+  { // ネテロ：手を合わせると、うしろに 大きな 観音さまの 光
+    run(k, H) {
+      const a = Math.sin(Math.min(1, k * 1.3) * Math.PI / 2) * (k > .85 ? (1 - k) / .15 : 1);
+      H.oval(H.cx, H.top - 1, 4, 4, '#f2c230', a * .45);
+      H.oval(H.cx, H.cy + 1, 9, 8, '#f2c230', a * .3);
+      for (let i = 0; i < 12; i++) { const an = Math.PI + i / 11 * Math.PI; H.line(H.cx + Math.cos(an) * 6, H.cy + Math.sin(an) * 5, H.cx + Math.cos(an) * 13, H.cy + Math.sin(an) * 9, '#ffe066', .6, a * .7); }
+      H.put(H.B());
+      H.sq(H.cx - .6, H.cy + 0, 1.2, 1.6, '#e0b090');
+    },
+    snd(s) { s(.1, 262, 2, 'sine', .08); s(.1, 392, 2, 'sine', .04); s(.1, 523, 2, 'sine', .03); } },
+
+  { // シャウアプフ：ふわふわ うかんで、たくさんの ちょうちょに わかれて 飛ぶ
+    run(k, H) {
+      const dy = -1 - Math.sin(H.t * 3) * 1;
+      H.put(H.B(0, dy));
+      for (let i = 0; i < 12; i++) {
+        const q = (k * 1.2 + i / 12) % 1, a = i / 12 * 6.283, x = H.cx + Math.cos(a) * q * 14, y = H.cy + Math.sin(a) * q * 9 + dy, f = Math.sin(H.t * 20 + i) > 0 ? .7 : .3;
+        H.sq(x - f, y, f, .7, '#8a6ab8', 1 - q); H.sq(x + .2, y, f, .7, '#8a6ab8', 1 - q);
+      }
+    },
+    snd(s) { for (let i = 0; i < 10; i++) s(i * .2, 2000 + hash(i, 3) * 1000, .12, 'sine', .025); } },
+
+  { // ビスケ：かわいく ゆれて「キラッ☆」
+    run(k, H) {
+      H.put(H.B(), { rot: Math.sin(k * Math.PI * 4) * .18, py: H.feet });
+      for (let i = 0; i < 5; i++) { const q = (k * 2 + i / 5) % 1; H.star(H.cx - 9 + i * 4.5, H.top + 2 - q * 3, '#ffe066', 1 - q); }
+      if (k > .5) H.say('キラッ☆', H.cx + 7, H.top + 1.8, 24, '#ff7ab8');
+    },
+    snd(s) { [1047, 1319, 1568, 2093].forEach((f, i) => s(.2 + i * .25, f, .25, 'sine', .04)); s(1.1, 2637, .4, 'sine', .04); } },
+
+  { // クロロ：本が ういて ひらき、ページが 光る
+    run(k, H) {
+      H.put(H.B());
+      const o = ease(Math.min(1, k / .4)), x = H.cx - 9, y = H.cy - 2 - Math.sin(H.t * 2) * .5;
+      H.sq(x - 2 * o, y, 2 * o, 3, '#8a4a2a'); H.sq(x, y, 2 * o, 3, '#8a4a2a');
+      if (o > .5) { H.sq(x - 1.8 * o, y + .3, 1.6 * o, 2.4, '#f4ead0'); H.sq(x + .2, y + .3, 1.6 * o, 2.4, '#f4ead0'); }
+      for (let i = 0; i < 6; i++) { const q = (k * 2 + i / 6) % 1; H.sq(x - 1 + hash(i, 4) * 2, y - q * 6, .5, .5, '#c8a8ff', (1 - q) * o); }
+      if (k > .4) H.sq(H.cx - .3, H.top + 5.8, .6, .6, '#c8a8ff', Math.sin(H.t * 10) > 0 ? 1 : .3);
+    },
+    snd(s) { s(.2, 2000, .3, 'sawtooth', .015, 500); s(.9, 392, 1, 'sine', .05); s(.9, 494, 1, 'sine', .03); } },
+
+  { // カイト：大がまを ぐるりと ひとふり
+    run(k, H) {
+      const spin = k < .2 ? 0 : k < .6 ? ease((k - .2) / .4) * Math.PI * 2 : Math.PI * 2;
+      H.put(H.B(), { sx: Math.cos(spin) < 0 ? -1 : 1 });
+      if (k > .2 && k < .8) { const a = 1 - Math.max(0, (k - .6) / .2); for (let i = 0; i < 30; i++) { const an = spin - i * .12; H.sq(H.cx + Math.cos(an) * 10, H.cy + Math.sin(an) * 4, .8, .5, '#e8ecf4', a * (1 - i / 30)); } }
+      if (k > .6) H.say('シュン', H.cx + 8, H.top + 1.8, 22, '#c8ccd8', (1 - k) * 4);
+    },
+    snd(s) { s(.45, 300, .9, 'sawtooth', .03, 1500); } },
+
+  { // アルカ：ぴょこぴょこ はねて、花が ぽんぽん さく
+    run(k, H) {
+      H.put(H.B(0, -Math.abs(Math.sin(k * Math.PI * 3)) * 1.5));
+      for (let i = 0; i < 5; i++) {
+        const t0 = i * .17, q = (k - t0) / .3; if (q < 0) continue;
+        const x = H.cx - 9 + i * 4.5, y = H.feet - 1 - (i % 2) * 6 - Math.min(q, 1) * 1, r = Math.min(1, q * 2) * .8;
+        H.sq(x - r, y, r * 2, r * 2, '#ff9dc8', q > 1.6 ? 0 : 1); H.sq(x - .2, y + r - .2, .4, .4, '#ffe066', q > 1.6 ? 0 : 1);
+      }
+      H.say('♪', H.cx + 7, H.top + 1.8 - Math.sin(k * 10), 26, '#ff9dc8');
+    },
+    snd(s) { [659, 784, 880, 1047, 1175].forEach((f, i) => s(i * .37, f, .2, 'triangle', .05)); } },
+
+  { // モントゥトゥユピー：大きく ほえる「ガアアア！」画面が ゆれる
+    run(k, H) {
+      const roar = k > .2 && k < .85, sh = roar ? (hash(Math.floor(H.t * 40)) - .5) * 1 : 0;
+      H.put(H.B(sh, 0), { s: roar ? 1.1 : 1, py: H.feet });
+      if (roar) { for (let i = 0; i < 3; i++) { const r = ((k * 4 + i / 3) % 1); H.ring(H.cx, H.cy, 4 + r * 14, '#ff5a3a', 1 - r, 3 + r * 9); } H.say('ガアアア！', H.cx, H.top + 1.8, 30, '#ff5a3a'); }
+    },
+    snd(s) { s(.44, 90, 1.4, 'sawtooth', .1, 60); s(.44, 180, 1.4, 'square', .03, 110); } },
+
+  { // イルミ：首を ゆっくり かしげて、はりを かまえる
+    run(k, H) {
+      const tilt = k < .6 ? ease(k / .6) * .35 : .35 - ease((k - .85) / .15) * .35 * (k > .85);
+      H.put(H.B(), { rot: tilt, py: H.feet });
+      if (k > .5) for (let i = 0; i < 3; i++) H.line(H.cx + 7, H.cy + 1, H.cx + 9 + i * .6, H.cy - 2 + i * 1.2, '#c8ccd8', .3, Math.min(1, (k - .5) * 5));
+      if (k > .3 && k < .85) H.say('…', H.cx - 7, H.top + 1.8, 26, '#c8ccd8');
+    },
+    snd(s) { s(.2, 110, 1.2, 'sine', .05, 104); s(1.1, 3000, .05, 'square', .04); s(1.2, 3200, .05, 'square', .04); } },
+
+  { // フェイタン：頭の上に 赤い 小さな太陽が のぼる
+    run(k, H) {
+      const g = ease(Math.min(1, k / .6)), y = H.top + 1 - g;
+      H.dark(.25 * g, '#ff6a2a');
+      H.put(H.B());
+      H.oval(H.cx, y, 1 + g * 2.2, 1 + g * 2.2, '#ff5a2a'); H.oval(H.cx - .5, y - .5, g * 2, g * 2, '#ffb02e');
+      for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283 + H.t * 2, r = 3.5 + g; H.sq(H.cx + Math.cos(a) * r - .3, y + Math.sin(a) * r - .3, .6, .6, '#ff8a3a', g); }
+    },
+    snd(s) { s(0, 200, 1.3, 'triangle', .06, 800); s(1.3, 800, .8, 'sine', .05, 780); } },
+
+  { // コムギ：ていねいに おじぎして、こまを パチッ
+    run(k, H) {
+      H.put(H.B(), { rot: Math.max(0, Math.sin(k * Math.PI)) * .3, py: H.feet });
+      for (let i = 0; i < 3; i++) { const t0 = .3 + i * .2; if (k < t0) continue; const x = H.cx - 8 + i * 8; H.sq(x, H.feet - 1.2, 1.4, 1.2, '#e8d8a8'); H.sq(x + .4, H.feet - .9, .6, .3, '#3a2a1a'); if (k < t0 + .1) H.say('パチ', x + .7, H.feet - 3, 18, '#e0c080'); }
+    },
+    snd(s) { [.66, 1.1, 1.54].forEach(T => s(T, 1100, .05, 'square', .06, 600)); } },
+
+  { // ゼノ：空から 青い竜が たくさん ふりそそぐ
+    run(k, H) {
+      H.put(H.B());
+      for (let i = 0; i < 9; i++) {
+        const q = (k * 1.6 - hash(i, 7) * .6); if (q < 0 || q > 1) continue;
+        const x = H.cx - 12 + hash(i, 6) * 24, y = -1 + q * 20;
+        H.sq(x - .6, y, 1.2, 1.2, '#bfefff'); H.line(x, y, x - .8, y - 3, '#5ab0d0', .5);
+        if (q > .9) H.oval(x, H.feet, 1.5, .5, '#8ad8f0', (1 - q) * 10);
+      }
+    },
+    snd(s) { for (let i = 0; i < 9; i++) s(.2 + i * .18, 1400 - i * 80, .25, 'sine', .035, 400); } },
+];
+
+function drawBig(now) {
+  const t = now / 1000, e = t - changeAt, c = COS[cur];
+  const inSeq = e >= 0 && e < SEQ.end;
+  bg.fillStyle = '#0f1028'; bg.fillRect(0, 0, big.width, big.height);
+  for (const s of stars) { bg.globalAlpha = .3 + .4 * (.5 + .5 * Math.sin(t * 3 + s.p)); bg.fillStyle = '#fff'; bg.fillRect(Math.round(s.x) * BQ, Math.round(s.y) * BQ, BQ / 2, BQ / 2); }
+  bg.globalAlpha = 1;
+  bg.fillStyle = '#5a3d24'; bg.fillRect(0, 22 * BQ, big.width, 4 * BQ);
+  bg.fillStyle = '#3f8f3a'; bg.fillRect(0, 22 * BQ, big.width, BQ / 2);
+
+  if (!inSeq) {
+    drawChar(bg, BQQ, OX, OY, t / 1.4, mode, c);
+  } else if (e < SEQ.notice) {
+    // もとの姿。頭の上に「！」
+    drawChar(bg, BQQ, OX, OY, t / 1.4, 'walk', PLAIN);
+    if (e > .1) txt('！', CX, (OY - 3.4 - Math.min(1, (e - .1) / .15)) * BQQ, 40, '#ffd84a');
+  } else if (e < SEQ.fx) {
+    // キャラクターごとの 変身
+    H.t = t;
+    FX[cur].run((e - SEQ.notice) / FXLEN, H);
+    txt(`「${FX[cur].label}」`, CX, 1.6 * BQ, 22, '#cfc6e8');
+  } else {
+    // ぱっと光って 名前を出し、その人らしい 決めの動き
+    const f = FX[cur];
+    H.t = t;
+    ACT[cur].run(Math.min(1, (e - SEQ.fx) / ACTLEN), H);
+    if (e < SEQ.fx + .7) burst(CX, (OY + 3) * BQQ, (e - SEQ.fx) / .9, '#ffffff', f.col);
+    if (e < SEQ.fx + .1) { bg.globalAlpha = .7 * (1 - (e - SEQ.fx) / .1); bg.fillStyle = '#fff'; bg.fillRect(0, 0, big.width, big.height); bg.globalAlpha = 1; }
+    const a = Math.min(1, (e - SEQ.fx) / .2);
+    bg.globalAlpha = a;
+    txt(`${c.who}に へんしん！`, CX, 2.2 * BQ + (1 - a) * 20, 30, '#ffcf8a');
+    bg.globalAlpha = 1;
+  }
+
+  tiles.forEach((tl, i) => {
+    tl.g.clearRect(0, 0, tl.cv.width, tl.cv.height);
+    drawChar(tl.g, 4, 4, 9.5, t / 1.4 + i * .37, mode, COS[i]);
+  });
+  if (playAll && e > SEQ.end + .6) pick((cur + 1) % COS.length, cur + 1 >= COS.length);
+  requestAnimationFrame(drawBig);
+}
+
+function pick(i, last) {
+  if (last) { stopAll(); return; }
+  cur = i; changeAt = performance.now() / 1000;
+  tiles.forEach((tl, j) => tl.b.classList.toggle('on', j === i));
+  document.getElementById('bigName').textContent = COS[i].who;
+  document.getElementById('bigNote').textContent = COS[i].note;
+  sfx();
+  if (playAll) tiles[i].b.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// ---------- 30人 つづけて ----------
+let playAll = false;
+const allBtn = document.getElementById('allBtn');
+function stopAll() { playAll = false; allBtn.textContent = '▶ 30人 つづけて'; allBtn.classList.remove('on'); }
+allBtn.addEventListener('click', () => {
+  if (playAll) { stopAll(); return; }
+  playAll = true; allBtn.textContent = '■ とめる'; allBtn.classList.add('on');
+  pick(0);
+});
+
+// ---------- 音（変身の流れに合わせる） ----------
+let ac = null;
+function tone(f, at, dur, type, vol, f2) {
+  const o = ac.createOscillator(), gn = ac.createGain(), s = ac.currentTime + at;
+  o.type = type; o.frequency.setValueAtTime(f, s); if (f2) o.frequency.exponentialRampToValueAtTime(f2, s + dur);
+  gn.gain.setValueAtTime(vol, s); gn.gain.exponentialRampToValueAtTime(.0001, s + dur);
+  o.connect(gn).connect(bus); o.start(s); o.stop(s + dur + .02);
+}
+let bus = null;   // 1回の変身の音をまとめる出口（次の変身を始めたら、前の音はすぐ消す）
+function sfx() {
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume();
+    if (bus) { const old = bus; old.gain.setTargetAtTime(0, ac.currentTime, .02); setTimeout(() => old.disconnect(), 200); }
+    bus = ac.createGain(); bus.connect(ac.destination);
+    tone(880, .1, .08, 'square', .04); tone(1320, .18, .1, 'square', .04);                        // 「！」
+    FX[cur].snd((T, f, dur, type, vol, f2) => tone(f, SEQ.notice + T, dur, type, vol, f2));    // その人の変身の音
+    tone(150, SEQ.fx, .3, 'triangle', .14, 60);                                                   // ぽん！
+    [784, 988, 1175, 1568].forEach((f, i) => tone(f, SEQ.fx + .05 + i * .09, .3, 'triangle', .06)); // じゃーん
+    ACT[cur].snd((T, f, dur, type, vol, f2) => tone(f, SEQ.fx + T, dur, type, vol, f2));          // 決めの動きの音
+  } catch (e) {}
+}
+
+document.querySelectorAll('#modes button[data-m]').forEach(b => b.addEventListener('click', () => {
+  mode = b.dataset.m;
+  document.querySelectorAll('#modes button[data-m]').forEach(x => x.classList.toggle('on', x === b));
+}));
+document.getElementById('randBtn').addEventListener('click', () => {
+  stopAll();
+  let i; do { i = Math.floor(Math.random() * COS.length); } while (i === cur);
+  pick(i);
+});
+
+tiles[0].b.classList.add('on');
+document.getElementById('bigName').textContent = COS[0].who;
+document.getElementById('bigNote').textContent = COS[0].note;
+requestAnimationFrame(drawBig);
+</script>
+<!-- 更新した日時（GitHub に反映した日時が自動で出る） -->
+<script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
+var e=document.createElement('div');e.id='appVer';e.textContent='更新 '+d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+e.style.cssText='display:block;width:100%;text-align:center;font:11px/1.4 sans-serif;color:inherit;opacity:.6;margin-top:10px;pointer-events:none;';
+document.body.appendChild(e);})();</script>
+</body>
+</html>
