@@ -49,7 +49,9 @@
   .head h2 { margin: 0; }
   .head button { font-size: 12px; background: #1c1930; border: 2px solid #3a3358; border-radius: 6px; padding: 3px 10px; color: var(--dim); }
   .head button.on { border-color: var(--accent); color: var(--fg); }
-  .head #allBtn { border-color: var(--accent); color: var(--fg); }
+  .playrow { display: flex; gap: 6px; margin: -2px 0 10px; }
+  .playrow button { flex: 1; min-width: 0; font-size: 12px; background: #1c1930; border: 2px solid var(--accent); border-radius: 6px; padding: 5px 4px; white-space: nowrap; }
+  .playrow.hide { display: none; }
   .sortbox { display: none; flex-direction: column; gap: 6px; }
   .sortbox.on { display: flex; }
   .sortbox .row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--card); border: 2px solid var(--line); border-radius: 8px; font-size: 13px; }
@@ -111,7 +113,8 @@
   <div id="heroArea"><h2>新着</h2>
   <div id="hero"></div></div>
 
-  <div class="head"><h2>動画</h2><div><button id="allBtn">▶ 全部 続けて</button> <button id="sortBtn">⇅ 並べかえ・削除</button></div></div>
+  <div class="head"><h2>動画</h2><button id="sortBtn">⇅ 並べかえ・削除</button></div>
+  <div class="playrow" id="playRow"><button id="allBtn">▶ 全部 続けて</button><button id="rndBtn">🔀 ランダム</button><button id="newBtn">🆕 新しい順</button></div>
   <div class="shelf" id="shelf"></div>
   <div class="sortbox" id="sortBox"></div>
   <p class="note" id="note">赤い点：まだ見ていない動画</p>
@@ -193,7 +196,7 @@ function renderAll() {
   if (top) {
     document.getElementById('hero').innerHTML =
       `<div class="hero"><img src="${icon(top[0])}" alt=""><div><span class="k">いちばん新しい動画</span><b>${esc(top[1])}</b><span>${esc(top[3])}（${esc(top[5])}）</span><button class="play" id="heroPlay">▶ 再生</button></div></div>`;
-    document.getElementById('heroPlay').onclick = () => play(top[0], top[1]);
+    document.getElementById('heroPlay').onclick = () => { queue = null; play(top[0], top[1]); };
   }
   if (!ordered().length) document.getElementById('shelf').innerHTML = '<p class="note" style="grid-column:1/-1">棚に動画がありません</p>';
   const tb = document.getElementById('trashBtn');
@@ -203,7 +206,7 @@ renderAll();
 document.querySelectorAll('.shelf').forEach(s => s.addEventListener('click', e => {
   const b = e.target.closest('.app'); if (!b) return;
   const a = shown[+b.dataset.i];
-  if (a[7]) openSheet(a); else play(a[0], a[1]);
+  if (a[7]) openSheet(a); else { queue = null; play(a[0], a[1]); }
 }));
 
 // ---------- 並べかえ：▲▼ で1つずつ動かす ----------
@@ -233,7 +236,7 @@ sortBox.addEventListener('click', e => {
 sortBtn.onclick = () => {
   sorting = !sorting; lastMoved = '';
   sortBtn.textContent = sorting ? '✓ できた' : '⇅ 並べかえ・削除'; sortBtn.classList.toggle('on', sorting);
-  document.getElementById('shelf').classList.toggle('hide', sorting); sortBox.classList.toggle('on', sorting);
+  document.getElementById('shelf').classList.toggle('hide', sorting); document.getElementById('playRow').classList.toggle('hide', sorting); sortBox.classList.toggle('on', sorting);
   document.getElementById('note').textContent = sorting ? '▲▼ で順番を入れかえ、🗑 で棚から削除できます（この端末で覚えます）' : '赤い点：まだ見ていない動画';
   if (sorting) renderSort(); else renderAll();
 };
@@ -252,8 +255,8 @@ function openSheet(a) {
     (parts ? `<div class="parts">${parts.map((p, i) => `<button data-p="${i}"><img src="${icon(p[0])}" alt=""><div>${esc(p[1])}<small>${esc(p[2])}</small></div></button>`).join('')}</div>` : '') +
     `<button class="del" id="sheetDel">🗑 棚から削除</button>` +
     `<button class="close" id="sheetClose">とじる</button>`;
-  const sp = document.getElementById('sheetPlay'); if (sp) sp.onclick = () => play(h, name);
-  sheet.querySelectorAll('.parts button').forEach(b => b.onclick = () => { const p = parts[+b.dataset.p]; play(p[0], p[1], h); });
+  const sp = document.getElementById('sheetPlay'); if (sp) sp.onclick = () => { queue = null; play(h, name); };
+  sheet.querySelectorAll('.parts button').forEach(b => b.onclick = () => { const p = parts[+b.dataset.p]; queue = null; play(p[0], p[1], h); });
   document.getElementById('sheetDel').onclick = () => {
     if (!confirm(`「${name}」を棚から削除しますか？\n（あとで「削除した動画を もどす」で戻せます）`)) return;
     hidden.push(h); saveHidden(); closeSheet(); renderAll(); if (sorting) renderSort();
@@ -347,9 +350,11 @@ contBtn.onclick = () => {
 };
 showCont();
 const nameOf = h => (APPS.find(a => a[0] === h) || [, ''])[1];
+// 続けて見る順番（「ランダムに 続けて」「新しい順から 続けて」のとき。ふだんは棚の並び順）
+let queue = null;
 // 次の動画（三尊の弥陀は「全部まとめて」を流す）
 function nextOf(h) {
-  const list = ordered(), i = list.findIndex(a => a[0] === h);
+  const list = queue || ordered(), i = list.findIndex(a => a[0] === h);
   return i >= 0 ? list[i + 1] : null;
 }
 function playApp(a) { if (a[7]) { const z = a[7][a[7].length - 1]; play(z[0], a[1], a[0]); } else play(a[0], a[1]); }
@@ -372,12 +377,23 @@ setInterval(() => {
   };
   tick();
 }, 500);
-// 全部 続けて：棚のいちばん上から
-document.getElementById('allBtn').onclick = () => {
-  const list = ordered(); if (!list.length) return;
+// 続けて見る：渡された順番で、最初の動画から
+function playList(list, q) {
+  if (!list.length) return;
   if (!cont) { cont = true; showCont(); try { localStorage.setItem('tanaCont', '1'); } catch (e) {} }
+  queue = q ? list : null;
   playApp(list[0]);
+}
+// 全部 続けて：棚のいちばん上から
+document.getElementById('allBtn').onclick = () => playList(ordered(), false);
+// ランダムに 続けて：棚の動画を まぜた順番で
+document.getElementById('rndBtn').onclick = () => {
+  const list = ordered();
+  for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+  playList(list, true);
 };
+// 新しい順から 続けて：いちばん新しく作った動画から、古いほうへ
+document.getElementById('newBtn').onclick = () => playList([...APPS].reverse().filter(a => !isHidden(a)), true);
 // 動画のページが開いたら、その「▶ 再生する」を自動で押す。
 // iPhone などで音が出せない（音の準備が止まったまま）ときは、止めて「▶ 再生する」を出したままにする（1回押せば再生）
 function autoStart(f) {
