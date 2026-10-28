@@ -68,9 +68,9 @@ const TSE = {
 const TSE_ZETSU = { ...TSE, eye: '#d97757', front(d) { TSE.front(d); d.b(2.8, 1.6, 1.4, .3, '#1a1612'); d.b(7.8, 1.6, 1.4, .3, '#1a1612'); } };
 
 // ---------- 声（VOICEVOX で作った hxh-koe/*.wav。数字は長さ（秒）） ----------
-// ゴン：白上虎太郎、キルア：満別花丸（ボーイ）、ヒソカ：†聖騎士 紅桜†、ピトー：猫使ビィ、ツェリードニヒ：雀松朱司、ネテロ：麒ヶ島宗麟、メルエム：青山龍星
-const VD = { gon1: 3.06, gon2: 1.7, gon3: .57, gon4: .53, gon5: .62, kil1: 1.33, kil2: 2.07, kil3: .69, his1: 1.22, his2: 3.45, his3: 1.64, his4: .82,
-  pit1: 3.81, pit2: .75, pit3: 2.49, tse1: 3.49, tse2: 3.17, tse3: 3.57, net1: 2.91, net2: 2.81, net3: 1.15, net4: .73, mer1: 1.46, mer2: 1.47, mer3: .79, mer4: 1.96, end1: 2.62 };
+// ゴン：白上虎太郎、キルア：満別花丸（ボーイ）、ヒソカ：†聖騎士 紅桜†、ピトー：猫使ビィ、ツェリードニヒ：雀松朱司（ヒソカとツェリードニヒは 低めで 抑揚を強く）、ネテロ：麒ヶ島宗麟、メルエム：青山龍星
+const VD = { gon1: 3.06, gon2: 1.7, gon3: .57, gon4: .53, gon5: .62, kil1: 1.33, kil2: 2.07, kil3: .69, his1: 1.32, his2: 3.75, his3: 1.73, his4: .9,
+  pit1: 3.81, pit2: .75, pit3: 2.49, tse1: 3.55, tse2: 3.27, tse3: 3.69, net1: 2.91, net2: 2.81, net3: 1.15, net4: .73, mer1: 1.46, mer2: 1.47, mer3: .79, mer4: 1.96, end1: 2.62 };
 const VBUF = {};   // 声のファイルの中身（ArrayBuffer）
 const voiceReady = Promise.all(Object.keys(VD).map(k => fetch(`hxh-koe/${k}.wav`).then(r => r.arrayBuffer()).then(b => { VBUF[k] = b; }).catch(() => {})));
 let TALK = false;  // いま だれかが しゃべっている（キャラクターの口を動かす）
