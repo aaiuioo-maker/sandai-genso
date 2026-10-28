@@ -121,6 +121,20 @@ function ring(cx, cy, r, col, a = 1, ry = r) {
   const n = Math.max(12, r * 6 | 0);
   for (let i = 0; i < n; i++) { const an = i / n * 6.283; R(cx + Math.cos(an) * r - .25, cy + Math.sin(an) * ry - .25, .5, .5, col, a); }
 }
+// ピトーの「円」：まるではなく、いびつに ゆがんだ形（右上へ 長く のびた こぶと、左下の 小さな こぶ。ふちが うねうね動く）
+function enR(an, t) {
+  const lobe = (a0, h, w) => { const d = Math.atan2(Math.sin(an - a0), Math.cos(an - a0)); return h * Math.exp(-((d / w) ** 2)); };
+  return 1 + .2 * Math.sin(3 * an + 1 + t * .7) + .12 * Math.sin(5 * an + t * 1.3) + .06 * Math.sin(11 * an - t * 2)
+           + lobe(-.6, 1.1, .32) + lobe(2.7, .45, .28) + lobe(1.6, -.25, .4);
+}
+function en(cx, cy, r, t, col, a) {
+  if (r < .3) return;
+  g.save(); g.globalAlpha = cl(a * .14); g.fillStyle = col; g.beginPath();
+  for (let i = 0; i <= 120; i++) { const an = i / 120 * 6.283, rr = r * enR(an, t); g[i ? 'lineTo' : 'moveTo']((cx + Math.cos(an) * rr) * U, (cy + Math.sin(an) * rr * .6) * U); }
+  g.fill(); g.restore();
+  const n = Math.max(24, r * 14 | 0);
+  for (let i = 0; i < n; i++) { const an = i / n * 6.283, rr = r * enR(an, t); R(cx + Math.cos(an) * rr - .25, cy + Math.sin(an) * rr * .6 - .25, .5, .5, col, a); }
+}
 function burst(cx, cy, k, c1 = '#ffffff', c2 = '#ffd84a', size = 1) {
   const a = 1 - k * 1.4, r = (2 + k * 12) * size;
   for (let i = 0; i < 12; i++) { const an = i * Math.PI / 6; R(cx + Math.cos(an) * r * .6 - 1, cy + Math.sin(an) * r * .5 - 1, 2.2, 2.2, c1, a); }
@@ -301,7 +315,9 @@ const SC = [
       if (s > 5) {
         const k = cl((s - 5) / 3.6);
         flash(k * .35, '#1a0a2a');
-        for (let i = 0; i < 4; i++) { const r = ((s - 5) * 6 + i * 4) % 16; ring(X0 + 6, Y0 + 4, 2 + r * 1.3, '#b88aff', .8 - r / 16, (2 + r * 1.3) * .55); }
+        const grow = ease((s - 5) / 1.4) * 9;
+        en(X0 + 6, Y0 + 4, grow, t, '#b88aff', .9);                                       // 外のふち
+        for (let i = 0; i < 3; i++) { const r = ((s - 5) * .5 + i / 3) % 1; en(X0 + 6, Y0 + 4, grow * r, t, '#8a5ad8', .7 * (1 - r)); }   // 内がわの波
       }
       C(PIT, x, y, t, mode);
       if (s >= 3.1 && s < 4.4) txt('ニャッ！', 16, 3.3, 30, '#f0f0ff');
