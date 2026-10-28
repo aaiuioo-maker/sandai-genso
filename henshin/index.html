@@ -41,7 +41,7 @@
 </head>
 <body>
 <h1>変身図鑑</h1>
-<p class="sub">オレンジのキャラクターの変身 30種（押すと変身します・音が出ます）</p>
+<p class="sub">オレンジのキャラクターの変身 30種（押すと もとの姿から変身します・音が出ます）</p>
 <div class="wrap">
   <div class="stage"><canvas id="big"></canvas></div>
   <div class="name" id="bigName"></div>
@@ -52,6 +52,7 @@
     <button data-m="jump">ジャンプ</button>
     <button id="randBtn">🎲 おまかせ</button>
   </div>
+  <div class="btns"><button id="allBtn">▶ 30人 つづけて</button></div>
   <div class="grid" id="grid"></div>
 </div>
 
@@ -523,7 +524,7 @@ const tiles = COS.map((c, i) => {
   const cv = document.createElement('canvas'); cv.width = 20 * 4; cv.height = 18 * 4; // 1マス＝4画素
   const sp = document.createElement('span'); sp.innerHTML = `${c.who}<br><b>${c.zodiac ? c.zodiac + '・' : ''}${c.name}</b>`;
   b.append(cv, sp); grid.append(b);
-  b.addEventListener('click', () => pick(i));
+  b.addEventListener('click', () => { stopAll(); pick(i); });
   return { b, g: cv.getContext('2d'), cv };
 });
 
@@ -532,66 +533,144 @@ const big = document.getElementById('big');
 const BW = 40, BH = 26, BQ = 12;
 big.width = BW * BQ; big.height = BH * BQ;
 const bg = big.getContext('2d');
-let cur = 0, mode = 'walk', changeAt = -10, prev = -1;
+let cur = 0, mode = 'walk', changeAt = -10;
 let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const stars = [...Array(40)].map(() => ({ x: rnd() * BW, y: rnd() * 18, p: rnd() * 6.28 }));
+const PLAIN = {};                          // 変身する前の、もとのオレンジのキャラクター
+const BQQ = BQ * 1.25, OX = 10, OY = 9.6;  // 舞台のキャラクターは 1マス＝15画素
+const CX = (OX + 6) * BQQ;                 // キャラクターのまんなか（画素）
+
+// ---------- 変身の流れ（秒） ----------
+// 0〜0.7 もとの姿で「！」 → 0.7〜1.5 とび上がって くるくる回る（光の柱）
+// → 1.5〜2.5 上から下へ 光の線が通ると その姿に変わる → 2.5〜2.9 ぱっと光る → 2.9〜 名前を出して ジャンプ
+const SEQ = { notice: .7, spin: 1.5, reveal: 2.5, flash: 2.9, end: 4.2 };
+
+function txt(s, x, y, size, c) {
+  bg.font = `${size}px "DotGothic16", monospace`; bg.textAlign = 'center'; bg.textBaseline = 'middle';
+  bg.lineWidth = 6; bg.lineJoin = 'round'; bg.strokeStyle = '#000'; bg.strokeText(s, x, y);
+  bg.fillStyle = c; bg.fillText(s, x, y);
+}
+function burst(cx, cy, k, col1 = '#ffffff', col2 = '#ffd84a') {
+  bg.globalAlpha = Math.max(0, 1 - k * 1.4);
+  const r = (3 + k * 12) * BQ;
+  bg.fillStyle = col1;
+  for (let a = 0; a < 12; a++) { const an = a * Math.PI / 6; bg.fillRect(cx + Math.cos(an) * r * .6 - BQ, cy + Math.sin(an) * r * .5 - BQ, BQ * 2.4, BQ * 2.4); }
+  bg.fillStyle = col2;
+  for (let a = 0; a < 8; a++) { const an = a * Math.PI / 4 + .4; bg.fillRect(cx + Math.cos(an) * r - BQ / 2, cy + Math.sin(an) * r * .7 - BQ / 2, BQ, BQ); }
+  bg.globalAlpha = 1;
+}
 
 function drawBig(now) {
-  const t = now / 1000;
+  const t = now / 1000, e = t - changeAt, c = COS[cur];
+  const inSeq = e >= 0 && e < SEQ.end;
+  // 背景：変身中は 少し暗くして 光の柱
   bg.fillStyle = '#0f1028'; bg.fillRect(0, 0, big.width, big.height);
   for (const s of stars) { bg.globalAlpha = .3 + .4 * (.5 + .5 * Math.sin(t * 3 + s.p)); bg.fillStyle = '#fff'; bg.fillRect(Math.round(s.x) * BQ, Math.round(s.y) * BQ, BQ / 2, BQ / 2); }
   bg.globalAlpha = 1;
-  bg.fillStyle = '#5a3d24'; bg.fillRect(0, 22 * BQ, big.width, 4 * BQ);
-  bg.fillStyle = '#3f8f3a'; bg.fillRect(0, 22 * BQ, big.width, BQ / 2);
-  // 変身の けむり：ぽん！と白く光って、星が飛びちる
-  const k = (t - changeAt) / .6;
-  const show = k < .35 && prev >= 0 ? prev : cur;
-  drawChar(bg, BQ * 1.25, 10, 9.6, t / 1.4, mode, COS[show]);
-  if (k >= 0 && k < 1) {
-    const cx = 16 * BQ * 1.25, cy = 12.6 * BQ * 1.25;
-    bg.globalAlpha = Math.max(0, 1 - k * 1.6);
-    bg.fillStyle = '#ffffff';
-    const r = (4 + k * 10) * BQ;
-    for (let a = 0; a < 12; a++) {
-      const an = a * Math.PI / 6;
-      bg.fillRect(cx + Math.cos(an) * r * .6 - BQ, cy + Math.sin(an) * r * .5 - BQ, BQ * 2.4, BQ * 2.4);
-    }
-    bg.fillStyle = '#ffd84a';
-    for (let a = 0; a < 8; a++) {
-      const an = a * Math.PI / 4 + .4;
-      bg.fillRect(cx + Math.cos(an) * r - BQ / 2, cy + Math.sin(an) * r * .7 - BQ / 2, BQ, BQ);
-    }
+  if (inSeq && e > SEQ.notice && e < SEQ.flash) {
+    const a = Math.min(1, (e - SEQ.notice) / .3) * Math.min(1, (SEQ.flash - e) / .3);
+    bg.globalAlpha = .55 * a; bg.fillStyle = '#05040d'; bg.fillRect(0, 0, big.width, big.height);
+    const pw = (5 + Math.sin(t * 20) * .6) * BQ;
+    bg.globalAlpha = .25 * a; bg.fillStyle = '#ffe9a8'; bg.fillRect(CX - pw, 0, pw * 2, 22 * BQ);
+    bg.globalAlpha = .35 * a; bg.fillStyle = '#fff6d8'; bg.fillRect(CX - pw / 2.5, 0, pw / 1.25, 22 * BQ);
     bg.globalAlpha = 1;
   }
+  bg.fillStyle = '#5a3d24'; bg.fillRect(0, 22 * BQ, big.width, 4 * BQ);
+  bg.fillStyle = '#3f8f3a'; bg.fillRect(0, 22 * BQ, big.width, BQ / 2);
+
+  if (!inSeq) {
+    drawChar(bg, BQQ, OX, OY, t / 1.4, mode, c);
+  } else if (e < SEQ.notice) {
+    // もとの姿。頭の上に「！」
+    drawChar(bg, BQQ, OX, OY, t / 1.4, 'walk', PLAIN);
+    if (e > .15) txt('！', CX, (OY - 3.4 - Math.min(1, (e - .15) / .15)) * BQQ, 40, '#ffd84a');
+  } else if (e < SEQ.spin) {
+    // とび上がって くるくる回る（横にちぢめて回って見せる）
+    const k = (e - SEQ.notice) / (SEQ.spin - SEQ.notice);
+    const lift = Math.sin(Math.min(1, k * 1.6) * Math.PI / 2) * 3.5;
+    const sx = Math.cos(k * Math.PI * 6);
+    bg.save(); bg.translate(CX, 0); bg.scale(Math.abs(sx) < .15 ? .15 : sx, 1); bg.translate(-CX, 0);
+    drawChar(bg, BQQ, OX, OY - lift, 0, 'talk', PLAIN);
+    bg.restore();
+    // 下から上がる 光のつぶ
+    for (let i = 0; i < 10; i++) {
+      const y = (OY + 8 - ((k * 3 + i * .37) % 1) * 14) * BQQ, x = CX + Math.sin(i * 2.3 + t * 6) * 7 * BQQ;
+      bg.fillStyle = i % 2 ? '#ffd84a' : '#ffffff'; bg.fillRect(x, y, BQ * .7, BQ * .7);
+    }
+  } else if (e < SEQ.reveal) {
+    // 光の線が上から下へ。線より上は その姿、下は もとの姿
+    const k = (e - SEQ.spin) / (SEQ.reveal - SEQ.spin);
+    const lift = 3.5 * (1 - k * .9);
+    const top = (OY - lift - 8) * BQQ, bot = (OY - lift + 8.6) * BQQ, sy = top + (bot - top) * k;
+    bg.save(); bg.beginPath(); bg.rect(0, sy, big.width, big.height); bg.clip();
+    drawChar(bg, BQQ, OX, OY - lift, 0, 'talk', PLAIN); bg.restore();
+    bg.save(); bg.beginPath(); bg.rect(0, 0, big.width, sy); bg.clip();
+    drawChar(bg, BQQ, OX, OY - lift, 0, 'talk', c); bg.restore();
+    bg.fillStyle = '#fff6d8'; bg.fillRect(CX - 11 * BQQ, sy - BQ * .3, 22 * BQQ, BQ * .6);
+    bg.fillStyle = '#ffd84a';
+    for (let i = 0; i < 6; i++) bg.fillRect(CX + (Math.sin(t * 13 + i * 1.7) * 10) * BQQ, sy - BQ * (1 + (i % 3)), BQ * .6, BQ * .6);
+  } else {
+    // ぱっと光って、新しい姿で ジャンプ。名前を出す
+    drawChar(bg, BQQ, OX, OY - (e < SEQ.flash ? .35 : 0), t / 1.4, e < SEQ.flash ? 'talk' : 'jump', c);
+    if (e < SEQ.flash + .6) burst(CX, (OY + 3) * BQQ, (e - SEQ.reveal) / 1);
+    if (e < SEQ.reveal + .12) { bg.globalAlpha = 1 - (e - SEQ.reveal) / .12; bg.fillStyle = '#fff'; bg.fillRect(0, 0, big.width, big.height); bg.globalAlpha = 1; }
+    if (e > SEQ.flash - .1) {
+      const a = Math.min(1, (e - SEQ.flash + .1) / .2);
+      bg.globalAlpha = a;
+      txt(`${c.who}に へんしん！`, CX, 2.2 * BQ + (1 - a) * 20, 30, '#ffcf8a');
+      bg.globalAlpha = 1;
+    }
+  }
+
   tiles.forEach((tl, i) => {
     tl.g.clearRect(0, 0, tl.cv.width, tl.cv.height);
     drawChar(tl.g, 4, 4, 9.5, t / 1.4 + i * .37, mode, COS[i]);
   });
+  if (playAll && e > SEQ.end + .6) pick((cur + 1) % COS.length, cur + 1 >= COS.length);
   requestAnimationFrame(drawBig);
 }
 
-function pick(i) {
-  if (i === cur) { changeAt = performance.now() / 1000; prev = -1; sfx(); return; }
-  prev = cur; cur = i; changeAt = performance.now() / 1000;
+function pick(i, last) {
+  if (last) { stopAll(); return; }
+  cur = i; changeAt = performance.now() / 1000;
   tiles.forEach((tl, j) => tl.b.classList.toggle('on', j === i));
   document.getElementById('bigName').textContent = COS[i].who;
   document.getElementById('bigNote').textContent = COS[i].note;
   sfx();
+  if (playAll) tiles[i].b.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
-// ---------- 音（変身の ぽわん） ----------
+// ---------- 30人 つづけて ----------
+let playAll = false;
+const allBtn = document.getElementById('allBtn');
+function stopAll() { playAll = false; allBtn.textContent = '▶ 30人 つづけて'; allBtn.classList.remove('on'); }
+allBtn.addEventListener('click', () => {
+  if (playAll) { stopAll(); return; }
+  playAll = true; allBtn.textContent = '■ とめる'; allBtn.classList.add('on');
+  pick(0);
+});
+
+// ---------- 音（変身の流れに合わせる） ----------
 let ac = null;
 function tone(f, at, dur, type, vol, f2) {
   const o = ac.createOscillator(), gn = ac.createGain(), s = ac.currentTime + at;
   o.type = type; o.frequency.setValueAtTime(f, s); if (f2) o.frequency.exponentialRampToValueAtTime(f2, s + dur);
   gn.gain.setValueAtTime(vol, s); gn.gain.exponentialRampToValueAtTime(.0001, s + dur);
-  o.connect(gn).connect(ac.destination); o.start(s); o.stop(s + dur + .02);
+  o.connect(gn).connect(bus); o.start(s); o.stop(s + dur + .02);
 }
+let bus = null;   // 1回の変身の音をまとめる出口（次の変身を始めたら、前の音はすぐ消す）
 function sfx() {
   try {
     ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume();
-    tone(200, 0, .25, 'triangle', .12, 900);
-    [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .12 + i * .05, .2, 'square', .03));
+    if (bus) { const old = bus; old.gain.setTargetAtTime(0, ac.currentTime, .02); setTimeout(() => old.disconnect(), 200); }
+    bus = ac.createGain(); bus.connect(ac.destination);
+    tone(880, .15, .08, 'square', .04); tone(1320, .23, .1, 'square', .04);                       // 「！」
+    tone(220, SEQ.notice, SEQ.spin - SEQ.notice, 'triangle', .1, 880);                           // くるくる上がる
+    for (let i = 0; i < 8; i++) tone(660 + i * 110, SEQ.notice + i * .1, .08, 'sine', .03);
+    for (let i = 0; i < 10; i++) tone([523, 659, 784, 988, 1175][i % 5] * (i < 5 ? 1 : 2), SEQ.spin + i * .1, .12, 'square', .025); // 光の線
+    tone(150, SEQ.reveal, .3, 'triangle', .14, 60);                                              // ぽん！
+    [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(f, SEQ.reveal + .05 + i * .06, .25, 'square', .03));
+    [784, 988, 1175, 1568].forEach((f, i) => tone(f, SEQ.flash + i * .09, .3, 'triangle', .06)); // じゃーん
   } catch (e) {}
 }
 
@@ -600,11 +679,11 @@ document.querySelectorAll('#modes button[data-m]').forEach(b => b.addEventListen
   document.querySelectorAll('#modes button[data-m]').forEach(x => x.classList.toggle('on', x === b));
 }));
 document.getElementById('randBtn').addEventListener('click', () => {
+  stopAll();
   let i; do { i = Math.floor(Math.random() * COS.length); } while (i === cur);
   pick(i);
 });
 
-prev = -1; cur = 0;
 tiles[0].b.classList.add('on');
 document.getElementById('bigName').textContent = COS[0].who;
 document.getElementById('bigNote').textContent = COS[0].note;
