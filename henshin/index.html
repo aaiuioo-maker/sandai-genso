@@ -100,22 +100,25 @@ function spots(d, list, c) { list.forEach(([x, y, w, h]) => d.b(x, y, w, h, c));
 
 // ---------- 20の変身 ----------
 const COS = [
-  { name: 'うさぎ', note: '卯（う）・長い耳とちょうネクタイ', zodiac: '卯',
+  { name: 'うさぎ', who: 'ピヨン', note: '卯（う）・オレンジの巻き毛と うさぎの耳', zodiac: '卯',
     front(d) {
       const tilt = Math.sin(d.t * 4) > .6 ? .5 : 0;
       d.b(3, -5 + tilt, 1.5, 5, '#f4f0f4'); d.b(7.5, -5, 1.5, 5, '#f4f0f4');
       d.b(3.5, -4.5 + tilt, .5, 3.5, '#ff9db8'); d.b(8, -4.5, .5, 3.5, '#ff9db8');
-      d.b(2.5, 2, 1, .5, '#ff9db8'); d.b(8.5, 2, 1, .5, '#ff9db8');
-      d.b(2, 3.5, 8, 2.5, '#2a2030'); d.b(5, 3.5, 2, 2.5, '#f4f0f4');
+      d.b(1.6, -1, 8.8, 1.4, '#f08a30'); d.b(1.4, 0, 1.2, 2.6, '#f08a30'); d.b(9.4, 0, 1.2, 2.6, '#f08a30'); d.b(1, 2.2, 1, 1, '#f08a30'); d.b(10, 2.2, 1, 1, '#f08a30');
+      d.b(2.6, 2, 1, .5, '#ff9db8'); d.b(8.4, 2, 1, .5, '#ff9db8');
+      d.b(2, 3.5, 8, 2.5, '#2a2030'); d.b(2, 5.2, 8, .8, '#ff7ab8'); d.b(5, 3.5, 2, 1.7, '#f4f0f4');
       d.b(5, 3.5, .7, .7, EYE); d.b(6.3, 3.5, .7, .7, EYE); d.b(5.7, 3.7, .6, .4, EYE);
       d.b(5.5, 4.6, 1, .6, '#ff6aa0');
       sleeve(d, '#2a2030');
     },
     leg: i => i % 2 ? '#ff9db8' : '#2a2030' },
 
-  { name: 'さむらい', note: 'ちょんまげ・むらさきの着物と刀', zodiac: '午',
+  { name: 'さむらい', who: 'サッチョウ', note: '午（うま）・長い黒髪と むらさきの着物・刀', zodiac: '午',
+    back(d) { d.b(4.5, -1, 3, 1, '#1c1c22'); d.b(10, -.5, 1.4, 6, '#1c1c22'); },
     front(d) {
-      d.b(2, -.4, 8, .8, '#1c1c22'); d.b(5, -2, 2, 1.6, '#1c1c22'); d.b(5.5, -2.6, 1, .6, '#1c1c22');
+      d.b(2, -.6, 8, 1, '#1c1c22'); d.b(5, -1.8, 2, 1.4, '#1c1c22'); d.b(1.4, -.2, .8, 3, '#1c1c22'); d.b(9.8, -.2, .8, 3, '#1c1c22');
+      d.b(2.6, .3, 1.6, .4, '#1c1c22'); d.b(7.8, .3, 1.6, .4, '#1c1c22'); d.b(0, 3.6 + d.la, 1, .4, '#2a3a4a'); d.b(11, 3.6 + d.ra, 1, .4, '#2a3a4a');
       d.b(2, 3, 8, 3, '#7a4fa8'); d.b(4, 3, 1, 1, '#4a2c78'); d.b(5, 3.5, 1, 1, '#4a2c78'); d.b(7, 3, 1, 1, '#4a2c78'); d.b(6, 3.5, 1, 1, '#4a2c78');
       d.b(2, 4.6, 8, .8, '#a0242a');
       d.b(7.5, 2.4, .6, 2.2, '#e8e2c8'); d.b(7.2, 4.4, 1.2, .4, '#c8a040');
@@ -124,7 +127,7 @@ const COS = [
     leg: i => '#7a4fa8',
     legs(d) { d.gn(2, 6.5, .6, .6, '#e04a6a'); d.gn(9, 6.8, .6, .6, '#e04a6a'); } },
 
-  { name: '黒いドレス', note: '長い黒髪と夜のドレス',
+  { name: '黒いドレス', who: 'ゲル', note: '巳（み）・長い黒髪と 黒いドレス', zodiac: '巳',
     back(d) { d.b(1.5, -1, 9, 7, '#141418'); },
     front(d) {
       d.b(2, -1, 8, 1.2, '#141418'); d.b(2, 0, .8, 3.5, '#141418'); d.b(9.2, 0, .8, 3.5, '#141418');
@@ -135,21 +138,22 @@ const COS = [
     leg: () => '#0c0c10',
     legs(d) { d.gn(2, 6, 8, 2, '#0c0c10'); } },
 
-  { name: '白い師匠', note: 'ぼさぼさの白髪とひげ・赤いよろい', zodiac: '辰',
+  { name: '白い師匠', who: 'ボトバイ', note: '辰（たつ）・広がる白髪とひげ・赤い長いコート', zodiac: '辰',
     back(d) {
-      d.b(.5, -3, 11, 4, '#eeeeee');
-      [[0, -4], [2, -5], [4.5, -5.5], [7, -5.5], [9.5, -5], [11, -4], [-.5, -2], [12, -2]].forEach(([x, y]) => d.b(x, y, 1.2, 1.4, '#eeeeee'));
+      d.b(-1, -2.5, 4, 4, '#eeeeee'); d.b(9, -2.5, 4, 4, '#eeeeee');
+      [[-2, -3.5], [-1, -4.2], [1, -3.6], [10, -3.6], [12, -4.2], [13, -3.5], [-2, 0], [13, 0]].forEach(([x, y]) => d.b(x, y, 1.2, 1.4, '#eeeeee'));
     },
     front(d) {
-      d.b(2, -.5, 8, .8, '#eeeeee');
+      d.b(2, -.4, 1.6, 1.2, '#eeeeee'); d.b(8.4, -.4, 1.6, 1.2, '#eeeeee');
       d.b(2.5, .4, 2, .5, '#ffffff'); d.b(7.5, .4, 2, .5, '#ffffff');
       d.b(3.5, 2, 5, .8, '#dcdcdc'); d.b(3, 2.5, 1, .8, '#dcdcdc'); d.b(8, 2.5, 1, .8, '#dcdcdc');
       d.b(2, 3.3, 8, 2.7, '#c0262c'); d.b(5.7, 3.3, .6, 2.7, '#2a1a1a'); d.b(3, 4.4, 6, .4, '#2a1a1a');
       fullArm(d, '#2a2226'); d.b(0, 2 + d.la, 2, .6, '#c0262c'); d.b(10, 2 + d.ra, 2, .6, '#c0262c');
     },
-    leg: () => '#2a1a1a' },
+    leg: () => '#c0262c',
+    legs(d) { d.gn(1.6, 6, 8.8, 1.2, '#c0262c'); d.gn(5.7, 6, .6, 1.2, '#2a1a1a'); } },
 
-  { name: 'アフロ', note: '大きなアフロとはちまき・青い毛皮', zodiac: '未',
+  { name: 'アフロ', who: 'ギンタ', note: '未（ひつじ）・大きなアフロと はちまき・青い毛皮', zodiac: '未',
     back(d) {
       d.b(0, -6, 12, 1, '#1a1a1a'); d.b(-1, -5, 14, 6, '#1a1a1a'); d.b(1, -6.8, 10, 1, '#1a1a1a');
       [[0, -4], [3, -6], [6, -5], [9, -6], [11, -3], [1, -1], [5, -3], [8, -2]].forEach(([x, y]) => d.b(x, y, .6, .6, '#3a3a3a'));
@@ -162,7 +166,7 @@ const COS = [
     },
     leg: () => '#2a3f8a' },
 
-  { name: '牛のカウボーイ', note: '丑（うし）・白黒もようとぼうし', zodiac: '丑',
+  { name: '牛のカウボーイ', who: 'ミザイストム', note: '丑（うし）・白黒もようの ぼうしと服', zodiac: '丑',
     front(d) {
       d.b(0, -1, 12, 1, '#f4f4f4'); d.b(3, -3.5, 6, 2.5, '#f4f4f4'); d.b(5.5, -3.5, 1, .6, '#d0d0d0');
       spots(d, [[3.5, -3, 1.2, .8], [7, -2.4, 1.2, 1], [1, -1, 1, .6], [9.5, -1, 1.2, .6]], '#1a1a1a');
@@ -173,7 +177,7 @@ const COS = [
     },
     leg: i => i === 1 || i === 2 ? '#1a1a1a' : '#f4f4f4' },
 
-  { name: '羽の踊り子', note: '酉（とり）・羽かざりと白いつばさ', zodiac: '酉',
+  { name: '羽の踊り子', who: 'クルック', note: '酉（とり）・羽かざりと 白いつばさ', zodiac: '酉',
     back(d) {
       const fl = Math.sin(d.t * 6) > 0 ? .5 : 0;
       d.b(-3, .5 - fl, 3, 2, '#f4f4f4'); d.b(-4, -.5 - fl, 2, 1.5, '#f4f4f4'); d.b(-2, 2.5, 2, 1, '#dde8f0');
@@ -191,7 +195,7 @@ const COS = [
     },
     leg: () => '#2a4a8a' },
 
-  { name: 'ツンツン金髪', note: '黄色いしまの野球ふく・にやり顔',
+  { name: 'ツンツン金髪', who: 'カンザイ', note: '寅（とら）・ツンツン金髪と 黄色いしまの服', zodiac: '寅',
     front(d) {
       d.b(2, -1, 8, 1.4, '#ffd23a');
       [[2, -2.5, 1.4], [4, -3.4, 1.4], [6, -3, 1.4], [8, -2.4, 1.4], [1, -1.6, 1], [10, -1.5, 1]].forEach(([x, y, w]) => d.b(x, y, w, -y - .8, '#ffd23a'));
@@ -203,11 +207,12 @@ const COS = [
     },
     leg: () => '#ffd23a' },
 
-  { name: '緑の髪とメガネ', note: '白いカチューシャ・ミントのドレス',
+  { name: '緑の髪とメガネ', who: 'チードル', note: '戌（いぬ）・犬の耳の白いずきんと メガネ', zodiac: '戌',
     back(d) { d.b(1.5, -1, 9, 5, '#2fa850'); },
     front(d) {
       d.b(2, -1, 8, 1.6, '#2fa850'); d.b(2, 0, .8, 3.5, '#2fa850'); d.b(9.2, 0, .8, 3.5, '#2fa850');
-      d.b(2.5, -1.8, 7, .7, '#f4f4f4'); [3, 5, 7, 9].forEach(x => d.b(x - .2, -2.2, .6, .5, '#f4f4f4'));
+      d.b(1.2, -2.2, 9.6, 1.4, '#f4f4f4'); d.b(1, -1, 1, 4, '#f4f4f4'); d.b(10, -1, 1, 4, '#f4f4f4');
+      d.b(1, -3.4, 2, 1.4, '#f4f4f4'); d.b(9, -3.4, 2, 1.4, '#f4f4f4'); d.b(1.5, -3, 1, .8, '#e0d4d8'); d.b(9.5, -3, 1, .8, '#e0d4d8');
       const fr = (x) => { d.b(x - .5, .4, 2, .3, '#3a3030'); d.b(x - .5, 1.9, 2, .3, '#3a3030'); d.b(x - .5, .4, .3, 1.8, '#3a3030'); d.b(x + 1.2, .4, .3, 1.8, '#3a3030'); };
       fr(3); fr(8); d.b(4.5, .9, 2.5, .3, '#3a3030');
       d.b(2.8, 3, 6.4, 3, '#a8e0c0'); d.b(5.5, 3, 1, 3, '#5fb888'); d.b(2.8, 3, 6.4, .5, '#5fb888');
@@ -216,7 +221,7 @@ const COS = [
     leg: () => '#a8e0c0',
     legs(d) { d.gn(2, 6, 8, 1.6, '#a8e0c0'); d.gn(2, 7.2, 8, .4, '#5fb888'); } },
 
-  { name: 'ニット帽とマフラー', note: '子（ね）・寒い日の旅じたく', zodiac: '子',
+  { name: 'ニット帽とマフラー', who: 'ジン', note: '亥（い）・頭の布と 青いマフラー', zodiac: '亥',
     front(d) {
       d.b(1.5, -2.2, 9, 2.4, '#7d8a9a'); d.b(1.5, -.3, 9, .8, '#6a7686'); d.b(3, -2.2, .4, 2, '#6a7686'); d.b(6, -2.2, .4, 2, '#6a7686');
       d.b(2.6, .4, 1.6, .4, '#3a1a1a'); d.b(7.8, .4, 1.6, .4, '#3a1a1a');
@@ -227,7 +232,7 @@ const COS = [
     },
     leg: () => '#2a3f6a' },
 
-  { name: 'ちゃいろのスーツ', note: '金髪と しまもようのスーツ・赤いネクタイ',
+  { name: 'ちゃいろのスーツ', who: 'パリストン', note: '子（ね）・金髪と しまもようのスーツ', zodiac: '子',
     front(d) {
       d.b(2, -1, 8, 1.4, '#f0d060'); d.b(1.6, -1.6, 5, .8, '#f0d060'); d.b(2, 0, .6, 1.5, '#f0d060');
       d.b(2, 3, 8, 3, '#7a4424'); [3, 4.2, 7.8, 9].forEach(x => d.b(x, 3, .2, 3, '#a8703a'));
@@ -236,7 +241,7 @@ const COS = [
     },
     leg: () => '#6a3a1e' },
 
-  { name: '猿の王さま', note: '申（さる）・金のかんむりと くるりしっぽ', zodiac: '申',
+  { name: '猿の王さま', who: 'サイユウ', note: '申（さる）・金のかんむりと くるりしっぽ', zodiac: '申',
     back(d) {
       const sw = Math.sin(d.t * 5) * .6;
       for (let s = 0; s < 1; s += .06) {
@@ -256,7 +261,7 @@ const COS = [
     leg: () => '#1a1a1a',
     legs(d) { d.gn(2, 7, 8, .3, '#f2c230'); } },
 
-  { name: 'くさりの使い手', note: '金髪のおかっぱ・青い上着と くさり',
+  { name: 'くさりの使い手', who: 'クラピカ', note: '金髪のおかっぱ・青い上着と くさり',
     back(d) { d.b(1.5, -1, 9, 4.5, '#f2d24a'); },
     front(d) {
       d.b(2, -1, 8, 1.4, '#f2d24a'); d.b(2, 0, .8, 2.8, '#f2d24a'); d.b(9.2, 0, .8, 2.8, '#f2d24a');
@@ -270,12 +275,12 @@ const COS = [
     },
     leg: () => '#2a4ca8' },
 
-  { name: '奇術師', note: 'ほおに星となみだ・トランプを ひらり',
+  { name: '奇術師', who: 'ヒソカ', note: 'ほおに星となみだ・トランプを ひらり',
     front(d) {
-      d.b(2, -1, 8, 1.2, '#e0407a');
-      [[2.5, -2.4], [4.5, -3], [6.5, -3], [8.5, -2.4]].forEach(([x, y]) => d.b(x, y, 1.2, -y - .8, '#e0407a'));
+      d.b(2, -1, 8, 1.2, '#e8503a');
+      [[2.5, -2.4], [4.5, -3], [6.5, -3], [8.5, -2.4]].forEach(([x, y]) => d.b(x, y, 1.2, -y - .8, '#e8503a'));
       star(d, 3.3, 2.3, '#ffcf3a'); d.b(8.3, 2, .5, .8, '#4ac0f0');
-      d.b(2, 3, 8, 3, '#f4f0f4'); d.b(2, 4.6, 8, .8, '#e0407a');
+      d.b(2, 3, 8, 3, '#f4f0f4'); d.b(2, 4.6, 8, .8, '#e8503a');
       d.b(3, 3.4, 1, .8, '#3a2a6a'); d.b(7.6, 3.4, 1, .8, '#3a2a6a');
       sleeve(d, '#f4dce6');
       const fl = Math.floor(d.t * 3) % 3;
@@ -286,7 +291,7 @@ const COS = [
     },
     leg: () => '#f4f0f4' },
 
-  { name: 'まるメガネのスーツ', note: 'こん色のスーツと かばん',
+  { name: 'まるメガネのスーツ', who: 'レオリオ', note: 'まるメガネと こん色のスーツ・かばん',
     front(d) {
       d.b(2, -1, 8, 1.3, '#141418'); d.b(2, 0, .6, 1.2, '#141418'); d.b(9.4, 0, .6, 1.2, '#141418');
       const fr = (x) => { d.b(x - .4, .3, 1.8, .3, '#2a2a30'); d.b(x - .4, 1.7, 1.8, .3, '#2a2a30'); d.b(x - .4, .3, .3, 1.7, '#2a2a30'); d.b(x + 1.1, .3, .3, 1.7, '#2a2a30'); };
@@ -297,7 +302,7 @@ const COS = [
     },
     leg: () => '#1e2a5a' },
 
-  { name: 'ねこ耳', note: '白いふわふわ髪と ねこ耳・ゆれるしっぽ', zodiac: '寅',
+  { name: 'ねこ耳', who: 'ネフェルピトー', note: '白いふわふわ髪と ねこ耳・ゆれるしっぽ',
     back(d) {
       const sw = Math.sin(d.t * 4) * .8;
       for (let s = 0; s < 1; s += .07) d.b(10 + s * 3, 5 - s * 6 + Math.sin(s * 3) * sw, .8, .8, '#c8c0dc');
@@ -314,7 +319,7 @@ const COS = [
     leg: () => '#1e2a5a',
     legs(d) { d.gn(2, 7, 8, .4, '#d87a5a'); } },
 
-  { name: '虫のかぶと', note: '緑のかぶとと しっぽ・むらさきの触角', zodiac: '巳',
+  { name: '虫のかぶと', who: 'メルエム', note: '緑のかぶとと しっぽ',
     back(d) {
       const sw = Math.sin(d.t * 3) * .5;
       for (let s = 0; s < 1; s += .08) d.b(-1 - s * 3, 5 - s * 4 + Math.sin(s * 4) * sw, 1, 1, Math.floor(s * 10) % 3 ? '#4e8a62' : '#7a4fa8');
@@ -329,7 +334,7 @@ const COS = [
     skin: '#9ac8a0',
     leg: () => '#3d6a4a' },
 
-  { name: '長老', note: '白いまゆと 長いひげ・ちょんまげ',
+  { name: '長老', who: 'ネテロ', note: '白いまゆと 長いひげ・ちょんまげ',
     front(d) {
       d.b(5.4, -2.2, 1.2, 2.2, '#f4f4f4'); d.b(5.2, -.6, 1.6, .5, '#3c7ad8');
       d.b(2.2, .2, 2.4, .6, '#f4f4f4'); d.b(2, .6, .8, 1, '#f4f4f4'); d.b(7.4, .2, 2.4, .6, '#f4f4f4'); d.b(9.2, .6, .8, 1, '#f4f4f4');
@@ -341,7 +346,7 @@ const COS = [
     leg: () => '#f4f0e8',
     legs(d) { d.gn(1.6, 7.4, 2, .6, '#3a2a1a'); d.gn(8.4, 7.4, 2, .6, '#3a2a1a'); } },
 
-  { name: 'ちょうちょの羽', note: '亥（い）・すきとおる羽で ひらひら', zodiac: '亥',
+  { name: 'ちょうちょの羽', who: 'シャウアプフ', note: 'すきとおる羽で ひらひら',
     back(d) {
       const k = .55 + .45 * Math.abs(Math.sin(d.t * 6));
       d.a(.8, () => {
@@ -359,7 +364,7 @@ const COS = [
     eye: '#c8a020',
     leg: () => '#1a2448' },
 
-  { name: 'くるくるツインテール', note: '戌（いぬ）・ピンクのリボンとドレス', zodiac: '戌',
+  { name: 'くるくるツインテール', who: 'ビスケ', note: 'くるくるツインテールと ピンクのドレス',
     back(d) {
       const bob = Math.sin(d.t * 5) > 0 ? .3 : 0;
       [-1.8, 11.8].forEach(x => { for (let i = 0; i < 5; i++) d.b(x - (i % 2 ? .3 : 0), -.5 + i * 1.1 + bob, 2 + (i % 2 ? .6 : 0), 1.1, i % 2 ? '#f0c830' : '#ffe060'); });
@@ -380,7 +385,7 @@ const grid = document.getElementById('grid');
 const tiles = COS.map((c, i) => {
   const b = document.createElement('button'); b.className = 'tile';
   const cv = document.createElement('canvas'); cv.width = 20 * 4; cv.height = 18 * 4; // 1マス＝4画素
-  const sp = document.createElement('span'); sp.innerHTML = `${c.name}${c.zodiac ? `<br><b>${c.zodiac}</b>` : ''}`;
+  const sp = document.createElement('span'); sp.innerHTML = `${c.who}<br><b>${c.zodiac ? c.zodiac + '・' : ''}${c.name}</b>`;
   b.append(cv, sp); grid.append(b);
   b.addEventListener('click', () => pick(i));
   return { b, g: cv.getContext('2d'), cv };
@@ -433,7 +438,7 @@ function pick(i) {
   if (i === cur) { changeAt = performance.now() / 1000; prev = -1; sfx(); return; }
   prev = cur; cur = i; changeAt = performance.now() / 1000;
   tiles.forEach((tl, j) => tl.b.classList.toggle('on', j === i));
-  document.getElementById('bigName').textContent = COS[i].name;
+  document.getElementById('bigName').textContent = COS[i].who;
   document.getElementById('bigNote').textContent = COS[i].note;
   sfx();
 }
@@ -465,7 +470,7 @@ document.getElementById('randBtn').addEventListener('click', () => {
 
 prev = -1; cur = 0;
 tiles[0].b.classList.add('on');
-document.getElementById('bigName').textContent = COS[0].name;
+document.getElementById('bigName').textContent = COS[0].who;
 document.getElementById('bigNote').textContent = COS[0].note;
 requestAnimationFrame(drawBig);
 </script>
