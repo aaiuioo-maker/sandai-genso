@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="変身図鑑">
+<title>変身図鑑</title>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05040d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  body { font-family: "DotGothic16", sans-serif; display: flex; flex-direction: column; align-items: center;
+         padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  h1 { font-size: 18px; font-weight: 400; margin: 0 0 4px; letter-spacing: .08em; }
+  .sub { font-size: 11px; opacity: .6; margin: 0 0 10px; text-align: center; }
+  .wrap { width: 100%; max-width: 480px; }
+  /* 上の大きな舞台：えらんだ変身を大きく見せる */
+  .stage { position: relative; background: #0f1028; border: 2px solid #2a2540; border-radius: 6px; overflow: hidden; }
+  #big { width: 100%; display: block; image-rendering: pixelated; }
+  .name { text-align: center; font-size: 16px; margin-top: 8px; color: #ffcf8a; }
+  .note { text-align: center; font-size: 11px; color: #8a84a8; margin-top: 2px; min-height: 1.4em; }
+  .btns { display: flex; gap: 6px; margin-top: 8px; }
+  button { font-family: inherit; color: var(--fg); background: #1c1930; border: 2px solid #3a3358; border-radius: 6px; cursor: pointer; }
+  button:active { transform: translateY(1px); }
+  .btns button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 7px 2px; color: #8a84a8; }
+  .btns button.on { border-color: var(--accent); color: var(--fg); }
+  /* 20個の一覧 */
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+  .tile { padding: 4px 2px 5px; background: #12101f; border-color: #2a2540; display: flex; flex-direction: column; align-items: center; }
+  .tile.on { border-color: var(--accent); background: #1c1930; }
+  .tile canvas { width: 100%; max-width: 80px; image-rendering: pixelated; display: block; }
+  .tile span { font-size: 10px; line-height: 1.2; margin-top: 2px; color: #cfc6e8; text-align: center; }
+  .tile b { font-weight: 400; color: #8a84a8; font-size: 9px; }
+</style>
+</head>
+<body>
+<h1>変身図鑑</h1>
+<p class="sub">オレンジのキャラクターの変身 20種（押すと変身します・音が出ます）</p>
+<div class="wrap">
+  <div class="stage"><canvas id="big"></canvas></div>
+  <div class="name" id="bigName"></div>
+  <div class="note" id="bigNote"></div>
+  <div class="btns" id="modes">
+    <button data-m="walk" class="on">歩く</button>
+    <button data-m="talk">しゃべる</button>
+    <button data-m="jump">ジャンプ</button>
+    <button id="randBtn">🎲 おまかせ</button>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+// ---------- オレンジのキャラクター（動画と同じ形：横12×縦8マス） ----------
+// 体は x 2〜10・y 0〜6、うでは左 x 0〜2・右 x 10〜12（y 2〜4）、足は x 2,4,7,9、目は (3,1) と (8,1)
+// 変身は back（体の後ろ：羽・しっぽ・長い髪）と front（体の前：服・ぼうし・小物）で重ねて描く
+const ORANGE = '#d97757', EYE = '#1a1612';
+
+function drawChar(g, q, ox, oy, t, mode, cos) {
+  const R = (x, y, w, h, c) => {
+    const X = Math.round(x * q), Y = Math.round(y * q);
+    g.fillStyle = c; g.fillRect(X, Y, Math.round((x + w) * q) - X, Math.round((y + h) * q) - Y);
+  };
+  const f = Math.floor(t * 6) % 4;
+  const hop = mode === 'jump' ? -Math.abs(Math.sin(t * 7)) * 4 : (f % 2 ? -1 : 0);
+  const y0 = oy + hop;
+  const wave = mode === 'talk' && Math.sin(t * 10) > 0 ? -1 : 0;
+  const d = {
+    R, t, mode, q, g,
+    la: wave, ra: -wave,                                         // うでの上下（左・右）
+    b: (dx, dy, w, h, c) => R(ox + dx, y0 + dy, w, h, c),        // 体といっしょに動く
+    gn: (dx, dy, w, h, c) => R(ox + dx, oy + dy, w, h, c),       // 地面（足）といっしょ
+    a: (al, fn) => { g.globalAlpha = al; fn(); g.globalAlpha = 1; },
+  };
+  if (cos.back) cos.back(d);
+  const up = [f === 1, f === 3, f === 3, f === 1];
+  [2, 4, 7, 9].forEach((x, i) => {
+    const h = up[i] && mode === 'walk' ? 1 : 2;
+    d.gn(x, 6 + 2 - h, 1, h, cos.leg ? cos.leg(i) : ORANGE);
+  });
+  if (cos.legs) cos.legs(d);
+  d.b(2, 0, 8, 6, cos.skin || ORANGE);
+  d.b(0, 2 + d.la, 2, 2, cos.skin || ORANGE); d.b(10, 2 + d.ra, 2, 2, cos.skin || ORANGE);
+  const blink = (t % 3) > 2.85;
+  const ec = cos.eye || EYE;
+  d.b(3, 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, ec); d.b(8, 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, ec);
+  if (cos.front) cos.front(d);
+}
+
+// 小物の道具
+const sleeve = (d, c) => { d.b(1, 2 + d.la, 1, 2, c); d.b(10, 2 + d.ra, 1, 2, c); };   // そで（手の先は残す）
+const fullArm = (d, c) => { d.b(0, 2 + d.la, 2, 2, c); d.b(10, 2 + d.ra, 2, 2, c); };
+function star(d, x, y, c) { d.b(x, y - .5, .5, 1.5, c); d.b(x - .5, y, 1.5, .5, c); }
+function spots(d, list, c) { list.forEach(([x, y, w, h]) => d.b(x, y, w, h, c)); }
+
+// ---------- 20の変身 ----------
+const COS = [
+  { name: 'うさぎ', note: '卯（う）・長い耳とちょうネクタイ', zodiac: '卯',
+    front(d) {
+      const tilt = Math.sin(d.t * 4) > .6 ? .5 : 0;
+      d.b(3, -5 + tilt, 1.5, 5, '#f4f0f4'); d.b(7.5, -5, 1.5, 5, '#f4f0f4');
+      d.b(3.5, -4.5 + tilt, .5, 3.5, '#ff9db8'); d.b(8, -4.5, .5, 3.5, '#ff9db8');
+      d.b(2.5, 2, 1, .5, '#ff9db8'); d.b(8.5, 2, 1, .5, '#ff9db8');
+      d.b(2, 3.5, 8, 2.5, '#2a2030'); d.b(5, 3.5, 2, 2.5, '#f4f0f4');
+      d.b(5, 3.5, .7, .7, EYE); d.b(6.3, 3.5, .7, .7, EYE); d.b(5.7, 3.7, .6, .4, EYE);
+      d.b(5.5, 4.6, 1, .6, '#ff6aa0');
+      sleeve(d, '#2a2030');
+    },
+    leg: i => i % 2 ? '#ff9db8' : '#2a2030' },
+
+  { name: 'さむらい', note: 'ちょんまげ・むらさきの着物と刀', zodiac: '午',
+    front(d) {
+      d.b(2, -.4, 8, .8, '#1c1c22'); d.b(5, -2, 2, 1.6, '#1c1c22'); d.b(5.5, -2.6, 1, .6, '#1c1c22');
+      d.b(2, 3, 8, 3, '#7a4fa8'); d.b(4, 3, 1, 1, '#4a2c78'); d.b(5, 3.5, 1, 1, '#4a2c78'); d.b(7, 3, 1, 1, '#4a2c78'); d.b(6, 3.5, 1, 1, '#4a2c78');
+      d.b(2, 4.6, 8, .8, '#a0242a');
+      d.b(7.5, 2.4, .6, 2.2, '#e8e2c8'); d.b(7.2, 4.4, 1.2, .4, '#c8a040');
+      sleeve(d, '#7a4fa8');
+    },
+    leg: i => '#7a4fa8',
+    legs(d) { d.gn(2, 6.5, .6, .6, '#e04a6a'); d.gn(9, 6.8, .6, .6, '#e04a6a'); } },
+
+  { name: '黒いドレス', note: '長い黒髪と夜のドレス',
+    back(d) { d.b(1.5, -1, 9, 7, '#141418'); },
+    front(d) {
+      d.b(2, -1, 8, 1.2, '#141418'); d.b(2, 0, .8, 3.5, '#141418'); d.b(9.2, 0, .8, 3.5, '#141418');
+      d.b(2.8, 3, 6.4, 3, '#0c0c10'); d.b(5, 3, 2, .6, ORANGE); d.b(5.5, 3.6, 1, .5, ORANGE);
+      d.b(5.2, 2.3, 1.6, .4, '#8a2a5a');
+      sleeve(d, '#0c0c10');
+    },
+    leg: () => '#0c0c10',
+    legs(d) { d.gn(2, 6, 8, 2, '#0c0c10'); } },
+
+  { name: '白い師匠', note: 'ぼさぼさの白髪とひげ・赤いよろい', zodiac: '辰',
+    back(d) {
+      d.b(.5, -3, 11, 4, '#eeeeee');
+      [[0, -4], [2, -5], [4.5, -5.5], [7, -5.5], [9.5, -5], [11, -4], [-.5, -2], [12, -2]].forEach(([x, y]) => d.b(x, y, 1.2, 1.4, '#eeeeee'));
+    },
+    front(d) {
+      d.b(2, -.5, 8, .8, '#eeeeee');
+      d.b(2.5, .4, 2, .5, '#ffffff'); d.b(7.5, .4, 2, .5, '#ffffff');
+      d.b(3.5, 2, 5, .8, '#dcdcdc'); d.b(3, 2.5, 1, .8, '#dcdcdc'); d.b(8, 2.5, 1, .8, '#dcdcdc');
+      d.b(2, 3.3, 8, 2.7, '#c0262c'); d.b(5.7, 3.3, .6, 2.7, '#2a1a1a'); d.b(3, 4.4, 6, .4, '#2a1a1a');
+      fullArm(d, '#2a2226'); d.b(0, 2 + d.la, 2, .6, '#c0262c'); d.b(10, 2 + d.ra, 2, .6, '#c0262c');
+    },
+    leg: () => '#2a1a1a' },
+
+  { name: 'アフロ', note: '大きなアフロとはちまき・青い毛皮', zodiac: '未',
+    back(d) {
+      d.b(0, -6, 12, 1, '#1a1a1a'); d.b(-1, -5, 14, 6, '#1a1a1a'); d.b(1, -6.8, 10, 1, '#1a1a1a');
+      [[0, -4], [3, -6], [6, -5], [9, -6], [11, -3], [1, -1], [5, -3], [8, -2]].forEach(([x, y]) => d.b(x, y, .6, .6, '#3a3a3a'));
+    },
+    front(d) {
+      d.b(2, -.6, 8, 1, '#2f5fb8'); star(d, 5.8, -.3, '#ffd23a');
+      d.b(4.5, 2.2, 3, 1.4, '#3a1a1a'); d.b(5, 2.8, 2, .6, '#c05a5a');
+      d.b(3, 4, 6, 2, '#2a3f8a'); d.b(4.5, 4.4, 3, 1.2, '#c0262c'); d.b(5.6, 4.4, .8, 1.2, '#f4f4f4');
+      d.b(1, 3, 10, 1.2, '#8fc8f0'); [1.5, 4, 6.5, 9].forEach(x => d.b(x, 3.8, 1.2, .6, '#b8e0ff'));
+    },
+    leg: () => '#2a3f8a' },
+
+  { name: '牛のカウボーイ', note: '丑（うし）・白黒もようとぼうし', zodiac: '丑',
+    front(d) {
+      d.b(0, -1, 12, 1, '#f4f4f4'); d.b(3, -3.5, 6, 2.5, '#f4f4f4'); d.b(5.5, -3.5, 1, .6, '#d0d0d0');
+      spots(d, [[3.5, -3, 1.2, .8], [7, -2.4, 1.2, 1], [1, -1, 1, .6], [9.5, -1, 1.2, .6]], '#1a1a1a');
+      d.b(2, 0, .6, 2.5, '#1a1a1a'); d.b(9.4, 0, .6, 2.5, '#1a1a1a');
+      d.b(2, 3, 8, 3, '#f4f4f4'); spots(d, [[2.5, 3.5, 1.5, 1], [7, 4.5, 2, 1], [4.5, 5, 1, .8]], '#1a1a1a');
+      d.b(5.8, 3, .4, 3, '#c8a040');
+      sleeve(d, '#f4f4f4');
+    },
+    leg: i => i === 1 || i === 2 ? '#1a1a1a' : '#f4f4f4' },
+
+  { name: '羽の踊り子', note: '酉（とり）・羽かざりと白いつばさ', zodiac: '酉',
+    back(d) {
+      const fl = Math.sin(d.t * 6) > 0 ? .5 : 0;
+      d.b(-3, .5 - fl, 3, 2, '#f4f4f4'); d.b(-4, -.5 - fl, 2, 1.5, '#f4f4f4'); d.b(-2, 2.5, 2, 1, '#dde8f0');
+      d.b(12, .5 - fl, 3, 2, '#f4f4f4'); d.b(14, -.5 - fl, 2, 1.5, '#f4f4f4'); d.b(12, 2.5, 2, 1, '#dde8f0');
+      for (let i = -3; i <= 3; i++) {
+        const an = -Math.PI / 2 + i * .32;
+        for (let s = 1; s <= 5; s += .5) d.b(5.75 + Math.cos(an) * s, -1 + Math.sin(an) * s, .6, .6, s > 4 ? '#3cb0d8' : '#f4f4f4');
+      }
+    },
+    front(d) {
+      d.b(2, -1, 8, 1.3, '#3cb0d8'); d.b(4, -1.6, 4, .8, '#3cb0d8');
+      d.b(3, .6, 1, .3, '#3c7ad8'); d.b(8, .6, 1, .3, '#3c7ad8'); d.b(5.2, 2.4, 1.6, .5, '#2a5ab8');
+      d.b(3, 3.2, 2.4, 1, '#3a7fd0'); d.b(6.6, 3.2, 2.4, 1, '#3a7fd0'); d.b(3, 5, 6, 1, '#3a7fd0');
+      d.b(0, 3 + d.la, 1, 1, '#2a4a8a'); d.b(11, 3 + d.ra, 1, 1, '#2a4a8a');
+    },
+    leg: () => '#2a4a8a' },
+
+  { name: 'ツンツン金髪', note: '黄色いしまの野球ふく・にやり顔',
+    front(d) {
+      d.b(2, -1, 8, 1.4, '#ffd23a');
+      [[2, -2.5, 1.4], [4, -3.4, 1.4], [6, -3, 1.4], [8, -2.4, 1.4], [1, -1.6, 1], [10, -1.5, 1]].forEach(([x, y, w]) => d.b(x, y, w, -y - .8, '#ffd23a'));
+      d.b(2.6, 1.9, .4, .4, '#a0603a'); d.b(9, 1.9, .4, .4, '#a0603a');
+      d.b(4, 2.2, 4, .8, EYE); d.b(4.3, 2.3, 3.4, .5, '#ffffff');
+      d.b(2, 3.2, 8, 2.8, '#ffd23a'); [3, 4.5, 7.5, 9].forEach(x => d.b(x, 3.2, .3, 2.8, '#6a5a10'));
+      d.b(5.5, 3.2, 1, 2.8, '#1a1a1a');
+      sleeve(d, '#1a1a1a');
+    },
+    leg: () => '#ffd23a' },
+
+  { name: '緑の髪とメガネ', note: '白いカチューシャ・ミントのドレス',
+    back(d) { d.b(1.5, -1, 9, 5, '#2fa850'); },
+    front(d) {
+      d.b(2, -1, 8, 1.6, '#2fa850'); d.b(2, 0, .8, 3.5, '#2fa850'); d.b(9.2, 0, .8, 3.5, '#2fa850');
+      d.b(2.5, -1.8, 7, .7, '#f4f4f4'); [3, 5, 7, 9].forEach(x => d.b(x - .2, -2.2, .6, .5, '#f4f4f4'));
+      const fr = (x) => { d.b(x - .5, .4, 2, .3, '#3a3030'); d.b(x - .5, 1.9, 2, .3, '#3a3030'); d.b(x - .5, .4, .3, 1.8, '#3a3030'); d.b(x + 1.2, .4, .3, 1.8, '#3a3030'); };
+      fr(3); fr(8); d.b(4.5, .9, 2.5, .3, '#3a3030');
+      d.b(2.8, 3, 6.4, 3, '#a8e0c0'); d.b(5.5, 3, 1, 3, '#5fb888'); d.b(2.8, 3, 6.4, .5, '#5fb888');
+      sleeve(d, '#a8e0c0');
+    },
+    leg: () => '#a8e0c0',
+    legs(d) { d.gn(2, 6, 8, 1.6, '#a8e0c0'); d.gn(2, 7.2, 8, .4, '#5fb888'); } },
+
+  { name: 'ニット帽とマフラー', note: '子（ね）・寒い日の旅じたく', zodiac: '子',
+    front(d) {
+      d.b(1.5, -2.2, 9, 2.4, '#7d8a9a'); d.b(1.5, -.3, 9, .8, '#6a7686'); d.b(3, -2.2, .4, 2, '#6a7686'); d.b(6, -2.2, .4, 2, '#6a7686');
+      d.b(2.6, .4, 1.6, .4, '#3a1a1a'); d.b(7.8, .4, 1.6, .4, '#3a1a1a');
+      d.b(4.5, 2.4, 3, .4, '#5a2a1a');
+      d.b(2, 4, 8, 2, '#7fa6d8'); d.b(2, 5, 8, .5, '#2a3f6a');
+      d.b(1.5, 2.8, 9, 1.3, '#1f3a6e'); d.b(3, 3.8, 1.2, 2.2, '#1f3a6e');
+      sleeve(d, '#7fa6d8');
+    },
+    leg: () => '#2a3f6a' },
+
+  { name: 'ちゃいろのスーツ', note: '金髪と しまもようのスーツ・赤いネクタイ',
+    front(d) {
+      d.b(2, -1, 8, 1.4, '#f0d060'); d.b(1.6, -1.6, 5, .8, '#f0d060'); d.b(2, 0, .6, 1.5, '#f0d060');
+      d.b(2, 3, 8, 3, '#7a4424'); [3, 4.2, 7.8, 9].forEach(x => d.b(x, 3, .2, 3, '#a8703a'));
+      d.b(4.8, 3, 2.4, 1.6, '#f4f4f4'); d.b(5.6, 3, .8, 2.4, '#a0242a');
+      sleeve(d, '#7a4424');
+    },
+    leg: () => '#6a3a1e' },
+
+  { name: '猿の王さま', note: '申（さる）・金のかんむりと くるりしっぽ', zodiac: '申',
+    back(d) {
+      const sw = Math.sin(d.t * 5) * .6;
+      for (let s = 0; s < 1; s += .06) {
+        const x = 10 + s * 4 + Math.sin(s * 6) * 1.2 + sw * s, y = 5 - s * 5 + Math.cos(s * 6) * .5;
+        d.b(x, y, .8, .8, '#8a5228');
+      }
+    },
+    front(d) {
+      d.b(2, -.6, 8, .9, '#8a5228');
+      d.b(2.5, -2, 7, 1.2, '#f2c230'); [3, 5.4, 7.8].forEach(x => d.b(x, -3, 1, 1, '#f2c230')); d.b(5.6, -1.7, .6, .6, '#c0262c');
+      d.b(.8, .4, 1.2, 1.4, '#c08850'); d.b(10, .4, 1.2, 1.4, '#c08850');
+      d.b(3.6, 1.8, 4.8, 1.2, '#f0c890'); d.b(4.6, 2.3, 2.8, .4, '#6a3a1e');
+      d.b(2, 3.2, 8, 2.8, '#1a1a1a'); d.b(4, 3.4, 4, 2.4, '#e8b060'); d.b(5.8, 3.4, .4, 2.4, '#c08840'); d.b(4, 4.6, 4, .3, '#c08840');
+      d.b(2, 5.6, 8, .4, '#f2c230');
+      sleeve(d, '#e8b060');
+    },
+    leg: () => '#1a1a1a',
+    legs(d) { d.gn(2, 7, 8, .3, '#f2c230'); } },
+
+  { name: 'くさりの使い手', note: '金髪のおかっぱ・青い上着と くさり',
+    back(d) { d.b(1.5, -1, 9, 4.5, '#f2d24a'); },
+    front(d) {
+      d.b(2, -1, 8, 1.4, '#f2d24a'); d.b(2, 0, .8, 2.8, '#f2d24a'); d.b(9.2, 0, .8, 2.8, '#f2d24a');
+      d.b(3, 3, 6, 3, '#2a4ca8'); d.b(3.6, 3.4, 1, 1.8, '#f2c230'); d.b(7.4, 3.4, 1, 1.8, '#f2c230'); d.b(5.6, 3, .8, 1.2, '#c0262c');
+      d.b(2, 3, 1, 3, '#f4f0e0'); d.b(9, 3, 1, 3, '#f4f0e0');
+      sleeve(d, '#f4f0e0');
+      for (let i = 0; i < 7; i++) {
+        const x = 11.4 + Math.sin(d.t * 4) * i * .25, y = 4 + d.ra + i * .7;
+        d.b(x, y, i % 2 ? .4 : .8, .5, '#9aa0aa');
+      }
+    },
+    leg: () => '#2a4ca8' },
+
+  { name: '奇術師', note: 'ほおに星となみだ・トランプを ひらり',
+    front(d) {
+      d.b(2, -1, 8, 1.2, '#e0407a');
+      [[2.5, -2.4], [4.5, -3], [6.5, -3], [8.5, -2.4]].forEach(([x, y]) => d.b(x, y, 1.2, -y - .8, '#e0407a'));
+      star(d, 3.3, 2.3, '#ffcf3a'); d.b(8.3, 2, .5, .8, '#4ac0f0');
+      d.b(2, 3, 8, 3, '#f4f0f4'); d.b(2, 4.6, 8, .8, '#e0407a');
+      d.b(3, 3.4, 1, .8, '#3a2a6a'); d.b(7.6, 3.4, 1, .8, '#3a2a6a');
+      sleeve(d, '#f4dce6');
+      const fl = Math.floor(d.t * 3) % 3;
+      for (let i = 0; i < 3; i++) {
+        const x = 11.6 + i * .8, y = 1 + d.ra - i * .4 - (i === fl ? .4 : 0);
+        d.b(x, y, .9, 1.3, '#f4f4f4'); d.b(x + .2, y + .4, .5, .5, i === 1 ? '#1a1a1a' : '#e02a3a');
+      }
+    },
+    leg: () => '#f4f0f4' },
+
+  { name: 'まるメガネのスーツ', note: 'こん色のスーツと かばん',
+    front(d) {
+      d.b(2, -1, 8, 1.3, '#141418'); d.b(2, 0, .6, 1.2, '#141418'); d.b(9.4, 0, .6, 1.2, '#141418');
+      const fr = (x) => { d.b(x - .4, .3, 1.8, .3, '#2a2a30'); d.b(x - .4, 1.7, 1.8, .3, '#2a2a30'); d.b(x - .4, .3, .3, 1.7, '#2a2a30'); d.b(x + 1.1, .3, .3, 1.7, '#2a2a30'); };
+      fr(3); fr(8); d.b(4.4, .8, 3.3, .3, '#2a2a30');
+      d.b(2, 3, 8, 3, '#1e2a5a'); d.b(4.8, 3, 2.4, 1.6, '#f4f4f4'); d.b(5.6, 3, .8, 2.4, '#c0262c');
+      sleeve(d, '#1e2a5a');
+      d.b(-1.2, 4 + d.la, 2.6, 2, '#8a5530'); d.b(-.3, 3.6 + d.la, .8, .4, '#5a3418');
+    },
+    leg: () => '#1e2a5a' },
+
+  { name: 'ねこ耳', note: '白いふわふわ髪と ねこ耳・ゆれるしっぽ', zodiac: '寅',
+    back(d) {
+      const sw = Math.sin(d.t * 4) * .8;
+      for (let s = 0; s < 1; s += .07) d.b(10 + s * 3, 5 - s * 6 + Math.sin(s * 3) * sw, .8, .8, '#c8c0dc');
+    },
+    front(d) {
+      d.b(1.6, -1, 8.8, 1.8, '#ecebf4'); [[1.2, 0], [10, 0], [3, -1.5], [7, -1.5]].forEach(([x, y]) => d.b(x, y, 1, 1, '#ecebf4'));
+      d.b(2, -2.6, 1.4, 1.6, '#ecebf4'); d.b(8.6, -2.6, 1.4, 1.6, '#ecebf4');
+      d.b(2.4, -2.1, .6, 1, '#f4a0b8'); d.b(9, -2.1, .6, 1, '#f4a0b8');
+      d.b(3, 1, 1, 1, '#d84a4a');  d.b(8, 1, 1, 1, '#d84a4a');
+      d.b(2, 3, 8, 3, '#1e2a5a'); [[4, 3.6], [7.4, 3.6], [4, 4.8], [7.4, 4.8]].forEach(([x, y]) => d.b(x, y, .6, .6, '#f2c230'));
+      sleeve(d, '#1e2a5a');
+    },
+    eye: '#d84a4a',
+    leg: () => '#1e2a5a',
+    legs(d) { d.gn(2, 7, 8, .4, '#d87a5a'); } },
+
+  { name: '虫のかぶと', note: '緑のかぶとと しっぽ・むらさきの触角', zodiac: '巳',
+    back(d) {
+      const sw = Math.sin(d.t * 3) * .5;
+      for (let s = 0; s < 1; s += .08) d.b(-1 - s * 3, 5 - s * 4 + Math.sin(s * 4) * sw, 1, 1, Math.floor(s * 10) % 3 ? '#4e8a62' : '#7a4fa8');
+    },
+    front(d) {
+      d.b(1.5, -2.6, 9, 3, '#3d7a52'); d.b(1, -.2, 10, .7, '#2e5e3e'); d.b(3, -2.6, 6, .6, '#5aa070');
+      d.b(2.5, -3.6, 1, 1.2, '#7a4fa8'); d.b(8.5, -3.6, 1, 1.2, '#7a4fa8');
+      d.b(2, 3, 8, 3, '#8ab890'); d.b(5.8, 3.2, .4, 2.6, '#5a8a62'); d.b(3.5, 4.4, 5, .3, '#5a8a62');
+      d.b(2, 3, 1.4, 3, '#1a1a1a'); d.b(8.6, 3, 1.4, 3, '#1a1a1a');
+      fullArm(d, '#8ab890'); d.b(0, 2 + d.la, .6, 2, '#7a4fa8'); d.b(11.4, 2 + d.ra, .6, 2, '#7a4fa8');
+    },
+    skin: '#9ac8a0',
+    leg: () => '#3d6a4a' },
+
+  { name: '長老', note: '白いまゆと 長いひげ・ちょんまげ',
+    front(d) {
+      d.b(5.4, -2.2, 1.2, 2.2, '#f4f4f4'); d.b(5.2, -.6, 1.6, .5, '#3c7ad8');
+      d.b(2.2, .2, 2.4, .6, '#f4f4f4'); d.b(2, .6, .8, 1, '#f4f4f4'); d.b(7.4, .2, 2.4, .6, '#f4f4f4'); d.b(9.2, .6, .8, 1, '#f4f4f4');
+      d.b(2, 3, 8, 3, '#f4f0e8'); d.b(2, 4.8, 8, .6, '#7a8a9a');
+      d.b(4, 2.2, 4, 2.6, '#f4f4f4'); d.b(4.6, 4.8, 2.8, 1, '#f4f4f4'); d.b(5.4, 5.8, 1.2, .8, '#f4f4f4');
+      d.b(4, 2.2, 4, .4, '#dcdcdc');
+      sleeve(d, '#f4f0e8');
+    },
+    leg: () => '#f4f0e8',
+    legs(d) { d.gn(1.6, 7.4, 2, .6, '#3a2a1a'); d.gn(8.4, 7.4, 2, .6, '#3a2a1a'); } },
+
+  { name: 'ちょうちょの羽', note: '亥（い）・すきとおる羽で ひらひら', zodiac: '亥',
+    back(d) {
+      const k = .55 + .45 * Math.abs(Math.sin(d.t * 6));
+      d.a(.8, () => {
+        d.b(2 - 6 * k, -2, 6 * k, 4, '#8a6ab8'); d.b(2 - 4 * k, 2, 4 * k, 3, '#7a5aa8');
+        d.b(10, -2, 6 * k, 4, '#8a6ab8'); d.b(10, 2, 4 * k, 3, '#7a5aa8');
+        d.b(2 - 4 * k, -1, 2 * k, 1.5, '#c8a8e8'); d.b(10 + 2 * k, -1, 2 * k, 1.5, '#c8a8e8');
+      });
+    },
+    front(d) {
+      d.b(2, -1, 8, 1.6, '#f2d24a'); d.b(2, 0, .8, 2.6, '#f2d24a'); d.b(9.2, 0, .8, 2.6, '#f2d24a');
+      d.b(3, -3, .4, 2, '#1a1a1a'); d.b(2.4, -3.4, .8, .5, '#1a1a1a'); d.b(8.6, -3, .4, 2, '#1a1a1a'); d.b(8.8, -3.4, .8, .5, '#1a1a1a');
+      d.b(2, 3, 8, 3, '#1a2448'); d.b(5.8, 3, .4, 3, '#0e1430'); d.b(2, 4.8, 8, .5, '#5a4a3a');
+      sleeve(d, '#1a2448');
+    },
+    eye: '#c8a020',
+    leg: () => '#1a2448' },
+
+  { name: 'くるくるツインテール', note: '戌（いぬ）・ピンクのリボンとドレス', zodiac: '戌',
+    back(d) {
+      const bob = Math.sin(d.t * 5) > 0 ? .3 : 0;
+      [-1.8, 11.8].forEach(x => { for (let i = 0; i < 5; i++) d.b(x - (i % 2 ? .3 : 0), -.5 + i * 1.1 + bob, 2 + (i % 2 ? .6 : 0), 1.1, i % 2 ? '#f0c830' : '#ffe060'); });
+    },
+    front(d) {
+      d.b(2, -1, 8, 1.6, '#ffe060'); d.b(2, 0, .8, 1.4, '#ffe060'); d.b(9.2, 0, .8, 1.4, '#ffe060');
+      d.b(.6, -1.6, 2.4, 1, '#ff5a9a'); d.b(9, -1.6, 2.4, 1, '#ff5a9a'); d.b(1.5, -1.4, .6, .6, '#c02a6a'); d.b(9.9, -1.4, .6, .6, '#c02a6a');
+      d.b(2.6, 2, 1, .5, '#ff9db8'); d.b(8.4, 2, 1, .5, '#ff9db8');
+      d.b(1.4, 3, 9.2, 1.8, '#e04a9a'); d.b(5, 3.2, 2, .8, '#ff9dc8');
+      d.b(2, 4.8, 8, 1.2, '#ff7ab8'); d.b(5.8, 4.8, .4, 1.2, '#c02a6a');
+    },
+    leg: () => '#ff7ab8',
+    legs(d) { d.gn(1, 6, 10, 1, '#ff7ab8'); d.gn(1, 6.8, 10, .4, '#ffe0f0'); } },
+];
+
+// ---------- 一覧を作る ----------
+const grid = document.getElementById('grid');
+const tiles = COS.map((c, i) => {
+  const b = document.createElement('button'); b.className = 'tile';
+  const cv = document.createElement('canvas'); cv.width = 20 * 4; cv.height = 18 * 4; // 1マス＝4画素
+  const sp = document.createElement('span'); sp.innerHTML = `${c.name}${c.zodiac ? `<br><b>${c.zodiac}</b>` : ''}`;
+  b.append(cv, sp); grid.append(b);
+  b.addEventListener('click', () => pick(i));
+  return { b, g: cv.getContext('2d'), cv };
+});
+
+// ---------- 大きな舞台 ----------
+const big = document.getElementById('big');
+const BW = 40, BH = 26, BQ = 12;
+big.width = BW * BQ; big.height = BH * BQ;
+const bg = big.getContext('2d');
+let cur = 0, mode = 'walk', changeAt = -10, prev = -1;
+let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const stars = [...Array(40)].map(() => ({ x: rnd() * BW, y: rnd() * 18, p: rnd() * 6.28 }));
+
+function drawBig(now) {
+  const t = now / 1000;
+  bg.fillStyle = '#0f1028'; bg.fillRect(0, 0, big.width, big.height);
+  for (const s of stars) { bg.globalAlpha = .3 + .4 * (.5 + .5 * Math.sin(t * 3 + s.p)); bg.fillStyle = '#fff'; bg.fillRect(Math.round(s.x) * BQ, Math.round(s.y) * BQ, BQ / 2, BQ / 2); }
+  bg.globalAlpha = 1;
+  bg.fillStyle = '#5a3d24'; bg.fillRect(0, 22 * BQ, big.width, 4 * BQ);
+  bg.fillStyle = '#3f8f3a'; bg.fillRect(0, 22 * BQ, big.width, BQ / 2);
+  // 変身の けむり：ぽん！と白く光って、星が飛びちる
+  const k = (t - changeAt) / .6;
+  const show = k < .35 && prev >= 0 ? prev : cur;
+  drawChar(bg, BQ * 1.25, 10, 9.6, t / 1.4, mode, COS[show]);
+  if (k >= 0 && k < 1) {
+    const cx = 16 * BQ * 1.25, cy = 12.6 * BQ * 1.25;
+    bg.globalAlpha = Math.max(0, 1 - k * 1.6);
+    bg.fillStyle = '#ffffff';
+    const r = (4 + k * 10) * BQ;
+    for (let a = 0; a < 12; a++) {
+      const an = a * Math.PI / 6;
+      bg.fillRect(cx + Math.cos(an) * r * .6 - BQ, cy + Math.sin(an) * r * .5 - BQ, BQ * 2.4, BQ * 2.4);
+    }
+    bg.fillStyle = '#ffd84a';
+    for (let a = 0; a < 8; a++) {
+      const an = a * Math.PI / 4 + .4;
+      bg.fillRect(cx + Math.cos(an) * r - BQ / 2, cy + Math.sin(an) * r * .7 - BQ / 2, BQ, BQ);
+    }
+    bg.globalAlpha = 1;
+  }
+  tiles.forEach((tl, i) => {
+    tl.g.clearRect(0, 0, tl.cv.width, tl.cv.height);
+    drawChar(tl.g, 4, 4, 9.5, t / 1.4 + i * .37, mode, COS[i]);
+  });
+  requestAnimationFrame(drawBig);
+}
+
+function pick(i) {
+  if (i === cur) { changeAt = performance.now() / 1000; prev = -1; sfx(); return; }
+  prev = cur; cur = i; changeAt = performance.now() / 1000;
+  tiles.forEach((tl, j) => tl.b.classList.toggle('on', j === i));
+  document.getElementById('bigName').textContent = COS[i].name;
+  document.getElementById('bigNote').textContent = COS[i].note;
+  sfx();
+}
+
+// ---------- 音（変身の ぽわん） ----------
+let ac = null;
+function tone(f, at, dur, type, vol, f2) {
+  const o = ac.createOscillator(), gn = ac.createGain(), s = ac.currentTime + at;
+  o.type = type; o.frequency.setValueAtTime(f, s); if (f2) o.frequency.exponentialRampToValueAtTime(f2, s + dur);
+  gn.gain.setValueAtTime(vol, s); gn.gain.exponentialRampToValueAtTime(.0001, s + dur);
+  o.connect(gn).connect(ac.destination); o.start(s); o.stop(s + dur + .02);
+}
+function sfx() {
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume();
+    tone(200, 0, .25, 'triangle', .12, 900);
+    [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .12 + i * .05, .2, 'square', .03));
+  } catch (e) {}
+}
+
+document.querySelectorAll('#modes button[data-m]').forEach(b => b.addEventListener('click', () => {
+  mode = b.dataset.m;
+  document.querySelectorAll('#modes button[data-m]').forEach(x => x.classList.toggle('on', x === b));
+}));
+document.getElementById('randBtn').addEventListener('click', () => {
+  let i; do { i = Math.floor(Math.random() * COS.length); } while (i === cur);
+  pick(i);
+});
+
+prev = -1; cur = 0;
+tiles[0].b.classList.add('on');
+document.getElementById('bigName').textContent = COS[0].name;
+document.getElementById('bigNote').textContent = COS[0].note;
+requestAnimationFrame(drawBig);
+</script>
+<!-- 更新した日時（GitHub に反映した日時が自動で出る） -->
+<script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
+var e=document.createElement('div');e.id='appVer';e.textContent='更新 '+d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+e.style.cssText='display:block;width:100%;text-align:center;font:11px/1.4 sans-serif;color:inherit;opacity:.6;margin-top:10px;pointer-events:none;';
+document.body.appendChild(e);})();</script>
+</body>
+</html>
