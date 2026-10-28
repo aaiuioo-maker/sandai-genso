@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="旅団ドット絵">
+<title>旅団ドット絵</title>
+<link rel="apple-touch-icon" href="icon-180.png?v=1">
+<link rel="manifest" href="chara.webmanifest?v=1">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05040d">
+<link rel="icon" href="icon-180.png?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; --card:#12101f; --line:#2a2540; --dim:#b0a8c8; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  body { font-family: "DotGothic16", sans-serif; padding: calc(12px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  h1 { font-size: 18px; font-weight: 400; margin: 0 0 4px; letter-spacing: .08em; text-align: center; }
+  .sub { font-size: 11px; opacity: .6; margin: 0 0 14px; text-align: center; }
+  /* 大きく見る：えらんだ1体を大きく出す */
+  .stage { display: flex; flex-direction: column; align-items: center; padding: 14px 0 10px; background: linear-gradient(135deg, #2a1a30, #12101f); border: 2px solid var(--accent); border-radius: 10px; margin-bottom: 14px; }
+  .stage canvas { width: 128px; height: 192px; image-rendering: pixelated; }
+  .stage b { font-weight: 400; font-size: 17px; color: #ffcf8a; margin-top: 8px; }
+  .stage span { font-size: 11px; color: var(--dim); min-height: 1em; }
+  /* 一覧：4つずつ並べる */
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 6px; padding: 14px 8px 10px; background: var(--card); border: 2px solid var(--line); border-radius: 10px; }
+  .grid button { display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; padding: 4px 0; color: var(--fg); font-family: inherit; cursor: pointer; border-radius: 8px; }
+  .grid button.on { background: #2a2540; }
+  .grid canvas { width: 48px; height: 72px; image-rendering: pixelated; }
+  .grid small { font-size: 10px; line-height: 1.2; text-align: center; }
+  .grid small i { font-style: normal; color: var(--dim); display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>旅団ドット絵</h1>
+  <p class="sub">12巻・36巻の表紙から 20体（押すと大きく見られる）</p>
+  <div class="stage"><canvas id="big" width="16" height="26"></canvas><b id="bigName"></b><span id="bigVol"></span></div>
+  <div class="grid" id="grid"></div>
+</div>
+<script>
+// 1文字＝1ドット（横16×縦24）。'.'＝透明、E＝目（まばたきする）
+const CH = [
+{"n":"マチ","v":12,"p":{"B":"#4a90c8","E":"#2b2733","F":"#8ac8e8","H":"#f27aa8","M":"#b0505a","P":"#e8e8f0","R":"#d83a3a","S":"#ffe2cc","W":"#f4f4f4","h":"#ffb0cc"},"m":["..H..H.HH.H..H..",".HHH.HHHHHH.HHH.","HHHHHHHhHHHHHHHH",".HHHHHHHHHHHHHH.","HHHHHHHHHHHHHHHH",".HHSHSSHSSHSSHH.","HHSSSSSSSSSSSSHH",".HSSEESSSSEESSH.","HHSSEESSSSEESSHH",".HSSSSSSSSSSSSH.","..HSSSSMMSSSSH..","....SSSSSSSS....",".......SS.......","....BBBWWBBB....","...BBBBWWBBBB...","..BBBBBBBBBBBB..","..SBRRRRRRRRBS..","..SBRRWRRWRRBS..","....BBBBBBBB....","....RRRRRRRR....","....PPP..PPP....","....PPP..PPP....","....FFF..FFF....","...FFFF..FFFF..."]},
+{"n":"ノブナガ","v":12,"p":{"B":"#9a70c8","E":"#2b2733","F":"#a08060","H":"#2a2a30","M":"#b0505a","P":"#c8c0d0","S":"#ffe2cc","b":"#7a50a8"},"m":[".......HH.......","......H..H......",".......HH.......",".......HH.......","....HHHHHHHH....","...HHHHHHHHHH...","...HSSSSSSSSH...","..SSSSSSSSSSSS..","..SSSEESSEESSS..","..SSSEESSEESSS..","..SSSSSSSSSSSS..","...SSSMMMMSSS...","....SSSSSSSS....","...BBBBSSBBBB...","..BBBBBBSBBBBB..",".BBBBBbBBBBBBBB.",".BBBBBBbBBBBBBB.",".SBbbbbbbbbbbBS.","...BBBBBBBBBB...","...BBBBBBBBBB...","....PP....PP....","....PP....PP....","....PP....PP....","...FFF....FFF..."]},
+{"n":"ボノレノフ","v":12,"p":{"F":"#c83030","O":"#3a3040","R":"#d83030","X":"#a8c0d8","r":"#a82020","x":"#7890b0"},"m":[".....XXXXXX.....","....XXXXXXXX....","...xxxxxxxxxx...","...XXXXXXXXXX...","...xxxxxxxxxx...","...XXXOOXXXXX...","...xxxOOxxxxx...","...XXXXXXXXXX...","...xxxxxxxxxx...","...XXXXXXXXXX...","....xxxxxxxx....",".....XXXXXX.....","......xxxx......",".....XXXXXX.....","..X.xxxxxxxx.X..","..xXXXXXXXXXXx..",".RR.xxxxxxxx.RR.","RRRR.XXXXXX.RRRR","RRrR.xxxxxx.RrRR",".RR..XX..XX..RR.",".....xx..xx.....",".....FF..FF.....",".....FF..FF.....","....FFF..FFF...."]},
+{"n":"フィンクス","v":12,"p":{"B":"#f0e070","E":"#2b2733","F":"#c09040","G":"#e0a830","M":"#b0505a","S":"#ffe2cc","b":"#d0c050","g":"#b07818"},"m":[".....GGGGGG.....","...GGGGGGGGGG...","..GGgggggggGGG..","..GGGGGGGGGGGG..","..GGSSSSSSSSGG..","..GGSSSSSSSSGG..","..GGSEESSEESGG..","..GGSEESSEESGG..","..GGSSSSSSSSGG..","..GGSSSMMSSSGG..","..GGGSSSSSSGGG..","..gGGGGGGGGGGg..","..GGG.SSSS.GGG..","....BBBBBBBB....","...BBBBBBBBBB...","...BBBBBBBBBB...","..SBBBBBBBBBBS..","...BBBBBBBBBB...","...BBBBBBBBBB...","...bBBBBBBBBb...","...BBBBBBBBBB...","....SS....SS....","....SS....SS....","...FFF....FFF..."]},
+{"n":"パクノダ","v":12,"p":{"B":"#2a2a34","E":"#2b2733","F":"#2a2a34","H":"#c8a070","M":"#b0505a","R":"#e86090","S":"#ffe2cc","h":"#a8804f"},"m":["....HHHHHHHH....","...HHHHHHHHHH...","..HHHHHHHHHHHH..","..HHhSSSSSShHH..","..HHSSSSSSSSHH..","..HHSSSSSSSSHH..","..HHSEESSEESHH..","..HHSEESSEESHH..","..HHSSSSSSSSHH..","..HHSSSMMSSSHH..","..HHHSSSSSSHHH..","..HHH.SSSS.HHH..","..HH...SS...HH..","....BBBRRBBB....","...BBBBRRBBBB...","...BBBBBBBBBB...","...BBBBBBBBBB...","...SBBBBBBBBS...",".....BBBBBB.....",".....BBBBBB.....","......S..S......","......S..S......","......S..S......",".....FF..FF....."]},
+{"n":"シャルナーク","v":12,"p":{"B":"#f0c8d8","E":"#2b2733","F":"#c8a0c8","H":"#f0e070","M":"#b0505a","P":"#b8e0b0","S":"#ffe2cc","b":"#d8a0b8","h":"#c8b848"},"m":["....HHHHHHHH....","...HHHHHHHHHH...","..HHHHhHHhHHHH..","..HHHHHHHHHHHH..","..HHHHHHHHHHHH..","..HHSHSSHSSSHH..","..HSSSSSSSSSSH..","..SSSEESSEESSS..","..SSSEESSEESSS..","..SSSSSSSSSSSS..","...SSSMMMMSSS...","....SSSSSSSS....",".......SS.......","....BBBBBBBB....","...BBBbBBbBBB...","...BBBBBBBBBB...","..SBBBBBBBBBBS..","...BBBBBBBBBB...","....PPPPPPPP....","....PPPPPPPP....","....PPP..PPP....","....PPP..PPP....","....PPP..PPP....","...FFFF..FFFF..."]},
+{"n":"ウボォーギン","v":12,"p":{"B":"#e8e050","E":"#2b2733","F":"#a8b040","H":"#8a909a","M":"#b0505a","S":"#c8905a","b":"#a8b040","h":"#b8bcc4"},"m":["H..H..H..H..H..H",".HH.HHhHHhHH.HH.","HHHHHHHHHHHHHHHH",".HHHHHhHHhHHHHH.","HHHHHHHHHHHHHHHH",".HHSSHSSSSHSSHH.","..HSSSSSSSSSSH..","..SSSEESSEESSS..","..SSSEESSEESSS..","..SSSSSSSSSSSS..","...SSMMMMMMSS...","....SSSSSSSS....","SS....SSSS....SS","SS.BBBBBBBBBB.SS",".SSBBBBBBBBBBSS.","..SSBBBBBBBBSS..","....bbbbbbbb....","....BBBBBBBB....","....BBBBBBBB....","....SSS..SSS....","....SSS..SSS....","....bbb..bbb....","....FFF..FFF....","...FFFF..FFFF..."]},
+{"n":"フェイタン","v":12,"p":{"B":"#3a3040","E":"#2b2733","F":"#2a2230","H":"#6a4a38","S":"#ffe2cc","W":"#e0dcd0","b":"#2a2230","h":"#8a6a50"},"m":["....HHHHHHHH....","...HHHHHHHHHH...","..HHHHhHHhHHHH..","..HHHHHHHHHHHH..",".HHHSHSSSSHSHHH.",".HHSSSSSSSSSSHH.",".HHSEEESSEEESHH.",".HHSSSSSSSSSSHH.",".HHWBBBBBBBBWHH.","HHH.WBBBBBBW.HHH","HH.BBWBBBBWBB.HH","H..BBBWBBWBBB..H","..BBBBBWWBBBBB..","..BBBBBBBBBBBB..","..BBBBBBBBBBBB..","..BBBBBBBBBBBB..","..BBBBBBBBBBBB..","..BbBBBBBBBBbB..","..BBBBBBBBBBBB..",".BBBBBBBBBBBBBB.",".BBBBBBBBBBBBBB.",".bbbbbbbbbbbbbb.","....FF....FF....","...FFF....FFF..."]},
+{"n":"シズク","v":12,"p":{"B":"#1e1e26","E":"#2b2733","F":"#1e1e26","G":"#c8c8d0","H":"#1e2a2a","M":"#b0505a","P":"#3a68b0","S":"#ffe2cc"},"m":[".....H.HHH......","....HHHHHHHH....","...HHHHHHHHHH...","..HHHHHHHHHHHH..","..HHHHHHHHHHHH..","..HHHHHHHHHHHH..",".HHGGGGHHGGGGHH.",".HHGEESGGSEEGHH.",".HHGGGGSSGGGGHH.",".HHSSSSSSSSSSHH.",".HHHSSSMMSSSHHH.","..HHHSSSSSSHHH..",".......SS.......","....BBBBBBBB....","...BBBBBBBBBB...","...BBBBBBBBBB...","...BBBBBBBBBB...","..SBBBBBBBBBBS..","...BBBBBBBBBB...","....PPPPPPPP....","....PPP..PPP....","....PPP..PPP....","....PPP..PPP....","...FFFF..FFFF..."]},
+{"n":"コルトピ","v":12,"p":{"F":"#3a68c8","H":"#b8c8e0","S":"#ffe2cc","h":"#90a0c0"},"m":["................","................",".....HHHHHH.....","....HHHhHHHH....","...HHhHHhHHHH...","...HHhHHhHHhH...","..HHHhHHhHHhHH..","..HhHhHHhHHhHH..","..HhHHhHHhHHhH..","..HhHHhSSHHhHH..","..HHhHhHHhHhHH..","..HHhHhHHhHhHH..","..HhHHhHHhHHhH..","..HhHHhHHhHHhH..","..HHhHhHHhHhHH..","..HHhHhHHhHhHH..","..HhHHhHHhHHhH..","..HhHHhHHhHHhH..","..HHhHhHHhHhHH..","..HHhHhHHhHhHH..","..H.H.H.H.H.H.H.",".....FF..FF.....",".....FF..FF.....","....FFF..FFF...."]},
+{"n":"ヒソカ","v":12,"p":{"B":"#80c870","E":"#2b2733","F":"#3a5030","H":"#70c060","M":"#b0505a","S":"#ffe2cc","T":"#3a70c8","Y":"#e8c030","b":"#60a050","h":"#509848"},"m":["..H...H..H...H..","..HH.HH.HHH.HH..","..HHHHHHHHHHHH..","..HHHHhHHhHHHH..","...HHHHHHHHHH...","...HSSSSSSSSH...","..SSSSSSSSSSSS..","..SSSEESSEESSS..","..SSSEESSEESSS..","..SYSSSSSSSSTS..","..YYYSMMMMSSTS..","....SSSSSSSS....",".......SS.......","....BBBBBBBB....","...BBBBBBBBBB...","...BBBbBBbBBB...","..SBBBBBBBBBBS..","...BBBBBBBBBB...","....bbbbbbbb....","....BBBBBBBB....","....BBB..BBB....","....BBB..BBB....","....BBB..BBB....","...FFFF..FFFF..."]},
+{"n":"フランクリン","v":12,"p":{"E":"#2b2733","F":"#3a3030","H":"#7050a8","J":"#b8e0f0","M":"#b0505a","P":"#4a78c8","S":"#f0d890","X":"#b8a070","p":"#3a58a0"},"m":["..HHHHHHHHHHHH..","..HHHHHHHHHHHH..","..HHHHHHHHHHHH..","..SSSSSSSSSSSS..","..SSSSSSSSSSSS..","..SSSEESSEESSS..","..SSSEESSEESSS..","..SSSSSXXSSSSS..","..SSSSXSSXSSSS..","..SSSSMMMMSSSS..","..SSSSSSSSSSSS..",".JJJJJSSSSJJJJJ.","JJJJJPPPPPPJJJJJ","JJJJJPpPPpPJJJJJ","JJJJJPPPPPPJJJJJ","JJJJJPPPPPPJJJJJ","JJJJJPPPPPPJJJJJ","SSJJJPPPPPPJJJSS","SS..PPPPPPPP..SS","....PPPPPPPP....","....PPP..PPP....","....PPP..PPP....","..FFFFF..FFFFF..","..FFFFF..FFFFF.."]},
+{"n":"クロロ","v":12,"p":{"B":"#283858","E":"#2b2733","F":"#1a1a22","H":"#1e1e2a","M":"#b0505a","S":"#ffe2cc","W":"#e8f0f8","X":"#5a3a3a","b":"#1a2640"},"m":["................",".....HHHHHH.....","....HHHHHHHH....","...HHHHHHHHHH...","...HHSSSSSSHH...","...HSSSSXSSSH...","...SSSSXXXSSS...","...SSSSSXSSSS...","...SSEESSEESS...","...SSEESSEESS...","...SSSSMMSSSS...","....SSSSSSSS....","..WW..SSSS..WW..",".WWWWBBWWBBWWWW.",".WWBBBBWWBBBBWW.","..BBBBBbbBBBBB..","..BBBBBWWBBBBB..","..BBBBBbbBBBBB..",".SBBBBBWWBBBBBS.","..BBBBBBBBBBBB..","..BBBBBBBBBBBB..","..bbbbb..bbbbb..","....FF....FF....","...FFF....FFF..."]},
+{"n":"イルミ","v":36,"p":{"B":"#b8cc88","E":"#2b2733","F":"#a8b878","H":"#18181e","S":"#f4e4cc","X":"#5a6a40","b":"#8aa060"},"m":["....HHHHHHHH....","...HHHHHHHHHH...","..HHHHHHHHHHHH..","..HHHSSSSSSHHH..","..HHSSSSSSSSHH..","..HHSSSSSSSSHH..","..HHSSEESEESHH..","..HHSSEESEESHH..","..HHSSSSSSSSHH..","..HHSSSSSSSSHH..","..HHHSSSSSSHHH..","..HHHHSSSSHHHH..","..HHHBBBBBBHHH..","..HHBXBBXBBXHH..","..HHBBBBBBBBHH..","..HHBBXBBXBBHH..","..HSBBBBBBBBSH..","..H.bbbbbbbb.H..","....BBBBBBBB....","....BXB..BXB....","....BBB..BBB....","....BBB..BBB....","....SS....SS....","...FFF....FFF..."]},
+{"n":"カルト","v":36,"p":{"B":"#1e1e2a","E":"#2b2733","F":"#d8dce8","H":"#1a1a24","M":"#b0505a","R":"#c84040","S":"#f8ecdc","X":"#d8dce8","h":"#9aa0b0"},"m":["....HHHHHHHH....","...HHHHHHHHHH...","..HHhhhhhhhhHH..","..HHHHHHHHHHHH..","..HHHHHHHHHHHH..","..HHSSSSSSSSHH..","..HHSSSSSSSSHH..","..HHSEESSEESHH..","..HHSEESSEESHH..","..HHSSSSSSSSHH..","..HHSSSMMSSSHH..","..HHHSSSSSSHHH..","..HH...SS...HH..","....BBBXXBBB....","...BBBBBXBBBB...","..BBXBBBBBBXBB..","..BBBBBBBBBBBB..","..BSRRRRRRRRSB..","...BBBBBBBBBB...","...BBXBBBBXBB...","...BBBBBBBBBB...","...BBBBBBBBBB...",".....FF..FF.....","....FFF..FFF...."]},
+{"n":"フィンクス","v":36,"p":{"B":"#e8e4b0","E":"#2b2733","F":"#a08850","H":"#f0d050","M":"#b0505a","S":"#f8c8b0","b":"#a8a070","h":"#d0a830"},"m":["....HHHHHHHH....","...HHHhHHhHHH...","...HHHHHHHHHH...","...HSSSSSSSSH...","..SSSSSSSSSSSS..","..SSSSSSSSSSSS..","..SSSEESSEESSS..","..SSSSSSSSSSSS..","..SSSSSSSSSSSS..","...SSSMMMMSSS...","....SSSSSSSS....",".....SSSSSS.....","....BBbBBbBB....","...BBBbBBbBBB...","...BBBbBBbBBB...","..BBBBbBBbBBBB..","..BBBBbBBbBBBB..","..SBBBbBBbBBBS..","...BBBBBBBBBB...","...BBBBBBBBBB...","...BBBB..BBBB...","...BBBB..BBBB...","...bbbb..bbbb...","...FFFF..FFFF..."]},
+{"n":"ボノレノフ","v":36,"p":{"F":"#e8c030","O":"#3a3040","P":"#f08830","R":"#e03030","X":"#c8d4e4","f":"#d03030","r":"#a82020","x":"#98a8c0"},"m":[".....XXXXXX.....","....XXXXXXXX....","...xxxxxxxxxx...","...XXXXXXXXXX...","...xxxxxxxxxx...","...XXXXXXOOXX...","...xxxxxxOOxx...","...XXXXXXXXXX...","...xxxxxxxxxx...","...XXXXXXXXXX...","....xxxxxxxx....",".....XXXXXX.....","......xxxx......",".....XXXXXX.....","..X.xxxxxxxx.X..","..xXXXXXXXXXXx..",".RR.PPPPPPPP.RR.","RRRR.PPPPPP.RRRR","RRrR.PP..PP.RRRR",".RR..XX..XX..RR.",".....xx..xx.....",".....FF..FF.....",".....ff..ff.....","....fff..fff...."]},
+{"n":"シズク","v":36,"p":{"B":"#6a3a8a","E":"#2b2733","F":"#1e1e26","G":"#c8c8d0","H":"#1a2430","M":"#b0505a","P":"#3a5888","S":"#ffe2cc","b":"#502a70"},"m":[".....H..H.......","....HHHHHHHH....","...HHHHHHHHHH...","..HHHHHHHHHHHH..","..HHHHHHHHHHHH..",".HHHHHHHHHHHHHH.",".HHGGGGHHGGGGHH.",".HHGEESGGSEEGHH.",".HHGGGGSSGGGGHH.",".HHSSSSSSSSSSHH.","..HHSSSMMSSSHH..","...HHSSSSSSHH...",".......SS.......","....BBBBBBBB....","...BBBBBBBBBB...","...BBBBBBBBBB...","...BBBBBBBBBB...","...BBBBBBBBBB...","...bbbbbbbbbb...","....PPPPPPPP....","....PPP..PPP....","....PPP..PPP....","....PPP..PPP....","...FFFF..FFFF..."]},
+{"n":"クロロ","v":36,"p":{"B":"#3a5a90","E":"#2b2733","F":"#1a1a22","H":"#2a2a34","K":"#1e1e26","M":"#b0505a","S":"#ffe2cc","W":"#e8f0f8","X":"#4a3030"},"m":["................",".....HHHHHH.....","....HHHHHHHH....","...HHHHHHHHHH...","...HSSSSSSSSH...","...SSSSSXSSSS...","...SSSSXXXSSS...","...SSSSSXSSSS...","...SSEESSEESS...","...SSSSSSSSSS...","...SSSSMMSSSS...","....SSSSSSSS....",".W.W..SSSS..W.W.","WWWWWWBBBBWWWWWW",".WWBBBBKKBBBBWW.","..BBBBBKKBBBBB..","..BBBBKBBKBBBB..","..BBBBBKKBBBBB..",".SBBBBKBBKBBBBS.","..BBBBBBBBBBBB..","..BBBBBBBBBBBB..","..WWWWW..WWWWW..","....FF....FF....","...FFF....FFF..."]},
+{"n":"ノブナガ","v":36,"p":{"B":"#b898d8","E":"#2b2733","F":"#a08060","H":"#6a6060","M":"#b0505a","P":"#e8e4e0","S":"#ffe2cc","X":"#8a7a6a","b":"#7048a0"},"m":["......H.H.......",".....HHHHH......",".......HH.......",".......HH.......","....HHHHHHHH....","...HHHHHHHHHH...","...HSSSSSSSSH...","..SSSSSSSSSSSS..","..SSSEESSEESSS..","..SSSEESSEESSS..","..SSSSSSSSSSSS..","...SSSMMMMSSS...","....SXXXXXXS....","...BBBBSSBBBB...","..BBBBBBSBBBBB..",".BBBBBBBBBBBBBB.",".BBBBBBBBBBBBBB.",".SBbbbbbbbbbbBS.","...BBBBBBBBBB...","...BBBBBBBBBB...","....PP....PP....","....PP....PP....","....PP....PP....","...FFF....FFF..."]}
+];
+
+// まばたき：目の上の段をはだの色にして、下の段だけ残す
+function draw(ctx, c, blink, hop) {
+  ctx.clearRect(0, 0, 16, 26);
+  c.m.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (ch === '.') return;
+    let col = c.p[ch];
+    if (ch === 'E' && blink && c.m[y + 1] && c.m[y + 1][x] === 'E') col = c.p.S || col;
+    ctx.fillStyle = col; ctx.fillRect(x, y + 2 - hop, 1, 1);
+  }));
+}
+const grid = document.getElementById('grid'), big = document.getElementById('big').getContext('2d');
+const cells = CH.map((c, i) => {
+  const b = document.createElement('button');
+  const cv = document.createElement('canvas'); cv.width = 16; cv.height = 26;
+  b.append(cv);
+  const s = document.createElement('small'); s.textContent = c.n;
+  if (c.v === 36) { const v = document.createElement('i'); v.textContent = '36巻'; s.append(v); }
+  b.append(s);
+  b.onclick = () => pick(i);
+  grid.append(b);
+  return { b, ctx: cv.getContext('2d'), off: Math.random() * 3 };
+});
+let cur = 0, jumpAt = -9;
+function pick(i) {
+  cur = i; jumpAt = performance.now() / 1000;
+  cells.forEach((c, j) => c.b.classList.toggle('on', j === i));
+  document.getElementById('bigName').textContent = CH[i].n;
+  document.getElementById('bigVol').textContent = CH[i].v === 36 ? '36巻のすがた' : '12巻';
+}
+pick(0);
+function frame() {
+  const t = performance.now() / 1000;
+  cells.forEach((c, i) => draw(c.ctx, CH[i], (t + c.off) % 3.2 > 3.05, 0));
+  const dt = t - jumpAt, hop = dt < .5 ? Math.round(Math.sin(dt / .5 * Math.PI) * 2) : (Math.floor(t * 2) % 2);
+  draw(big, CH[cur], t % 3.2 > 3.05, hop);
+  requestAnimationFrame(frame);
+}
+frame();
+</script>
+</body>
+</html>
