@@ -541,14 +541,78 @@ function schedule(ac, out, at0, vb) {
   }));
   const nb = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), nd = nb.getChannelData(0);
   for (let i = 0; i < nd.length; i++) nd[i] = hash(i, 9) * 2 - 1;
-  SC.forEach(sc => sc.snd.forEach(([T, f, dur, type, vol, f2]) => {
-    const s = at0 + sc.t0 + T, gn = ac.createGain();
-    gn.gain.setValueAtTime(vol, s); gn.gain.exponentialRampToValueAtTime(.0001, s + dur);
+  const play = (dest, s, f, dur, type, vol, f2, atk = 0) => {
+    const gn = ac.createGain();
+    if (atk) { gn.gain.setValueAtTime(.0001, s); gn.gain.linearRampToValueAtTime(vol, s + atk); } else gn.gain.setValueAtTime(vol, s);
+    gn.gain.exponentialRampToValueAtTime(.0001, s + dur);
     let src;
     if (type === 'noise') { src = ac.createBufferSource(); src.buffer = nb; src.loop = true; }
     else { src = ac.createOscillator(); src.type = type; src.frequency.setValueAtTime(f, s); if (f2) src.frequency.exponentialRampToValueAtTime(f2, s + dur); }
-    src.connect(gn).connect(out); src.start(s); src.stop(s + dur + .02);
-  }));
+    src.connect(gn).connect(dest); src.start(s); src.stop(s + dur + .02);
+  };
+  SC.forEach(sc => sc.snd.forEach(([T, f, dur, type, vol, f2]) => play(out, at0 + sc.t0 + T, f, dur, type, vol, f2)));
+  const bg = ac.createGain(); bg.gain.value = 1; bg.connect(out);
+  bgm().forEach(([T, f, dur, type, vol, f2, atk]) => play(bg, at0 + T, f, dur, type, vol, f2, atk));
+}
+
+// ---------- BGM（ハンター×ハンターの ふんいきの オリジナル曲。場面ごとに 4つの曲調） ----------
+// adv：冒険（明るい行進）、myst：ヒソカ・ツェリードニヒ（あやしいワルツ）、dark：ピトー・メルエム（重く こわい）、epic：ネテロ（和風の太鼓と笛）
+// 声が出ている間は 音を小さくする
+const MOOD = ['adv', 'adv', 'adv', 'myst', 'dark', 'myst', 'epic', 'dark', 'adv', 'adv'];
+const nf = (root, semi) => root * 2 ** (semi / 12);
+function bgm() {
+  const ev = [], D3 = 146.83, D2 = 73.42;
+  const talking = T => SC.some(sc => sc.lines.some(([at, k]) => T >= sc.t0 + at - .1 && T < sc.t0 + at + VD[k]));
+  const add = (T, f, dur, type, vol, f2, atk) => ev.push([T, f, dur, type, vol * (talking(T) ? .45 : 1), f2, atk]);
+  SC.forEach((sc, si) => {
+    const mood = MOOD[si], t0 = sc.t0 + (si === SC.length - 1 ? 3.4 : .7), t1 = sc.t0 + sc.dur - .3;   // おしまいは ドレミのあとから
+    const root = si === SC.length - 1 ? 130.81 : D3;                                                  // おしまいは ハ長調（ドレミに合わせる）
+    if (mood === 'adv') {            // 132bpm・8分音符。I-IV-V-I / vi-IV-V-V
+      const e = 60 / 132 / 2, prog = [0, 5, 7, 0, 9, 5, 7, 7];
+      const mel = [[12, 2], [16, 1], [19, 1], [17, 2], [16, 1], [14, 1], [19, 2], [21, 1], [19, 1], [16, 4],
+                   [11, 1], [14, 1], [16, 1], [14, 1], [12, 1], [14, 1], [17, 2], [19, 1], [17, 1], [16, 1], [14, 1], [12, 4]];
+      let mi = 0, mt = t0;
+      for (let T = t0, n = 0; T < t1; T += e, n++) {
+        const ch = prog[Math.floor(n / 8) % 8], third = [9].includes(ch) ? 3 : 4;
+        if (n % 2 === 0) add(T, nf(root / 2, ch), e * 1.8, 'triangle', .07);                                 // ベース
+        add(T, nf(root * 2, ch + [0, third, 7, 12][n % 4]), e * .8, 'square', .012);                         // きざみ
+        if (n % 8 === 0 || n % 8 === 4) add(T, 90, .12, 'triangle', .06, 45);                                // 太鼓
+        if (n % 8 === 2 || n % 8 === 6) add(T, 0, .05, 'noise', .012);
+      }
+      while (mt < t1) { const [d, l] = mel[mi % mel.length]; add(mt, nf(root * 2, d), e * l * .95, 'square', .022, 0, .01); mt += e * l; mi++; }
+    }
+    if (mood === 'myst') {           // 3拍子のワルツ・ニ短調・半音でくねくね
+      const b = 60 / 104, mel = [[19, 1], [20, 1], [19, 1], [18, 2], [19, 1], [17, 1], [15, 1], [14, 1], [13, 3],
+                                 [14, 1], [17, 1], [21, 1], [20, 2], [19, 1], [17, 1], [14, 1], [13, 1], [14, 3]];
+      let mi = 0, mt = t0;
+      for (let T = t0, n = 0; T < t1; T += b, n++) {
+        const bar = Math.floor(n / 3) % 4, ch = [0, -2, -4, -5][bar];
+        if (n % 3 === 0) add(T, nf(D2, ch), b * 1.2, 'triangle', .08);
+        else add(T, nf(D3, ch + 3), .15, 'triangle', .03), add(T, nf(D3, ch + 7), .15, 'triangle', .025);
+      }
+      while (mt < t1) { const [d, l] = mel[mi % mel.length]; add(mt, nf(D3, d), b * l * .9, 'sine', .035, 0, .03); mt += b * l; mi++; }
+    }
+    if (mood === 'dark') {           // 低い うなり＋心臓の音＋ときどき 高い音
+      const b = 60 / 72;
+      for (let T = t0, n = 0; T < t1; T += b * 4, n++) {
+        add(T, nf(D2 / 2, n % 2 ? 1 : 0), b * 4.2, 'sawtooth', .035, 0, .6);
+        add(T, nf(D2, n % 2 ? 1 : 0), b * 4.2, 'triangle', .04, 0, .6);
+      }
+      for (let T = t0; T < t1; T += b * 2) { add(T, 60, .15, 'triangle', .09, 40); add(T + b * .35, 55, .15, 'triangle', .07, 38); }
+      for (let T = t0 + b * 3, n = 0; T < t1; T += b * 5, n++) add(T, nf(D3 * 4, [1, 6, 3, 8][n % 4]), b * 2, 'sine', .015, 0, .2);
+    }
+    if (mood === 'epic') {           // 和風：太鼓（ドン・ドドン）と 笛（ペンタトニック）
+      const b = 60 / 96, mel = [[19, 2], [21, 1], [24, 1], [26, 3], [24, 1], [21, 2], [19, 2], [17, 4],
+                                [19, 1], [21, 1], [24, 2], [21, 2], [19, 2], [14, 2], [12, 4]];
+      let mi = 0, mt = t0 + b * 4;
+      for (let T = t0, n = 0; T < t1; T += b / 2, n++) {
+        if ([0, 3, 4].includes(n % 8)) { add(T, 85, .35, 'triangle', .11, 40); add(T, 0, .08, 'noise', .02); }
+        if (n % 4 === 0) add(T, nf(D2, n % 16 < 8 ? 0 : -2), b * 1.9, 'triangle', .05);
+      }
+      while (mt < t1) { const [d, l] = mel[mi % mel.length]; add(mt, nf(D3, d) * .985, b * l * .95, 'sine', .04, nf(D3, d), .06); mt += b * l; mi++; }
+    }
+  });
+  return ev;
 }
 // 録画用：音を WAV（base64）にして返す
 window.renderWav = async function () {
