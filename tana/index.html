@@ -284,8 +284,16 @@ let frameEl = document.getElementById('frame');
 function newFrame(h) {
   const f = document.createElement('iframe');
   f.id = 'frame'; f.title = '動画'; f.setAttribute('allow', 'autoplay');
-  if (h) { f.src = h; f.addEventListener('load', () => autoStart(f)); }
+  if (h) { f.src = h; f.addEventListener('load', () => { tightTop(f); autoStart(f); }); }
   frameEl.replaceWith(f); frameEl = f;
+}
+// 棚の中で見るときは、動画のページの上のすき間（画面上の切り欠きの分）をつめる。上の「もどる」の帯がすでに空けているため
+function tightTop(f) {
+  try {
+    const d = f.contentDocument, s = d.createElement('style');
+    s.textContent = 'body { padding-top: 4px !important; }';
+    d.head.appendChild(s); f.contentWindow.scrollTo(0, 0);
+  } catch (e) {}
 }
 // cur：いま再生している棚の動画（三尊の弥陀の①②③のときも、棚の「三尊の弥陀」）
 let cur = '', ending = 0;
