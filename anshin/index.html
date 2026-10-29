@@ -42,6 +42,8 @@
   .voices span { flex-shrink: 0; color: #8a84a8; }
   .voices button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 5px 2px; border-color: #3a3358; color: #8a84a8; }
   .voices button.on { border-color: var(--accent); color: var(--fg); }
+  /* 人数が多いとき（COEIROINK の6人）は文字を小さく */
+  #nameRow.many button { font-size: clamp(9px, 2.7vw, 13px); padding: 5px 0; letter-spacing: -.04em; }
   button { font-family: inherit; font-size: 15px; color: var(--fg); background: #1c1930; border: 2px solid var(--accent);
            border-radius: 6px; padding: 8px 18px; cursor: pointer; }
   button:active { transform: translateY(1px); }
@@ -69,13 +71,7 @@
     <button data-e="1">COEIROINK</button>
     <button data-e="2">ランダム</button>
   </div>
-  <div class="voices" id="nameRow"><span>　　</span>
-    <button data-v="4" class="on">順番</button>
-    <button data-v="0">めたん</button>
-    <button data-v="1">つむぎ</button>
-    <button data-v="2">はう</button>
-    <button data-v="3">小夜</button>
-  </div>
+  <div class="voices" id="nameRow"><span>　　</span></div>
 </div>
 
 <script>
@@ -245,6 +241,11 @@ const SPK = [
     'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
     'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.UUUUUUUU.HH',
     'HH.UUUUUUUU.HH', '.HHUUUUUUUUHH.', '..HUUUUUUUUH..', '...UUUUUUUU...'] },
+  // アメノちゃん（のーまる・ギャル）
+  { name: 'アメノ', pal: { H: '#ecd0b0', R: '#d02a2a', k: '#1a1a1a', S: '#ffe8d8', E: '#3a9a5a', W: '#f8f8f8', P: '#f0a0a0', J: '#2a2a2a', K: '#a08a5a' }, map: [
+    '...HHHHHHH....', '..HHHHHHHHRk..', '.HHHHHHHHHRRH.', '.HHHHHHHHHHHH.', 'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH', 'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..H.', 'HJJWWPPWWJJ.H.', '.HJJWWWWWWJJ..', '..JJWWWWWWJJ..', '..JKJWWWWJKJ..', '..JKJWWWWJKJ..'] },
+  { name: 'ギャル', pal: { H: '#ecd0b0', R: '#ff6aa8', k: '#ffd0e0', S: '#ffe8d8', E: '#3a9a5a', W: '#f8f8f8', P: '#ff6aa8', J: '#2a2a2a', K: '#a08a5a', B: '#ff9ab0' }, map: [
+    '...HHHHHHH....', '..HHHHHHHHRk..', '.HHHHHHHHHRRH.', '.HHHHHHHHHHHH.', 'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH', 'HHSBSSSSSSBSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..H.', 'HJJWWPPWWJJ.H.', '.HJJWWWWWWJJ..', '..JJWWWWWWJJ..', '..JKJWWWWJKJ..', '..JKJWWWWJKJ..'] },
 ];
 // v：だれ（0〜3）、talk：いま声が出ている（口がパクパク・体がゆれる）
 function speakerDot(v, ox, oy, t, talk) {
@@ -850,16 +851,19 @@ function speakTTS(text, token) {
   } catch (e) { speaking = false; }
 }
 
-// ---------- ナレーション：VOICEVOX の4人（めたん・つむぎ・はう・小夜）と COEIROINK の4人（つくよみちゃん・MANA・KANA・リリンちゃん）で作った声（各フォルダに 00.wav〜17.wav）を流す ----------
-// 「順番」のときは、字幕1つごとに めたん→つむぎ→はう→小夜 の順番で読む（ランダムではない）。
+// ---------- ナレーション：VOICEVOX の4人（めたん・つむぎ・はう・小夜）と COEIROINK の6人（つくよみちゃん・MANA・KANA・リリンちゃん・アメノちゃん のーまる／ギャル）で作った声（各フォルダに 00.wav〜17.wav）を流す ----------
+// 「順番」のときは、字幕1つごとに グループの人を順番に読む（VOICEVOX：めたん→つむぎ→はう→小夜、COEIROINK：つくよみ→MANA→KANA→リリン→アメノ→ギャル）（ランダムではない）。
 // iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
 // 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
 const KOE_V = 1;
-// 0〜3：VOICEVOX の4人、4〜7：COEIROINK の4人（「声」の VOICEVOX・COEIROINK ボタンで切り替える）
-const VOICES = [['koe', '四国めたん'], ['koe-tsumugi', '春日部つむぎ'], ['koe-hau', '雨晴はう'], ['koe-sayo', '小夜/SAYO'],
-  ['koe-tsukuyomi', 'つくよみちゃん'], ['koe-mana', 'MANA'], ['koe-kana', 'KANA'], ['koe-lilin', 'リリンちゃん']];
-const ENGINES = [['VOICEVOX', ['めたん', 'つむぎ', 'はう', '小夜']], ['COEIROINK', ['つくよみ', 'MANA', 'KANA', 'リリン']]];
-const MIX = 4; // 「順番」
+// [フォルダ, クレジットの名前, ボタンの名前]。0〜3：VOICEVOX の4人、4〜9：COEIROINK の6人（アメノちゃんは のーまる・ギャル の2つ）
+const VOICES = [['koe', '四国めたん', 'めたん'], ['koe-tsumugi', '春日部つむぎ', 'つむぎ'], ['koe-hau', '雨晴はう', 'はう'], ['koe-sayo', '小夜/SAYO', '小夜'],
+  ['koe-tsukuyomi', 'つくよみちゃん', 'つくよみ'], ['koe-mana', 'MANA', 'MANA'], ['koe-kana', 'KANA', 'KANA'], ['koe-lilin', 'リリンちゃん', 'リリン'],
+  ['koe-ameno', 'アメノちゃん', 'アメノ'], ['koe-ameno-gal', 'アメノちゃん', 'ギャル']];
+// 「声」のグループ：VOICEVOX・COEIROINK（ボタンで切り替える）。ランダムは全員から選ぶ
+const ENGINES = [['VOICEVOX', [0, 1, 2, 3]], ['COEIROINK', [4, 5, 6, 7, 8, 9]]];
+const ALL = VOICES.map((v, i) => i);
+const MIX = -1; // 「順番」
 const koeOK = VOICES.map(() => []), koeRaw = [], koeBuf = VOICES.map(() => []); // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
 function loadVoice(v) {
   if (koeRaw[v]) return;
@@ -867,19 +871,20 @@ function loadVoice(v) {
   if (ac) CAPS.forEach((c, i) => koeDecode(v, i));
 }
 let voiceNo = MIX;
-let vset = 0; // 0：VOICEVOX、1：COEIROINK、2：ランダム（8人から字幕ごとに選ぶ）
-try { const n = parseInt(localStorage.getItem('anshinVoice4')); if (n >= 0 && n <= MIX) voiceNo = n; } catch (e) {}
+let vset = 0; // 0：VOICEVOX、1：COEIROINK、2：ランダム（全員から字幕ごとに選ぶ）
+try { const n = parseInt(localStorage.getItem('anshinVoice4')); if (n >= MIX && n < 6) voiceNo = n; } catch (e) {}
 try { const n = parseInt(localStorage.getItem('anshinEngine')); if (n >= 0 && n <= 2) vset = n; } catch (e) {}
 // 字幕ごとの読み手（「順番」のとき）
 let segVoice = [], randVoice = [];
 function shuffleVoices() {
   segVoice = []; randVoice = [];
-  CAPS.forEach((c, i) => segVoice.push(i % 4)); // めたん→つむぎ→はう→小夜 の順番でくり返す（ランダムではない）
-  // 「ランダム」のとき：VOICEVOX と COEIROINK の8人から、字幕ごとにくじで選ぶ（前の字幕と同じ人は続けない）
-  CAPS.forEach((c, i) => { let v; do v = Math.floor(Math.random() * 8); while (i && v === randVoice[i - 1]); randVoice.push(v); });
+  CAPS.forEach((c, i) => segVoice.push(i)); // 「順番」：グループの人を、字幕ごとに順番にくり返す（ランダムではない）
+  // 「ランダム」のとき：VOICEVOX と COEIROINK の全員から、字幕ごとにくじで選ぶ（前の字幕と同じ人は続けない）
+  CAPS.forEach((c, i) => { let v; do v = Math.floor(Math.random() * ALL.length); while (i && v === randVoice[i - 1]); randVoice.push(v); });
 }
 shuffleVoices();
-const voiceOf = i => vset === 2 ? randVoice[i] : vset * 4 + (voiceNo === MIX ? segVoice[i] : voiceNo);
+const group = () => ENGINES[vset][1];
+const voiceOf = i => vset === 2 ? randVoice[i] : voiceNo === MIX ? group()[segVoice[i] % group().length] : group()[voiceNo];
 function koeDecode(v, i) {
   if (!koeBuf[v][i]) koeBuf[v][i] = koeRaw[v][i].then(ab => ab && new Promise(res => {
     try { ac.decodeAudioData(ab.slice(0), b => res(b), () => res(null)); } catch (e) { res(null); }
@@ -1034,33 +1039,45 @@ sndBtn.onclick = () => {
 };
 
 // 声を選ぶ：選んだ声で、いまの字幕から読み直す
-const vBtns = document.querySelectorAll('.voices button[data-v]'), eBtns = document.querySelectorAll('.voices button[data-e]');
-const useVoices = () => vset === 2 ? [0, 1, 2, 3, 4, 5, 6, 7] : (voiceNo === MIX ? [0, 1, 2, 3] : [voiceNo]).map(v => vset * 4 + v);
+const eBtns = document.querySelectorAll('.voices button[data-e]'), nameRow = document.getElementById('nameRow');
+const useVoices = () => vset === 2 ? ALL : voiceNo === MIX ? group() : [group()[voiceNo]];
+// 1人を選ぶ段：いまのグループの人数ぶん、ボタンを作り直す
+function makeNameBtns() {
+  nameRow.querySelectorAll('button').forEach(b => b.remove());
+  if (vset === 2) return;
+  [MIX, ...group().map((v, k) => k)].forEach(k => {
+    const b = document.createElement('button');
+    b.dataset.v = k; b.textContent = k === MIX ? '順番' : VOICES[group()[k]][2];
+    b.onclick = () => {
+      voiceNo = k;
+      try { localStorage.setItem('anshinVoice4', voiceNo); } catch (e) {}
+      pickChanged();
+    };
+    nameRow.appendChild(b);
+  });
+  nameRow.classList.toggle('many', group().length > 4);
+}
 function showVoice() {
+  if (vset < 2 && voiceNo >= group().length) voiceNo = MIX;
   eBtns.forEach(b => b.classList.toggle('on', +b.dataset.e === vset));
   // ランダムのときは 1人を選ぶ段をかくす
-  document.getElementById('nameRow').classList.toggle('hide', vset === 2);
-  vBtns.forEach(b => { b.classList.toggle('on', +b.dataset.v === voiceNo); if (+b.dataset.v < MIX && vset < 2) b.textContent = ENGINES[vset][1][+b.dataset.v]; });
-  const cr = e => ENGINES[e][0] + ':' + useVoices().filter(v => (v >> 2) === e).map(v => VOICES[v][1]).join('・');
+  nameRow.classList.toggle('hide', vset === 2);
+  nameRow.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.v === voiceNo));
+  const cr = e => ENGINES[e][0] + ':' + [...new Set(useVoices().filter(v => ENGINES[e][1].includes(v)).map(v => VOICES[v][1]))].join('・');
   document.getElementById('credit').textContent = '声：' + (vset === 2 ? cr(0) + '／' + cr(1) : cr(vset));
 }
 function pickChanged() {
   showVoice(); stopSpeak(); useVoices().forEach(loadVoice);
   if (playing && !muted) { startSound(); enterSeg(seg, false); }
 }
-vBtns.forEach(b => b.onclick = () => {
-  voiceNo = +b.dataset.v;
-  try { localStorage.setItem('anshinVoice4', voiceNo); } catch (e) {}
-  pickChanged();
-});
 // VOICEVOX・COEIROINK・ランダム の切り替え：選んだ方の声で、いまの字幕から読み直す
 eBtns.forEach(b => b.onclick = () => {
   vset = +b.dataset.e;
   if (vset === 2) shuffleVoices(); // ランダムを押すたびに、くじを引き直す
   try { localStorage.setItem('anshinEngine', vset); } catch (e) {}
-  pickChanged();
+  makeNameBtns(); pickChanged();
 });
-showVoice(); useVoices().forEach(loadVoice);
+makeNameBtns(); showVoice(); useVoices().forEach(loadVoice);
 
 // ---------- タイトルの左のオレンジのキャラクター（前に字幕の左にいたときと同じ動き） ----------
 // 再生中：しゃべる（手をふる）→ 最後の場面でジャンプ → 終わったら歩く。止まっているときは歩く
