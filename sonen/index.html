@@ -759,8 +759,15 @@ let segVoice = [], randVoice = [];
 function shuffleVoices() {
   segVoice = []; randVoice = [];
   CAPS.forEach((c, i) => segVoice.push(i)); // 「順番」：グループの人を、字幕ごとに順番にくり返す（ランダムではない）
-  // 「ランダム」のとき：VOICEVOX と COEIROINK の全員から、字幕ごとにくじで選ぶ（前の字幕と同じ人は続けない）
-  CAPS.forEach((c, i) => { let v; do v = Math.floor(Math.random() * ALL.length); while (i && v === randVoice[i - 1]); randVoice.push(v); });
+  // 「ランダム」のとき：VOICEVOX と COEIROINK の全員を まぜた順に 1人ずつ。全員が話し終わったら（1周したら）まぜ直して次の周へ。
+  // 周の切れ目でも、前の周の最後の人が 次の周の最初にならないようにする
+  while (randVoice.length < CAPS.length) {
+    const bag = ALL.slice();
+    for (let k = bag.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [bag[k], bag[j]] = [bag[j], bag[k]]; }
+    if (randVoice.length && bag[0] === randVoice[randVoice.length - 1]) bag.push(bag.shift());
+    randVoice.push(...bag);
+  }
+  randVoice.length = CAPS.length;
 }
 shuffleVoices();
 const group = () => ENGINES[vset][1];
