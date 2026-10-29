@@ -48,6 +48,10 @@
   .start button { font-size: 18px; padding: 12px 26px; background: rgba(28,25,48,.9); }
   .hide { display: none !important; }
   /* ほかの動画へのリンク */
+  .links { width: 100%; max-width: 480px; margin-top: 10px; display: flex; }
+  .links a { flex: 1; text-align: center; font-size: 14px; color: var(--fg); text-decoration: none; background: #1c1930;
+             border: 2px solid #5a5478; border-radius: 6px; padding: 8px 12px; }
+  .links a:active { transform: translateY(1px); }
 </style>
 </head>
 <body>
@@ -72,6 +76,7 @@
     <button data-v="3">小夜</button>
   </div>
 </div>
+<div class="links"><a href="https://ai-heartland.com/agent/aside-browser-agent-guide/" target="_blank" rel="noopener">🌐 アサイド（Aside）を見る</a></div>
 
 <script>
 const W = 180, H = 260, S = 3, SH = 216, DUR = 15;
