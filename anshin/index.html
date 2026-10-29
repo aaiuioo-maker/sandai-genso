@@ -855,10 +855,10 @@ function speakTTS(text, token) {
 // iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
 // 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
 const KOE_V = 1;
-// [フォルダ, クレジットの名前, ボタンの名前]。0〜3：VOICEVOX の4人、4〜8：COEIROINK の5人（アメノちゃんは熊本弁）
+// [フォルダ, クレジットの名前, ボタンの名前, 録音の形式（書いていなければ wav）]。0〜3：VOICEVOX の4人、4〜8：COEIROINK の5人（アメノちゃんは熊本弁）
 const VOICES = [['koe', '四国めたん', 'めたん'], ['koe-tsumugi', '春日部つむぎ', 'つむぎ'], ['koe-hau', '雨晴はう', 'はう'], ['koe-sayo', '小夜/SAYO', '小夜'],
-  ['koe-tsukuyomi', 'つくよみちゃん', 'つくよみ'], ['koe-mana', 'MANA', 'MANA'], ['koe-kana', 'KANA', 'KANA'], ['koe-lilin', 'リリンちゃん', 'リリン'],
-  ['koe-ameno-kuma', 'アメノちゃん', '熊本弁']];
+  ['koe-tsukuyomi', 'つくよみちゃん', 'つくよみ', 'mp3'], ['koe-mana', 'MANA', 'MANA', 'mp3'], ['koe-kana', 'KANA', 'KANA', 'mp3'], ['koe-lilin', 'リリンちゃん', 'リリン', 'mp3'],
+  ['koe-ameno-kuma', 'アメノちゃん', '熊本弁', 'mp3']];
 // 「声」のグループ：VOICEVOX・COEIROINK（ボタンで切り替える）。ランダムは全員から選ぶ
 // COEIROINK の並び：つくよみ→MANA→KANA→熊本弁→リリン（リリンをいちばん最後に）
 const ENGINES = [['VOICEVOX', [0, 1, 2, 3]], ['COEIROINK', [4, 5, 6, 8, 7]]];
@@ -867,7 +867,7 @@ const MIX = -1; // 「順番」
 const koeOK = VOICES.map(() => []), koeRaw = [], koeBuf = VOICES.map(() => []); // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
 function loadVoice(v) {
   if (koeRaw[v]) return;
-  koeRaw[v] = CAPS.map((c, i) => fetch(VOICES[v][0] + '/' + String(i).padStart(2, '0') + '.wav?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[v][i] = !!ab; return ab; }));
+  koeRaw[v] = CAPS.map((c, i) => fetch(VOICES[v][0] + '/' + String(i).padStart(2, '0') + '.' + (VOICES[v][3] || 'wav') + '?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[v][i] = !!ab; return ab; }));
   if (ac) CAPS.forEach((c, i) => koeDecode(v, i));
 }
 let voiceNo = MIX;
