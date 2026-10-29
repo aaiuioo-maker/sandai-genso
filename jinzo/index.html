@@ -747,8 +747,8 @@ function speakTTS(text, token) {
 // iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
 // 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
 const KOE_V = 1;
-// [フォルダ, クレジットの名前, ボタンの名前, 録音の形式（書いていなければ wav）]。0〜3：VOICEVOX の4人、4〜8：COEIROINK の5人（アメノちゃんは熊本弁）
-const VOICES = [['koe', '四国めたん', 'めたん'], ['koe-tsumugi', '春日部つむぎ', 'つむぎ'], ['koe-hau', '雨晴はう', 'はう'], ['koe-sayo', '小夜/SAYO', '小夜'],
+// [フォルダ, クレジットの名前, ボタンの名前, 録音の形式]。0〜3：VOICEVOX の4人、4〜8：COEIROINK の5人（アメノちゃんは熊本弁）
+const VOICES = [['koe', '四国めたん', 'めたん', 'mp3'], ['koe-tsumugi', '春日部つむぎ', 'つむぎ', 'mp3'], ['koe-hau', '雨晴はう', 'はう', 'mp3'], ['koe-sayo', '小夜/SAYO', '小夜', 'mp3'],
   ['koe-tsukuyomi', 'つくよみちゃん', 'つくよみ', 'mp3'], ['koe-mana', 'MANA', 'MANA', 'mp3'], ['koe-kana', 'KANA', 'KANA', 'mp3'], ['koe-lilin', 'リリンちゃん', 'リリン', 'mp3'],
   ['koe-ameno-kuma', 'アメノちゃん', '熊本弁', 'mp3']];
 // 「声」のグループ：VOICEVOX・COEIROINK（ボタンで切り替える）。ランダムは全員から選ぶ
