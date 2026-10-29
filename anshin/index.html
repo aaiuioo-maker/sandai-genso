@@ -67,8 +67,9 @@
   <div class="voices" id="engRow"><span>声</span>
     <button data-e="0" class="on">VOICEVOX</button>
     <button data-e="1">COEIROINK</button>
+    <button data-e="2">ランダム</button>
   </div>
-  <div class="voices"><span>　　</span>
+  <div class="voices" id="nameRow"><span>　　</span>
     <button data-v="4" class="on">順番</button>
     <button data-v="0">めたん</button>
     <button data-v="1">つむぎ</button>
@@ -866,17 +867,19 @@ function loadVoice(v) {
   if (ac) CAPS.forEach((c, i) => koeDecode(v, i));
 }
 let voiceNo = MIX;
-let vset = 0; // 0：VOICEVOX、1：COEIROINK
+let vset = 0; // 0：VOICEVOX、1：COEIROINK、2：ランダム（8人から字幕ごとに選ぶ）
 try { const n = parseInt(localStorage.getItem('anshinVoice4')); if (n >= 0 && n <= MIX) voiceNo = n; } catch (e) {}
-try { const n = parseInt(localStorage.getItem('anshinEngine')); if (n === 0 || n === 1) vset = n; } catch (e) {}
+try { const n = parseInt(localStorage.getItem('anshinEngine')); if (n >= 0 && n <= 2) vset = n; } catch (e) {}
 // 字幕ごとの読み手（「順番」のとき）
-let segVoice = [];
+let segVoice = [], randVoice = [];
 function shuffleVoices() {
-  segVoice = [];
+  segVoice = []; randVoice = [];
   CAPS.forEach((c, i) => segVoice.push(i % 4)); // めたん→つむぎ→はう→小夜 の順番でくり返す（ランダムではない）
+  // 「ランダム」のとき：VOICEVOX と COEIROINK の8人から、字幕ごとにくじで選ぶ（前の字幕と同じ人は続けない）
+  CAPS.forEach((c, i) => { let v; do v = Math.floor(Math.random() * 8); while (i && v === randVoice[i - 1]); randVoice.push(v); });
 }
 shuffleVoices();
-const voiceOf = i => vset * 4 + (voiceNo === MIX ? segVoice[i] : voiceNo);
+const voiceOf = i => vset === 2 ? randVoice[i] : vset * 4 + (voiceNo === MIX ? segVoice[i] : voiceNo);
 function koeDecode(v, i) {
   if (!koeBuf[v][i]) koeBuf[v][i] = koeRaw[v][i].then(ab => ab && new Promise(res => {
     try { ac.decodeAudioData(ab.slice(0), b => res(b), () => res(null)); } catch (e) { res(null); }
@@ -1032,11 +1035,14 @@ sndBtn.onclick = () => {
 
 // 声を選ぶ：選んだ声で、いまの字幕から読み直す
 const vBtns = document.querySelectorAll('.voices button[data-v]'), eBtns = document.querySelectorAll('.voices button[data-e]');
-const useVoices = () => (voiceNo === MIX ? [0, 1, 2, 3] : [voiceNo]).map(v => vset * 4 + v);
+const useVoices = () => vset === 2 ? [0, 1, 2, 3, 4, 5, 6, 7] : (voiceNo === MIX ? [0, 1, 2, 3] : [voiceNo]).map(v => vset * 4 + v);
 function showVoice() {
   eBtns.forEach(b => b.classList.toggle('on', +b.dataset.e === vset));
-  vBtns.forEach(b => { b.classList.toggle('on', +b.dataset.v === voiceNo); if (+b.dataset.v < MIX) b.textContent = ENGINES[vset][1][+b.dataset.v]; });
-  document.getElementById('credit').textContent = '声：' + ENGINES[vset][0] + ':' + useVoices().map(v => VOICES[v][1]).join('・');
+  // ランダムのときは 1人を選ぶ段をかくす
+  document.getElementById('nameRow').classList.toggle('hide', vset === 2);
+  vBtns.forEach(b => { b.classList.toggle('on', +b.dataset.v === voiceNo); if (+b.dataset.v < MIX && vset < 2) b.textContent = ENGINES[vset][1][+b.dataset.v]; });
+  const cr = e => ENGINES[e][0] + ':' + useVoices().filter(v => (v >> 2) === e).map(v => VOICES[v][1]).join('・');
+  document.getElementById('credit').textContent = '声：' + (vset === 2 ? cr(0) + '／' + cr(1) : cr(vset));
 }
 function pickChanged() {
   showVoice(); stopSpeak(); useVoices().forEach(loadVoice);
@@ -1047,9 +1053,10 @@ vBtns.forEach(b => b.onclick = () => {
   try { localStorage.setItem('anshinVoice4', voiceNo); } catch (e) {}
   pickChanged();
 });
-// VOICEVOX・COEIROINK の切り替え：選んだ方の声で、いまの字幕から読み直す
+// VOICEVOX・COEIROINK・ランダム の切り替え：選んだ方の声で、いまの字幕から読み直す
 eBtns.forEach(b => b.onclick = () => {
   vset = +b.dataset.e;
+  if (vset === 2) shuffleVoices(); // ランダムを押すたびに、くじを引き直す
   try { localStorage.setItem('anshinEngine', vset); } catch (e) {}
   pickChanged();
 });
