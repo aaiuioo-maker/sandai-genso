@@ -64,7 +64,11 @@
     <button id="ppBtn">▶ 再生</button>
     <button id="sndBtn" class="snd">🔊 声・音 ON</button>
   </div>
-  <div class="voices"><span>声</span>
+  <div class="voices" id="engRow"><span>声</span>
+    <button data-e="0" class="on">VOICEVOX</button>
+    <button data-e="1">COEIROINK</button>
+  </div>
+  <div class="voices"><span>　　</span>
     <button data-v="4" class="on">順番</button>
     <button data-v="0">めたん</button>
     <button data-v="1">つむぎ</button>
@@ -219,6 +223,27 @@ const SPK = [
     'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
     'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...GGGGGGGG...',
     '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..'] },
+  // ここから COEIROINK の4人（つくよみちゃん・MANA・KANA・リリンちゃん）
+  { name: 'つくよみ', pal: { H: '#c8d8f0', h: '#e8f0ff', R: '#e07090', S: '#ffe2cc', E: '#4a4a6a', W: '#f8f8f8', K: '#d04050' }, map: [
+    '....HHHHHH....', '..HHhHHHHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'RHHSSHSSHSSHHR', 'RHSSSSSSSSSSHR', '.HSSSSSSSSSSH.', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.WWWKKWWW.HH',
+    'HH.WWWWWWWW.HH', '.H.WWWWWWWW.H.', '...WWWWWWWW...', '...WWWWWWWW...'] },
+  { name: 'MANA', pal: { H: '#f4a0a8', D: '#e07880', S: '#ffe2cc', E: '#d08a2a', B: '#7a4a2a', W: '#f4f0f0' }, map: [
+    'DD..HHHHHH..DD', 'DDHHHHHHHHHHDD', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', '.H.SSSSSSSS.H.', '.H..SSSSSS..H.', '...BBWWWWBB...',
+    '..BBBBWWBBBB..', '..BBBBBBBBBB..', '..BBBBBBBBBB..', '..BBBBBBBBBB..'] },
+  { name: 'KANA', pal: { H: '#8ac8f0', h: '#b0e0ff', S: '#ffe2cc', E: '#8a70c0', K: '#2a2a33', W: '#d0d0d8' }, map: [
+    '...HHHHHHH....', '..HHHHHhHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHHSSHSSHSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...KKKWWKKK...',
+    '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..'] },
+  { name: 'リリン', pal: { H: '#f0a050', P: '#a070e0', S: '#ffe2cc', E: '#9a60d0', U: '#4a2a6a' }, map: [
+    'PP..HHHHHH..PP', 'PPPHHHHHHHHPPP', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.UUUUUUUU.HH',
+    'HH.UUUUUUUU.HH', '.HHUUUUUUUUHH.', '..HUUUUUUUUH..', '...UUUUUUUU...'] },
 ];
 // v：だれ（0〜3）、talk：いま声が出ている（口がパクパク・体がゆれる）
 function speakerDot(v, ox, oy, t, talk) {
@@ -824,21 +849,26 @@ function speakTTS(text, token) {
   } catch (e) { speaking = false; }
 }
 
-// ---------- ナレーション：VOICEVOX で作った声（4人：めたん・つむぎ・はう・小夜。各フォルダに 00.wav〜17.wav）を流す ----------
+// ---------- ナレーション：VOICEVOX の4人（めたん・つむぎ・はう・小夜）と COEIROINK の4人（つくよみちゃん・MANA・KANA・リリンちゃん）で作った声（各フォルダに 00.wav〜17.wav）を流す ----------
 // 「順番」のときは、字幕1つごとに めたん→つむぎ→はう→小夜 の順番で読む（ランダムではない）。
 // iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
 // 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
 const KOE_V = 1;
-const VOICES = [['koe', '四国めたん'], ['koe-tsumugi', '春日部つむぎ'], ['koe-hau', '雨晴はう'], ['koe-sayo', '小夜/SAYO']];
+// 0〜3：VOICEVOX の4人、4〜7：COEIROINK の4人（「声」の VOICEVOX・COEIROINK ボタンで切り替える）
+const VOICES = [['koe', '四国めたん'], ['koe-tsumugi', '春日部つむぎ'], ['koe-hau', '雨晴はう'], ['koe-sayo', '小夜/SAYO'],
+  ['koe-tsukuyomi', 'つくよみちゃん'], ['koe-mana', 'MANA'], ['koe-kana', 'KANA'], ['koe-lilin', 'リリンちゃん']];
+const ENGINES = [['VOICEVOX', ['めたん', 'つむぎ', 'はう', '小夜']], ['COEIROINK', ['つくよみ', 'MANA', 'KANA', 'リリン']]];
 const MIX = 4; // 「順番」
-const koeOK = [[], [], [], []], koeRaw = [], koeBuf = [[], [], [], []]; // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
+const koeOK = VOICES.map(() => []), koeRaw = [], koeBuf = VOICES.map(() => []); // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
 function loadVoice(v) {
   if (koeRaw[v]) return;
   koeRaw[v] = CAPS.map((c, i) => fetch(VOICES[v][0] + '/' + String(i).padStart(2, '0') + '.wav?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[v][i] = !!ab; return ab; }));
   if (ac) CAPS.forEach((c, i) => koeDecode(v, i));
 }
 let voiceNo = MIX;
+let vset = 0; // 0：VOICEVOX、1：COEIROINK
 try { const n = parseInt(localStorage.getItem('anshinVoice4')); if (n >= 0 && n <= MIX) voiceNo = n; } catch (e) {}
+try { const n = parseInt(localStorage.getItem('anshinEngine')); if (n === 0 || n === 1) vset = n; } catch (e) {}
 // 字幕ごとの読み手（「順番」のとき）
 let segVoice = [];
 function shuffleVoices() {
@@ -846,7 +876,7 @@ function shuffleVoices() {
   CAPS.forEach((c, i) => segVoice.push(i % 4)); // めたん→つむぎ→はう→小夜 の順番でくり返す（ランダムではない）
 }
 shuffleVoices();
-const voiceOf = i => voiceNo === MIX ? segVoice[i] : voiceNo;
+const voiceOf = i => vset * 4 + (voiceNo === MIX ? segVoice[i] : voiceNo);
 function koeDecode(v, i) {
   if (!koeBuf[v][i]) koeBuf[v][i] = koeRaw[v][i].then(ab => ab && new Promise(res => {
     try { ac.decodeAudioData(ab.slice(0), b => res(b), () => res(null)); } catch (e) { res(null); }
@@ -1001,18 +1031,29 @@ sndBtn.onclick = () => {
 };
 
 // 声を選ぶ：選んだ声で、いまの字幕から読み直す
-const vBtns = document.querySelectorAll('.voices button');
+const vBtns = document.querySelectorAll('.voices button[data-v]'), eBtns = document.querySelectorAll('.voices button[data-e]');
+const useVoices = () => (voiceNo === MIX ? [0, 1, 2, 3] : [voiceNo]).map(v => vset * 4 + v);
 function showVoice() {
-  vBtns.forEach(b => b.classList.toggle('on', +b.dataset.v === voiceNo));
-  document.getElementById('credit').textContent = '声：VOICEVOX:' + (voiceNo === MIX ? VOICES : [VOICES[voiceNo]]).map(v => v[1]).join('・');
+  eBtns.forEach(b => b.classList.toggle('on', +b.dataset.e === vset));
+  vBtns.forEach(b => { b.classList.toggle('on', +b.dataset.v === voiceNo); if (+b.dataset.v < MIX) b.textContent = ENGINES[vset][1][+b.dataset.v]; });
+  document.getElementById('credit').textContent = '声：' + ENGINES[vset][0] + ':' + useVoices().map(v => VOICES[v][1]).join('・');
+}
+function pickChanged() {
+  showVoice(); stopSpeak(); useVoices().forEach(loadVoice);
+  if (playing && !muted) { startSound(); enterSeg(seg, false); }
 }
 vBtns.forEach(b => b.onclick = () => {
-  voiceNo = +b.dataset.v; showVoice();
+  voiceNo = +b.dataset.v;
   try { localStorage.setItem('anshinVoice4', voiceNo); } catch (e) {}
-  stopSpeak(); (voiceNo === MIX ? [0, 1, 2, 3] : [voiceNo]).forEach(loadVoice);
-  if (playing && !muted) { startSound(); enterSeg(seg, false); }
+  pickChanged();
 });
-showVoice(); (voiceNo === MIX ? [0, 1, 2, 3] : [voiceNo]).forEach(loadVoice);
+// VOICEVOX・COEIROINK の切り替え：選んだ方の声で、いまの字幕から読み直す
+eBtns.forEach(b => b.onclick = () => {
+  vset = +b.dataset.e;
+  try { localStorage.setItem('anshinEngine', vset); } catch (e) {}
+  pickChanged();
+});
+showVoice(); useVoices().forEach(loadVoice);
 
 // ---------- タイトルの左のオレンジのキャラクター（前に字幕の左にいたときと同じ動き） ----------
 // 再生中：しゃべる（手をふる）→ 最後の場面でジャンプ → 終わったら歩く。止まっているときは歩く
