@@ -42,8 +42,8 @@
   .voices span { flex-shrink: 0; color: #8a84a8; }
   .voices button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 5px 2px; border-color: #3a3358; color: #8a84a8; }
   .voices button.on { border-color: var(--accent); color: var(--fg); }
-  /* 人数が多いとき（COEIROINK の8人）は 5つずつ 2段に並べる */
-  #nameRow.many { display: grid; grid-template-columns: repeat(5, 1fr); }
+  /* 人数が多いとき（COEIROINK）は 2段に並べる */
+  #nameRow.many { display: grid; grid-template-columns: repeat(4, 1fr); }
   #nameRow.many span { display: none; }
   button { font-family: inherit; font-size: 15px; color: var(--fg); background: #1c1930; border: 2px solid var(--accent);
            border-radius: 6px; padding: 8px 18px; cursor: pointer; }
@@ -242,14 +242,10 @@ const SPK = [
     'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
     'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.UUUUUUUU.HH',
     'HH.UUUUUUUU.HH', '.HHUUUUUUUUHH.', '..HUUUUUUUUH..', '...UUUUUUUU...'] },
-  // アメノちゃん（のーまる・熊本弁）
-  { name: 'アメノ', pal: { H: '#ecd0b0', R: '#d02a2a', k: '#1a1a1a', S: '#ffe8d8', E: '#3a9a5a', W: '#f8f8f8', P: '#f0a0a0', J: '#2a2a2a', K: '#a08a5a' }, map: [
-    '...HHHHHHH....', '..HHHHHHHHRk..', '.HHHHHHHHHRRH.', '.HHHHHHHHHHHH.', 'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH', 'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..H.', 'HJJWWPPWWJJ.H.', '.HJJWWWWWWJJ..', '..JJWWWWWWJJ..', '..JKJWWWWJKJ..', '..JKJWWWWJKJ..'] },
+  // アメノちゃん（熊本弁）
   { name: '熊本弁', pal: { H: '#ecd0b0', R: '#d02a2a', k: '#1a1a1a', S: '#ffe8d8', E: '#3a9a5a', W: '#f8f8f8', P: '#f0a0a0', J: '#2a2a2a', K: '#a08a5a', B: '#ff9ab0' }, map: [
     '...HHHHHHH....', '..HHHHHHHHRk..', '.HHHHHHHHHRRH.', '.HHHHHHHHHHHH.', 'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH', 'HHSBSSSSSSBSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..H.', 'HJJWWPPWWJJ.H.', '.HJJWWWWWWJJ..', '..JJWWWWWWJJ..', '..JKJWWWWJKJ..', '..JKJWWWWJKJ..'] },
-  // アンジーさん（のーまる）・カナエさん（AI声優-金苗 のーまる）
-  { name: 'アンジー', pal: { H: '#2a2430', h: '#6a3a8a', O: '#e8e8f0', S: '#ffe8d8', E: '#c04040', B: '#1a1a22', V: '#7a3aa0', W: '#f0f0f0' }, map: [
-    '...HHHHHHHOO..', '..HHHHHHHHOH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.', 'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH', 'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'Hh..SSSSSS..hH', 'HhVWWWWWWWWVhH', 'HhVBBBBBBBBVhH', 'HHVBBBBBBBBVHH', '.H.BBBBBBBB.H.', '.H.BBBBBBBB.H.'] },
+  // カナエさん（AI声優-金苗 のーまる）
   { name: 'カナエ', pal: { H: '#f0d060', L: '#5ab04a', k: '#2a2a2a', S: '#ffe8d8', E: '#d08030', G: '#5a5a6a', Y: '#e8c070', W: '#f0f0f0' }, map: [
     '.....LL.......', '...HHHLHHH....', '..HHHHHHHHHH..', '.HHHHHHHHHHHH.', 'kHHSSHSSHSSHHk', 'kHSSSSSSSSSSHk', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH', 'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HHYGGWWWWGGYHH', 'HHYGGGWWGGGYHH', 'HHYGGGGGGGGYHH', 'HH.GGGGGGGG.HH', 'H..GGGGGGGG..H'] },
 ];
@@ -857,17 +853,18 @@ function speakTTS(text, token) {
   } catch (e) { speaking = false; }
 }
 
-// ---------- ナレーション：VOICEVOX の4人（めたん・つむぎ・はう・小夜）と COEIROINK の8つ（つくよみちゃん・MANA・KANA・リリンちゃん・アメノちゃん のーまる／熊本弁・アンジーさん・AI声優-金苗）で作った声（各フォルダに 00.wav〜17.wav）を流す ----------
-// 「順番」のときは、字幕1つごとに グループの人を順番に読む（VOICEVOX：めたん→つむぎ→はう→小夜、COEIROINK：つくよみ→MANA→KANA→リリン→アメノ→熊本弁→アンジー→カナエ）（ランダムではない）。
+// ---------- ナレーション：VOICEVOX の4人（めたん・つむぎ・はう・小夜）と COEIROINK の6人（つくよみちゃん・MANA・KANA・アメノちゃん 熊本弁・AI声優-金苗・リリンちゃん）で作った声（各フォルダに 00.wav〜17.wav）を流す ----------
+// 「順番」のときは、字幕1つごとに グループの人を順番に読む（VOICEVOX：めたん→つむぎ→はう→小夜、COEIROINK：つくよみ→MANA→KANA→熊本弁→カナエ→リリン）（ランダムではない）。
 // iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
 // 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
 const KOE_V = 1;
-// [フォルダ, クレジットの名前, ボタンの名前]。0〜3：VOICEVOX の4人、4〜11：COEIROINK の8つ（アメノちゃんは のーまる・熊本弁 の2つ）
+// [フォルダ, クレジットの名前, ボタンの名前]。0〜3：VOICEVOX の4人、4〜9：COEIROINK の6人（アメノちゃんは熊本弁）
 const VOICES = [['koe', '四国めたん', 'めたん'], ['koe-tsumugi', '春日部つむぎ', 'つむぎ'], ['koe-hau', '雨晴はう', 'はう'], ['koe-sayo', '小夜/SAYO', '小夜'],
   ['koe-tsukuyomi', 'つくよみちゃん', 'つくよみ'], ['koe-mana', 'MANA', 'MANA'], ['koe-kana', 'KANA', 'KANA'], ['koe-lilin', 'リリンちゃん', 'リリン'],
-  ['koe-ameno', 'アメノちゃん', 'アメノ'], ['koe-ameno-kuma', 'アメノちゃん', '熊本弁'], ['koe-andzie', 'アンジーさん', 'アンジー'], ['koe-kanae', 'AI声優-金苗', 'カナエ']];
+  ['koe-ameno-kuma', 'アメノちゃん', '熊本弁'], ['koe-kanae', 'AI声優-金苗', 'カナエ']];
 // 「声」のグループ：VOICEVOX・COEIROINK（ボタンで切り替える）。ランダムは全員から選ぶ
-const ENGINES = [['VOICEVOX', [0, 1, 2, 3]], ['COEIROINK', [4, 5, 6, 7, 8, 9, 10, 11]]];
+// COEIROINK の並び：つくよみ→MANA→KANA→熊本弁→カナエ→リリン（リリンをいちばん最後に）
+const ENGINES = [['VOICEVOX', [0, 1, 2, 3]], ['COEIROINK', [4, 5, 6, 8, 9, 7]]];
 const ALL = VOICES.map((v, i) => i);
 const MIX = -1; // 「順番」
 const koeOK = VOICES.map(() => []), koeRaw = [], koeBuf = VOICES.map(() => []); // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
@@ -878,7 +875,7 @@ function loadVoice(v) {
 }
 let voiceNo = MIX;
 let vset = 0; // 0：VOICEVOX、1：COEIROINK、2：ランダム（全員から字幕ごとに選ぶ）
-try { const n = parseInt(localStorage.getItem('anshinVoice4')); if (n >= MIX && n < 8) voiceNo = n; } catch (e) {}
+try { const n = parseInt(localStorage.getItem('anshinVoice4')); if (n >= MIX && n < 6) voiceNo = n; } catch (e) {}
 try { const n = parseInt(localStorage.getItem('anshinEngine')); if (n >= 0 && n <= 2) vset = n; } catch (e) {}
 // 字幕ごとの読み手（「順番」のとき）
 let segVoice = [], randVoice = [];
@@ -1069,7 +1066,7 @@ function showVoice() {
   // ランダムのときは 1人を選ぶ段をかくす
   nameRow.classList.toggle('hide', vset === 2);
   nameRow.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.v === voiceNo));
-  const cr = e => ENGINES[e][0] + ':' + [...new Set(useVoices().filter(v => ENGINES[e][1].includes(v)).map(v => VOICES[v][1]))].join('・');
+  const cr = e => ENGINES[e][0] + ':' + [...new Set(ENGINES[e][1].filter(v => useVoices().includes(v)).map(v => VOICES[v][1]))].join('・');
   document.getElementById('credit').textContent = '声：' + (vset === 2 ? cr(0) + '／' + cr(1) : cr(vset));
 }
 function pickChanged() {
