@@ -52,7 +52,7 @@
 </head>
 <body>
 <h1><canvas id="ccTitle" width="48" height="52" aria-hidden="true"></canvas>東方の光</h1>
-<p class="sub">東の東に生まれ 西へ西へ（約3分半・声と音が出ます）<br><span id="credit">声：VOICEVOX:四国めたん</span></p>
+<p class="sub">東の東に生まれ 西へ西へ（約4分・声と音が出ます）<br><span id="credit">声：VOICEVOX:四国めたん</span></p>
 <div class="stage">
   <canvas id="cv"></canvas>
   <div class="start" id="startBox"><button id="startBtn">▶ 再生する</button></div>
@@ -834,7 +834,7 @@ function speakTTS(text, token) {
   } catch (e) { speaking = false; }
 }
 
-// ---------- ナレーション：VOICEVOX で作った声（4人：めたん・つむぎ・はう・小夜。各フォルダに 00.wav〜20.wav）を流す ----------
+// ---------- ナレーション：VOICEVOX で作った声（4人：めたん・つむぎ・はう・小夜。各フォルダに 00.wav〜24.wav）を流す ----------
 // 「順番」のときは、字幕1つごとに めたん→つむぎ→はう→小夜 の順番で読む（ランダムではない）。
 // iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
 // 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
