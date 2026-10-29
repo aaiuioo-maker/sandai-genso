@@ -19,6 +19,8 @@
   :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  /* iPhone で ほかの画面から戻ったときなどに、文字が勝手に大きくならないようにする */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   body { font-family: "DotGothic16", sans-serif; display: flex; flex-direction: column; align-items: center;
          padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); min-height: 100vh; }
   /* タイトルは真ん中。オレンジのキャラクターは左はしに小さく */
