@@ -205,7 +205,7 @@ function renderAll() {
   if (top) {
     document.getElementById('hero').innerHTML =
       `<div class="hero"><img src="${icon(top[0])}" alt=""><div><span class="k">いちばん新しい動画</span><b>${esc(top[1])}</b><span>${esc(top[3])}（${esc(top[5])}）</span><button class="play" id="heroPlay">▶ 再生</button></div></div>`;
-    document.getElementById('heroPlay').onclick = () => { queue = null; rndVoice = false; play(top[0], top[1]); };
+    document.getElementById('heroPlay').onclick = () => { queue = null; listVoice = null; play(top[0], top[1]); };
   }
   if (!ordered().length) document.getElementById('shelf').innerHTML = '<p class="note" style="grid-column:1/-1">棚に動画がありません</p>';
   const tb = document.getElementById('trashBtn');
@@ -215,7 +215,7 @@ renderAll();
 document.querySelectorAll('.shelf').forEach(s => s.addEventListener('click', e => {
   const b = e.target.closest('.app'); if (!b) return;
   const a = shown[+b.dataset.i];
-  if (a[7]) openSheet(a); else { queue = null; rndVoice = false; play(a[0], a[1]); }
+  if (a[7]) openSheet(a); else { queue = null; listVoice = null; play(a[0], a[1]); }
 }));
 
 // ---------- 並べかえ：▲▼ で1つずつ動かす ----------
@@ -264,8 +264,8 @@ function openSheet(a) {
     (parts ? `<div class="parts">${parts.map((p, i) => `<button data-p="${i}"><img src="${icon(p[0])}" alt=""><div>${esc(p[1])}<small>${esc(p[2])}</small></div></button>`).join('')}</div>` : '') +
     `<button class="del" id="sheetDel">🗑 棚から削除</button>` +
     `<button class="close" id="sheetClose">とじる</button>`;
-  const sp = document.getElementById('sheetPlay'); if (sp) sp.onclick = () => { queue = null; rndVoice = false; play(h, name); };
-  sheet.querySelectorAll('.parts button').forEach(b => b.onclick = () => { const p = parts[+b.dataset.p]; queue = null; rndVoice = false; play(p[0], p[1], h); });
+  const sp = document.getElementById('sheetPlay'); if (sp) sp.onclick = () => { queue = null; listVoice = null; play(h, name); };
+  sheet.querySelectorAll('.parts button').forEach(b => b.onclick = () => { const p = parts[+b.dataset.p]; queue = null; listVoice = null; play(p[0], p[1], h); });
   document.getElementById('sheetDel').onclick = () => {
     if (!confirm(`「${name}」を棚から削除しますか？\n（あとで「削除した動画を もどす」で戻せます）`)) return;
     hidden.push(h); saveHidden(); closeSheet(); renderAll(); if (sorting) renderSort();
@@ -361,8 +361,18 @@ showCont();
 const nameOf = h => (APPS.find(a => a[0] === h) || [, ''])[1];
 // 続けて見る順番（「ランダムに 続けて」「新しい順から 続けて」のとき。ふだんは棚の並び順）
 let queue = null;
-// 「全部 続けて」「ランダム」「新しい順」で見るときは、声も全員からランダムにする（1本だけ選んだときは、その動画で選んだ声のまま）
-let rndVoice = false;
+// 「全部 続けて」「ランダム」「新しい順」で見るときは、最初は声を3つのグループの12人全員からランダムにする
+// （1本だけ選んだときは、その動画で選んだ声のまま）。途中で声を変えたら、次の動画からも その声のまま最後まで続ける
+let listVoice = null; // 続けて見ている間の声：{ e：VOICEVOX・COEIROINK・AivisSpeech・ランダム のどれか（ランダムは -1）, v：順番か1人か }
+// いま見ている動画で選んである声を覚えておく（次の動画も同じ声にするため）
+function keepVoice() {
+  if (!listVoice) return;
+  try {
+    const w = frameEl.contentWindow;
+    if (w.eval("typeof ENGINES === 'undefined'")) return;
+    listVoice = { e: w.eval('vset === RAND ? -1 : vset'), v: w.eval('voiceNo') };
+  } catch (e) {}
+}
 // 次の動画（三尊の弥陀は「全部まとめて」を流す）
 function nextOf(h) {
   const list = queue || ordered(), i = list.findIndex(a => a[0] === h);
@@ -376,6 +386,7 @@ setInterval(() => {
   try { done = frameEl.contentWindow.eval('running && !playing && pos >= TOTAL'); } catch (e) {}
   if (!done) return;
   ending = 1;
+  keepVoice();
   const n = nextOf(cur), title = document.getElementById('playTitle');
   if (!cont) return;
   if (!n) { title.textContent = '全部 見終わりました'; return; }
@@ -392,7 +403,7 @@ setInterval(() => {
 function playList(list, q) {
   if (!list.length) return;
   if (!cont) { cont = true; showCont(); try { localStorage.setItem('tanaCont', '1'); } catch (e) {} }
-  queue = q ? list : null; rndVoice = true;
+  queue = q ? list : null; listVoice = { e: -1, v: -1 }; // 最初はランダム（12人全員から）
   playApp(list[0]);
 }
 // 全部 続けて：棚のいちばん上から
@@ -413,8 +424,8 @@ function autoStart(f) {
     shareAudio(w);
     const go = () => {
       const btn = w.document.getElementById('startBtn'); if (!btn) return;
-      // 続けて見るときは、声をランダムに（この端末に覚えている声の選びかたは変えない）
-      if (rndVoice) try { w.eval("if (typeof ENGINES !== 'undefined') { vset = 2; makeNameBtns(); showVoice(); useVoices().forEach(loadVoice); }"); } catch (e) {}
+      // 続けて見るときは、続けている間の声にする（最初はランダム。途中で変えたら その声）。この端末に覚えている声の選びかたは変えない
+      if (listVoice) try { w.eval(`if (typeof ENGINES !== 'undefined') { vset = ${listVoice.e} < 0 ? RAND : ${listVoice.e}; voiceNo = ${listVoice.v}; if (vset === RAND) shuffleVoices(); makeNameBtns(); showVoice(); useVoices().forEach(loadVoice); }`); } catch (e) {}
       btn.click();
       setTimeout(() => {
         try {
