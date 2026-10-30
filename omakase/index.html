@@ -44,6 +44,10 @@
   .voices span { flex-shrink: 0; color: #8a84a8; }
   .voices button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 5px 2px; border-color: #3a3358; color: #8a84a8; }
   .voices button.on { border-color: var(--accent); color: var(--fg); }
+  /* VOICEVOX・COEIROINK・AivisSpeech・ランダム：文字の長さに合わせて幅を分ける（AivisSpeech がはみ出さないように） */
+  #engRow button { flex: 1 1 auto; font-size: clamp(10px, 3vw, 14px); padding: 5px 1px; }
+  /* 順番・人の名前の段は 左はしから並べる */
+  #nameRow span { display: none; }
   /* 人数が多いとき（COEIROINK）は 2段に並べる */
   #nameRow.many { display: grid; grid-template-columns: repeat(3, 1fr); }
   #nameRow.many span { display: none; }
