@@ -37,11 +37,15 @@
   .btns button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 7px 2px; border-color: #5a5478; }
   .btns .snd { color: #6fe0a0; flex-grow: 1.25; }
   .btns .snd.off { color: #8a84a8; }
-  /* 声の選びかた（4人） */
+  /* 声の選びかた */
   .voices { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; }
   .voices span { flex-shrink: 0; color: #8a84a8; }
   .voices button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 5px 2px; border-color: #3a3358; color: #8a84a8; }
   .voices button.on { border-color: var(--accent); color: var(--fg); }
+  /* VOICEVOX・AivisSpeech・ランダム：文字の長さに合わせて幅を分ける（AivisSpeech がはみ出さないように） */
+  #engRow button { flex: 1 1 auto; font-size: clamp(10px, 3vw, 14px); padding: 5px 1px; }
+  /* 順番・人の名前の段は 左はしから並べる */
+  #nameRow span { display: none; }
   button { font-family: inherit; font-size: 15px; color: var(--fg); background: #1c1930; border: 2px solid var(--accent);
            border-radius: 6px; padding: 8px 18px; cursor: pointer; }
   button:active { transform: translateY(1px); }
@@ -65,18 +69,17 @@
     <button id="ppBtn">▶ 再生</button>
     <button id="sndBtn" class="snd">🔊 声・音 ON</button>
   </div>
-  <div class="voices"><span>声</span>
-    <button data-v="4" class="on">順番</button>
-    <button data-v="0">めたん</button>
-    <button data-v="1">つむぎ</button>
-    <button data-v="2">はう</button>
-    <button data-v="3">小夜</button>
+  <div class="voices" id="engRow"><span>声</span>
+    <button data-e="0" class="on">VOICEVOX</button>
+    <button data-e="1">AivisSpeech</button>
+    <button data-e="2">ランダム</button>
   </div>
+  <div class="voices" id="nameRow"><span>　　</span></div>
 </div>
 <a class="back" href="../">◀ 三尊の弥陀 メニューへ</a>
 
 <script>window.PART = [8, 14];</script>
-<script src="../douga.js?v=2"></script>
+<script src="../douga.js?v=3"></script>
 <!-- 更新した日時（GitHub に反映した日時が自動で出る）。画面のいちばん下（操作パネルの下）に小さく出す -->
 <script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
 var e=document.createElement('div');e.id='appVer';e.textContent='更新 '+d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
