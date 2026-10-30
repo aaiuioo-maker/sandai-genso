@@ -44,6 +44,10 @@
   .voices span { flex-shrink: 0; color: #8a84a8; }
   .voices button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 5px 2px; border-color: #3a3358; color: #8a84a8; }
   .voices button.on { border-color: var(--accent); color: var(--fg); }
+  /* VOICEVOX・COEIROINK・AivisSpeech・ランダム：文字の長さに合わせて幅を分ける（AivisSpeech がはみ出さないように） */
+  #engRow button { flex: 1 1 auto; font-size: clamp(10px, 3vw, 14px); padding: 5px 1px; }
+  /* 順番・人の名前の段は 左はしから並べる */
+  #nameRow span { display: none; }
   /* 人数が多いとき（COEIROINK）は 2段に並べる */
   #nameRow.many { display: grid; grid-template-columns: repeat(3, 1fr); }
   #nameRow.many span { display: none; }
@@ -72,7 +76,8 @@
   <div class="voices" id="engRow"><span>声</span>
     <button data-e="0" class="on">VOICEVOX</button>
     <button data-e="1">COEIROINK</button>
-    <button data-e="2">ランダム</button>
+    <button data-e="2">AivisSpeech</button>
+    <button data-e="3">ランダム</button>
   </div>
   <div class="voices" id="nameRow"><span>　　</span></div>
 </div>
@@ -247,6 +252,22 @@ const SPK = [
   // アメノちゃん（熊本弁）
   { name: '熊本弁', pal: { H: '#ecd0b0', R: '#d02a2a', k: '#1a1a1a', S: '#ffe8d8', E: '#3a9a5a', W: '#f8f8f8', P: '#f0a0a0', J: '#2a2a2a', K: '#a08a5a', B: '#ff9ab0' }, map: [
     '...HHHHHHH....', '..HHHHHHHHRk..', '.HHHHHHHHHRRH.', '.HHHHHHHHHHHH.', 'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH', 'HHSBSSSSSSBSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..H.', 'HJJWWPPWWJJ.H.', '.HJJWWWWWWJJ..', '..JJWWWWWWJJ..', '..JKJWWWWJKJ..', '..JKJWWWWJKJ..'] },
+  // ここから AivisSpeech の3人（まお・まい・コハク）
+  { name: 'まお', pal: { H: '#f2a6c0', h: '#ffd0e0', R: '#ffffff', S: '#ffe2cc', E: '#c0507a', W: '#f8f0f4', P: '#e07aa0' }, map: [
+    '.HH..HHHH..HH.', '.HhHHHHHHHHhH.', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.WWWPPWWW.HH',
+    '.H.WWWWWWWW.H.', '...WWWWWWWW...', '...PPPPPPPP...', '...WWWWWWWW...'] },
+  { name: 'まい', pal: { H: '#2a2438', h: '#4a4260', R: '#e04848', S: '#ffe2cc', E: '#6a4a8a', W: '#f4f4f4', N: '#2a3a6a' }, map: [
+    '....HHHHHH.RR.', '..HHHHHHHHHRR.', '.HHHHHhHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.NWWRRWWN.HH',
+    'HH.NNWWWWNN.HH', 'HH.NNNNNNNN.HH', '...NNNNNNNN...', '...NNNNNNNN...'] },
+  { name: 'コハク', pal: { H: '#e8a840', h: '#ffd070', S: '#ffe2cc', E: '#c07a20', W: '#f8f4ec', G: '#d08a30', B: '#7a5a3a' }, map: [
+    '....HHHHHH....', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...WWWGGWWW...',
+    '..BWWWWWWWWB..', '..BWWWWWWWWB..', '..BBWWWWWWBB..', '..BBWWWWWWBB..'] },
 ];
 // v：だれ（0〜3）、talk：いま声が出ている（口がパクパク・体がゆれる）
 function speakerDot(v, ox, oy, t, talk) {
@@ -871,10 +892,12 @@ const KOE_V = 1;
 // [フォルダ, クレジットの名前, ボタンの名前, 録音の形式]。0〜3：VOICEVOX の4人、4〜8：COEIROINK の5人（アメノちゃんは熊本弁）
 const VOICES = [['koe', '四国めたん', 'めたん', 'mp3'], ['koe-tsumugi', '春日部つむぎ', 'つむぎ', 'mp3'], ['koe-hau', '雨晴はう', 'はう', 'mp3'], ['koe-sayo', '小夜/SAYO', '小夜', 'mp3'],
   ['koe-tsukuyomi', 'つくよみちゃん', 'つくよみ', 'mp3'], ['koe-mana', 'MANA', 'MANA', 'mp3'], ['koe-kana', 'KANA', 'KANA', 'mp3'], ['koe-lilin', 'リリンちゃん', 'リリン', 'mp3'],
-  ['koe-ameno-kuma', 'アメノちゃん', '熊本弁', 'mp3']];
-// 「声」のグループ：VOICEVOX・COEIROINK（ボタンで切り替える）。ランダムは全員から選ぶ
+  ['koe-ameno-kuma', 'アメノちゃん', '熊本弁', 'mp3'],
+  ['koe-mao', 'まお', 'まお', 'mp3'], ['koe-mai', 'まい', 'まい', 'mp3'], ['koe-kohaku', 'コハク', 'コハク', 'mp3']];
+// 「声」のグループ：VOICEVOX・COEIROINK・AivisSpeech（ボタンで切り替える）。ランダムは全員から選ぶ
 // COEIROINK の並び：つくよみ→MANA→KANA→熊本弁→リリン（リリンをいちばん最後に）
-const ENGINES = [['VOICEVOX', [0, 1, 2, 3]], ['COEIROINK', [4, 5, 6, 8, 7]]];
+const ENGINES = [['VOICEVOX', [0, 1, 2, 3]], ['COEIROINK', [4, 5, 6, 8, 7]], ['AivisSpeech', [9, 10, 11]]]; // AivisSpeech の並び：まお→まい→コハク
+const RAND = ENGINES.length; // 「ランダム」のボタンの番号
 const ALL = VOICES.map((v, i) => i);
 const MIX = -1; // 「順番」
 const koeOK = VOICES.map(() => []), koeRaw = [], koeBuf = VOICES.map(() => []); // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
@@ -884,15 +907,15 @@ function loadVoice(v) {
   if (ac) CAPS.forEach((c, i) => koeDecode(v, i));
 }
 let voiceNo = MIX;
-let vset = 0; // 0：VOICEVOX、1：COEIROINK、2：ランダム（全員から字幕ごとに選ぶ）
+let vset = 0; // 0：VOICEVOX、1：COEIROINK、2：AivisSpeech、3：ランダム（全員から字幕ごとに選ぶ）
 try { const n = parseInt(localStorage.getItem('reisenVoice4')); if (n >= MIX && n < 5) voiceNo = n; } catch (e) {}
-try { const n = parseInt(localStorage.getItem('reisenEngine')); if (n >= 0 && n <= 2) vset = n; } catch (e) {}
+try { const n = parseInt(localStorage.getItem('reisenEngine')); if (n >= 0 && n <= RAND) vset = n; } catch (e) {}
 // 字幕ごとの読み手（「順番」のとき）
 let segVoice = [], randVoice = [];
 function shuffleVoices() {
   segVoice = []; randVoice = [];
   CAPS.forEach((c, i) => segVoice.push(i)); // 「順番」：グループの人を、字幕ごとに順番にくり返す（ランダムではない）
-  // 「ランダム」のとき：VOICEVOX と COEIROINK の全員を まぜた順に 1人ずつ。全員が話し終わったら（1周したら）まぜ直して次の周へ。
+  // 「ランダム」のとき：VOICEVOX・COEIROINK・AivisSpeech の全員を まぜた順に 1人ずつ。全員が話し終わったら（1周したら）まぜ直して次の周へ。
   // 周の切れ目でも、前の周の最後の人が 次の周の最初にならないようにする
   while (randVoice.length < CAPS.length) {
     const bag = ALL.slice();
@@ -904,7 +927,7 @@ function shuffleVoices() {
 }
 shuffleVoices();
 const group = () => ENGINES[vset][1];
-const voiceOf = i => vset === 2 ? randVoice[i] : voiceNo === MIX ? group()[segVoice[i] % group().length] : group()[voiceNo];
+const voiceOf = i => vset === RAND ? randVoice[i] : voiceNo === MIX ? group()[segVoice[i] % group().length] : group()[voiceNo];
 function koeDecode(v, i) {
   if (!koeBuf[v][i]) koeBuf[v][i] = koeRaw[v][i].then(ab => ab && new Promise(res => {
     try { ac.decodeAudioData(ab.slice(0), b => res(b), () => res(null)); } catch (e) { res(null); }
@@ -1066,11 +1089,11 @@ sndBtn.onclick = () => {
 
 // 声を選ぶ：選んだ声で、いまの字幕から読み直す
 const eBtns = document.querySelectorAll('.voices button[data-e]'), nameRow = document.getElementById('nameRow');
-const useVoices = () => vset === 2 ? ALL : voiceNo === MIX ? group() : [group()[voiceNo]];
+const useVoices = () => vset === RAND ? ALL : voiceNo === MIX ? group() : [group()[voiceNo]];
 // 1人を選ぶ段：いまのグループの人数ぶん、ボタンを作り直す
 function makeNameBtns() {
   nameRow.querySelectorAll('button').forEach(b => b.remove());
-  if (vset === 2) return;
+  if (vset === RAND) return;
   [MIX, ...group().map((v, k) => k)].forEach(k => {
     const b = document.createElement('button');
     b.dataset.v = k; b.textContent = k === MIX ? '順番' : VOICES[group()[k]][2];
@@ -1084,22 +1107,22 @@ function makeNameBtns() {
   nameRow.classList.toggle('many', group().length > 4);
 }
 function showVoice() {
-  if (vset < 2 && voiceNo >= group().length) voiceNo = MIX;
+  if (vset < RAND && voiceNo >= group().length) voiceNo = MIX;
   eBtns.forEach(b => b.classList.toggle('on', +b.dataset.e === vset));
   // ランダムのときは 1人を選ぶ段をかくす
-  nameRow.classList.toggle('hide', vset === 2);
+  nameRow.classList.toggle('hide', vset === RAND);
   nameRow.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.v === voiceNo));
   const cr = e => ENGINES[e][0] + ':' + [...new Set(ENGINES[e][1].filter(v => useVoices().includes(v)).map(v => VOICES[v][1]))].join('・');
-  document.getElementById('credit').textContent = '声：' + (vset === 2 ? cr(0) + '／' + cr(1) : cr(vset));
+  document.getElementById('credit').textContent = '声：' + (vset === RAND ? ENGINES.map((e, k) => cr(k)).join('／') : cr(vset));
 }
 function pickChanged() {
   showVoice(); stopSpeak(); useVoices().forEach(loadVoice);
   if (playing && !muted) { startSound(); enterSeg(seg, false); }
 }
-// VOICEVOX・COEIROINK・ランダム の切り替え：選んだ方の声で、いまの字幕から読み直す
+// VOICEVOX・COEIROINK・AivisSpeech・ランダム の切り替え：選んだ方の声で、いまの字幕から読み直す
 eBtns.forEach(b => b.onclick = () => {
   vset = +b.dataset.e;
-  if (vset === 2) shuffleVoices(); // ランダムを押すたびに、くじを引き直す
+  if (vset === RAND) shuffleVoices(); // ランダムを押すたびに、くじを引き直す
   try { localStorage.setItem('reisenEngine', vset); } catch (e) {}
   makeNameBtns(); pickChanged();
 });
