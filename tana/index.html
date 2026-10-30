@@ -296,7 +296,8 @@ let frameEl = document.getElementById('frame');
 function newFrame(h) {
   const f = document.createElement('iframe');
   f.id = 'frame'; f.title = '動画'; f.setAttribute('allow', 'autoplay');
-  if (h) { f.src = h; f.addEventListener('load', () => { tightTop(f); autoStart(f); }); }
+  // いつも いちばん新しい動画のページを開く（端末に残った前のページだと、続けて見るときの声の設定が効かないため）
+  if (h) { f.src = h + (h.includes('?') ? '&' : '?') + 't=' + Date.now(); f.addEventListener('load', () => { tightTop(f); autoStart(f); }); }
   frameEl.replaceWith(f); frameEl = f;
 }
 // 棚の中で見るときは、動画のページの上のすき間（画面上の切り欠きの分）をつめる。上の「もどる」の帯がすでに空けているため
@@ -393,7 +394,7 @@ setInterval(() => {
   let s = 5;
   const tick = () => {
     if (!ending) return;
-    if (s <= 0) { playApp(n); return; }
+    if (s <= 0) { keepVoice(); playApp(n); return; } // 待っている間に声を変えたときも、次の動画はその声で
     title.textContent = `次は「${n[1]}」… ${s}`; s--;
     nextTimer = setTimeout(tick, 1000);
   };
