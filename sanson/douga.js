@@ -144,6 +144,30 @@ const SPK = [
     'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
     'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...GGGGGGGG...',
     '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..'] },
+  // ここから COEIROINK の4人（つくよみちゃん・MANA・KANA・リリンちゃん）
+  { name: 'つくよみ', pal: { H: '#c8d8f0', h: '#e8f0ff', R: '#e07090', S: '#ffe2cc', E: '#4a4a6a', W: '#f8f8f8', K: '#d04050' }, map: [
+    '....HHHHHH....', '..HHhHHHHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'RHHSSHSSHSSHHR', 'RHSSSSSSSSSSHR', '.HSSSSSSSSSSH.', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.WWWKKWWW.HH',
+    'HH.WWWWWWWW.HH', '.H.WWWWWWWW.H.', '...WWWWWWWW...', '...WWWWWWWW...'] },
+  { name: 'MANA', pal: { H: '#f4a0a8', D: '#e07880', S: '#ffe2cc', E: '#d08a2a', B: '#7a4a2a', W: '#f4f0f0' }, map: [
+    'DD..HHHHHH..DD', 'DDHHHHHHHHHHDD', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', '.H.SSSSSSSS.H.', '.H..SSSSSS..H.', '...BBWWWWBB...',
+    '..BBBBWWBBBB..', '..BBBBBBBBBB..', '..BBBBBBBBBB..', '..BBBBBBBBBB..'] },
+  { name: 'KANA', pal: { H: '#8ac8f0', h: '#b0e0ff', S: '#ffe2cc', E: '#8a70c0', K: '#2a2a33', W: '#d0d0d8' }, map: [
+    '...HHHHHHH....', '..HHHHHhHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHHSSHSSHSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...KKKWWKKK...',
+    '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..'] },
+  { name: 'リリン', pal: { H: '#f0a050', P: '#a070e0', S: '#ffe2cc', E: '#9a60d0', U: '#4a2a6a' }, map: [
+    'PP..HHHHHH..PP', 'PPPHHHHHHHHPPP', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.UUUUUUUU.HH',
+    'HH.UUUUUUUU.HH', '.HHUUUUUUUUHH.', '..HUUUUUUUUH..', '...UUUUUUUU...'] },
+  // アメノちゃん（熊本弁）
+  { name: '熊本弁', pal: { H: '#ecd0b0', R: '#d02a2a', k: '#1a1a1a', S: '#ffe8d8', E: '#3a9a5a', W: '#f8f8f8', P: '#f0a0a0', J: '#2a2a2a', K: '#a08a5a', B: '#ff9ab0' }, map: [
+    '...HHHHHHH....', '..HHHHHHHHRk..', '.HHHHHHHHHRRH.', '.HHHHHHHHHHHH.', 'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH', 'HHSBSSSSSSBSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..H.', 'HJJWWPPWWJJ.H.', '.HJJWWWWWWJJ..', '..JJWWWWWWJJ..', '..JKJWWWWJKJ..', '..JKJWWWWJKJ..'] },
   // ここから AivisSpeech の3人（まお・まい・コハク）
   { name: 'まお', pal: { H: '#f2a6c0', h: '#ffd0e0', R: '#ffffff', S: '#ffe2cc', E: '#c0507a', W: '#f8f0f4', P: '#e07aa0' }, map: [
     '.HH..HHHH..HH.', '.HhHHHHHHHHhH.', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
@@ -752,16 +776,18 @@ function speakTTS(text, token) {
   } catch (e) { speaking = false; }
 }
 
-// ---------- ナレーション：VOICEVOX の4人（めたん・つむぎ・はう・小夜）と AivisSpeech の3人（まお・まい・コハク）で作った声を流す ----------
-// 「順番」のときは、字幕1つごとに グループの人を順番に読む（VOICEVOX：めたん→つむぎ→はう→小夜、AivisSpeech：まお→まい→コハク）（ランダムではない）。
+// ---------- ナレーション：VOICEVOX の4人（めたん・つむぎ・はう・小夜）、COEIROINK の5人（つくよみ・MANA・KANA・熊本弁・リリン）、AivisSpeech の3人（まお・まい・コハク）で作った声を流す ----------
+// 「順番」のときは、字幕1つごとに グループの人を順番に読む（VOICEVOX：めたん→つむぎ→はう→小夜、COEIROINK：つくよみ→MANA→KANA→熊本弁→リリン、AivisSpeech：まお→まい→コハク）（ランダムではない）。
 // iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
 // 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
 const KOE_V = 1;
 // [フォルダ, クレジットの名前, ボタンの名前, 録音の形式]。4つの動画で同じ声を使う（ファイルの番号は 字幕の番号 c.id）
 const VOICES = [['../koe', '四国めたん', 'めたん', 'wav'], ['../koe-tsumugi', '春日部つむぎ', 'つむぎ', 'wav'], ['../koe-hau', '雨晴はう', 'はう', 'wav'], ['../koe-sayo', '小夜/SAYO', '小夜', 'wav'],
+  ['../koe-tsukuyomi', 'つくよみちゃん', 'つくよみ', 'mp3'], ['../koe-mana', 'MANA', 'MANA', 'mp3'], ['../koe-kana', 'KANA', 'KANA', 'mp3'], ['../koe-lilin', 'リリンちゃん', 'リリン', 'mp3'],
+  ['../koe-ameno-kuma', 'アメノちゃん', '熊本弁', 'mp3'],
   ['../koe-mao', 'まお', 'まお', 'mp3'], ['../koe-mai', 'まい', 'まい', 'mp3'], ['../koe-kohaku', 'コハク', 'コハク', 'mp3']];
-// 「声」のグループ：VOICEVOX・AivisSpeech（ボタンで切り替える）。ランダムは全員から選ぶ
-const ENGINES = [['VOICEVOX', [0, 1, 2, 3]], ['AivisSpeech', [4, 5, 6]]]; // AivisSpeech の並び：まお→まい→コハク
+// 「声」のグループ：VOICEVOX・COEIROINK・AivisSpeech（ボタンで切り替える）。ランダムは全員から選ぶ
+const ENGINES = [['VOICEVOX', [0, 1, 2, 3]], ['COEIROINK', [4, 5, 6, 8, 7]], ['AivisSpeech', [9, 10, 11]]]; // COEIROINK：つくよみ→MANA→KANA→熊本弁→リリン、AivisSpeech：まお→まい→コハク
 const RAND = ENGINES.length; // 「ランダム」のボタンの番号
 const ALL = VOICES.map((v, i) => i);
 const MIX = -1; // 「順番」
@@ -772,8 +798,8 @@ function loadVoice(v) {
   if (ac) CAPS.forEach((c, i) => koeDecode(v, i));
 }
 let voiceNo = MIX;
-let vset = 0; // 0：VOICEVOX、1：AivisSpeech、2：ランダム（全員から字幕ごとに選ぶ）
-try { const n = parseInt(localStorage.getItem('sansonVoice5')); if (n >= MIX && n < 4) voiceNo = n; } catch (e) {}
+let vset = 0; // 0：VOICEVOX、1：COEIROINK、2：AivisSpeech、3：ランダム（全員から字幕ごとに選ぶ）
+try { const n = parseInt(localStorage.getItem('sansonVoice5')); if (n >= MIX && n < 5) voiceNo = n; } catch (e) {}
 try { const n = parseInt(localStorage.getItem('sansonEngine')); if (n >= 0 && n <= RAND) vset = n; } catch (e) {}
 // 字幕ごとの読み手
 let segVoice = [], randVoice = [];
@@ -965,6 +991,7 @@ function makeNameBtns() {
     };
     nameRow.appendChild(b);
   });
+  nameRow.classList.toggle('many', group().length > 4);
 }
 function showVoice() {
   if (vset < RAND && voiceNo >= group().length) voiceNo = MIX;
@@ -979,7 +1006,7 @@ function pickChanged() {
   showVoice(); stopSpeak(); useVoices().forEach(loadVoice);
   if (playing && !muted) { startSound(); enterSeg(seg, false); }
 }
-// VOICEVOX・AivisSpeech・ランダム の切り替え：選んだ方の声で、いまの字幕から読み直す
+// VOICEVOX・COEIROINK・AivisSpeech・ランダム の切り替え：選んだ方の声で、いまの字幕から読み直す
 eBtns.forEach(b => b.onclick = () => {
   vset = +b.dataset.e;
   if (vset === RAND) shuffleVoices(); // ランダムを押すたびに、くじを引き直す

@@ -42,10 +42,12 @@
   .voices span { flex-shrink: 0; color: #8a84a8; }
   .voices button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 5px 2px; border-color: #3a3358; color: #8a84a8; }
   .voices button.on { border-color: var(--accent); color: var(--fg); }
-  /* VOICEVOX・AivisSpeech・ランダム：文字の長さに合わせて幅を分ける（AivisSpeech がはみ出さないように） */
+  /* VOICEVOX・COEIROINK・AivisSpeech・ランダム：文字の長さに合わせて幅を分ける（AivisSpeech がはみ出さないように） */
   #engRow button { flex: 1 1 auto; font-size: clamp(10px, 3vw, 14px); padding: 5px 1px; }
   /* 順番・人の名前の段は 左はしから並べる */
   #nameRow span { display: none; }
+  /* 人数が多いとき（COEIROINK）は 2段に並べる */
+  #nameRow.many { display: grid; grid-template-columns: repeat(3, 1fr); }
   button { font-family: inherit; font-size: 15px; color: var(--fg); background: #1c1930; border: 2px solid var(--accent);
            border-radius: 6px; padding: 8px 18px; cursor: pointer; }
   button:active { transform: translateY(1px); }
@@ -71,14 +73,15 @@
   </div>
   <div class="voices" id="engRow"><span>声</span>
     <button data-e="0" class="on">VOICEVOX</button>
-    <button data-e="1">AivisSpeech</button>
-    <button data-e="2">ランダム</button>
+    <button data-e="1">COEIROINK</button>
+    <button data-e="2">AivisSpeech</button>
+    <button data-e="3">ランダム</button>
   </div>
   <div class="voices" id="nameRow"><span>　　</span></div>
 </div>
 <a class="back" href="../">◀ 三尊の弥陀 メニューへ</a>
 
-<script src="../douga.js?v=3"></script>
+<script src="../douga.js?v=4"></script>
 <!-- 更新した日時（GitHub に反映した日時が自動で出る）。画面のいちばん下（操作パネルの下）に小さく出す -->
 <script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
 var e=document.createElement('div');e.id='appVer';e.textContent='更新 '+d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
