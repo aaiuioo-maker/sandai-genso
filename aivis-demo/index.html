@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AivisSpeech の声のデモ</title>
+<link rel="icon" href="../icon-180.png?v=2">
+<meta name="theme-color" content="#05040d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { font-family: "DotGothic16", sans-serif; display: flex; flex-direction: column; align-items: center;
+         padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  h1 { font-size: 18px; font-weight: 400; margin: 0 0 4px; letter-spacing: .08em; }
+  .sub { font-size: 11px; opacity: .6; margin: 0 0 10px; text-align: center; }
+  .list { width: 100%; max-width: 480px; }
+  /* 声ひとつにつき 1つの箱 */
+  .panel { margin-top: 10px; background: #12101f; border: 2px solid #2a2540; border-radius: 6px; padding: 10px 12px; }
+  .panel h2 { font-size: 14px; font-weight: 400; margin: 0 0 6px; color: #ffcf8a; }
+  .panel.all h2 { color: #6fe0a0; }
+  audio { width: 100%; }
+  .credit { font-size: 11px; opacity: .6; margin-top: 16px; line-height: 1.7; max-width: 480px; }
+  a { color: #ffcf8a; }
+</style>
+</head>
+<body>
+<h1>AivisSpeech の声のデモ</h1>
+<p class="sub">「御任せする」の字幕から 短い文を読ませた お試し</p>
+<div class="list">
+  <div class="panel all"><h2>ぜんぶ続けて（約1分20秒）</h2><audio controls preload="none" src="demo.mp3"></audio></div>
+  <div class="panel"><h2>まい</h2><audio controls preload="none" src="01-mai.mp3"></audio></div>
+  <div class="panel"><h2>コハク（ノーマル）</h2><audio controls preload="none" src="02-kohaku.mp3"></audio></div>
+  <div class="panel"><h2>コハク（あまあま）</h2><audio controls preload="none" src="03-kohaku-amaama.mp3"></audio></div>
+  <div class="panel"><h2>まお（ノーマル）</h2><audio controls preload="none" src="04-mao.mp3"></audio></div>
+  <div class="panel"><h2>まお（おちつき）</h2><audio controls preload="none" src="05-mao-ochitsuki.mp3"></audio></div>
+  <div class="panel"><h2>まお（からかい）</h2><audio controls preload="none" src="06-mao-karakai.mp3"></audio></div>
+</div>
+<p class="credit">声：AivisSpeech: まい ／ AivisSpeech: コハク ／ AivisSpeech: まお<br>
+コハク・まお ©Oz Chat/Trippy（CV: ねゆたろ）<br>
+<a href="../">← もどる</a></p>
+</body>
+</html>
