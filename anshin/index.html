@@ -268,6 +268,27 @@ const SPK = [
     'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
     'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...WWWGGWWW...',
     '..BWWWWWWWWB..', '..BWWWWWWWWB..', '..BBWWWWWWBB..', '..BBWWWWWWBB..'] },
+  // AivisSpeech の るな・桜音・中2・花音
+  { name: 'るな', pal: { H: '#c8c0e8', h: '#ece6ff', Y: '#ffd84a', S: '#ffe2cc', E: '#6a5ab0', W: '#f4f2ff', N: '#3a3470' }, map: [
+    '....HHHHHH.YY.', '..HHHHHHHHHY..', '.HHHHhHHHHHYY.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.NNWWWWNN.HH',
+    'HH.NNNYYNNN.HH', '.H.NNNNNNNN.H.', '...NNNNNNNN...', '...NNNNNNNN...'] },
+  { name: '桜音', pal: { H: '#f6b8cc', h: '#ffe0ea', F: '#ffffff', P: '#e05a8a', S: '#ffe2cc', E: '#c0507a', W: '#fff4f8', K: '#e88aa8' }, map: [
+    '.FPF.HHHHHH...', '.PFPHHHHHHHH..', '.FPFHHhHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.WWWKKWWW.HH',
+    'HH.WWWWWWWW.HH', '.H.KKKKKKKK.H.', '...WWWWWWWW...', '...KKKKKKKK...'] },
+  { name: '中2', pal: { H: '#1e1a2a', h: '#3a3450', S: '#ffe2cc', E: '#d03030', B: '#101018', R: '#c02a3a', K: '#1a1a24' }, map: [
+    '...HHHHHHHH...', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHBBBBSSSSSSHH', 'HHBBBSSSSEESHH', 'HHSBBSSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...KKKRRKKK...',
+    '..KKKKRRKKKK..', '..KKKKKKKKKK..', '..KRKKKKKKRK..', '..KKKKKKKKKK..'] },
+  { name: '花音', pal: { H: '#f0a050', h: '#ffd090', F: '#ffffff', Y: '#ffd84a', S: '#ffe2cc', E: '#c06a30', W: '#fff8ec', G: '#7ac07a' }, map: [
+    '....HHHHHH.FYF', '..HHHHHHHHHFYF', '.HHHHhHHHHHHF.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.GWWWWWWG.HH',
+    'HH.GGWWWWGG.HH', '.H.GGGGGGGG.H.', '...GGGGGGGG...', '...GGGGGGGG...'] },
 ];
 // v：だれ（0〜3）、talk：いま声が出ている（口がパクパク・体がゆれる）
 function speakerDot(v, ox, oy, t, talk) {
@@ -882,10 +903,11 @@ const KOE_V = 2; // 声のファイルを作り直したら 1 つ増やす（端
 const VOICES = [['koe', '四国めたん', 'めたん', 'mp3'], ['koe-tsumugi', '春日部つむぎ', 'つむぎ', 'mp3'], ['koe-hau', '雨晴はう', 'はう', 'mp3'], ['koe-sayo', '小夜/SAYO', '小夜', 'mp3'],
   ['koe-tsukuyomi', 'つくよみちゃん', 'つくよみ', 'mp3'], ['koe-mana', 'MANA', 'MANA', 'mp3'], ['koe-kana', 'KANA', 'KANA', 'mp3'], ['koe-lilin', 'リリンちゃん', 'リリン', 'mp3'],
   ['koe-ameno-kuma', 'アメノちゃん', '熊本弁', 'mp3'],
-  ['koe-mao', 'まお', 'まお', 'mp3'], ['koe-mai', 'まい', 'まい', 'mp3'], ['koe-kohaku', 'コハク', 'コハク', 'mp3']];
+  ['koe-mao', 'まお', 'まお', 'mp3'], ['koe-mai', 'まい', 'まい', 'mp3'], ['koe-kohaku', 'コハク', 'コハク', 'mp3'],
+  ['koe-runa', 'るな', 'るな', 'mp3'], ['koe-sakurane', '桜音', '桜音', 'mp3'], ['koe-chuni', '中2', '中2', 'mp3'], ['koe-kanon', '花音', '花音', 'mp3']];
 // 「声」のグループ：VOICEVOX・COEIROINK・AivisSpeech（ボタンで切り替える）。ランダムは全員から選ぶ
 // COEIROINK の並び：つくよみ→MANA→KANA→熊本弁→リリン（リリンをいちばん最後に）
-const ENGINES = [['VOICEVOX', [0, 1, 2, 3]], ['COEIROINK', [4, 5, 6, 8, 7]], ['AivisSpeech', [9, 10, 11]]]; // AivisSpeech の並び：まお→まい→コハク
+const ENGINES = [['VOICEVOX', [0, 1, 2, 3]], ['COEIROINK', [4, 5, 6, 8, 7]], ['AivisSpeech', [9, 10, 11, 14, 12, 15, 13]]]; // AivisSpeech の並び：まお→まい→コハク→中2→るな→花音→桜音
 const RAND = ENGINES.length; // 「ランダム」のボタンの番号
 const ALL = VOICES.map((v, i) => i);
 const MIX = -1; // 「順番」
@@ -897,7 +919,7 @@ function loadVoice(v) {
 }
 let voiceNo = MIX;
 let vset = 0; // 0：VOICEVOX、1：COEIROINK、2：AivisSpeech、3：ランダム（全員から字幕ごとに選ぶ）
-try { const n = parseInt(localStorage.getItem('anshinVoice4')); if (n >= MIX && n < 5) voiceNo = n; } catch (e) {}
+try { const n = parseInt(localStorage.getItem('anshinVoice4')); if (n >= MIX && n < 7) voiceNo = n; } catch (e) {}
 try { const n = parseInt(localStorage.getItem('anshinEngine')); if (n >= 0 && n <= RAND) vset = n; } catch (e) {}
 // 字幕ごとの読み手（「順番」のとき）
 let segVoice = [], randVoice = [];
