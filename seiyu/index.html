@@ -28,6 +28,8 @@
   .back { display: inline-block; font-size: 13px; color: #ffcf8a; text-decoration: none; margin-bottom: 6px; }
   h2 { font-size: 15px; font-weight: 400; margin: 18px 0 8px; display: flex; align-items: baseline; gap: 8px; }
   h2 small { font-size: 11px; color: var(--sub); }
+  /* グループの色のしるし（動画の名前の下と同じ色） */
+  h2 i { display: inline-block; width: 10px; height: 10px; align-self: center; }
   .grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
   .card { background: var(--card); border: 2px solid var(--line); border-radius: 6px; padding: 8px 10px; display: flex; gap: 12px; align-items: center; min-width: 0; }
   .card.on { border-color: var(--accent); }
@@ -150,6 +152,7 @@ const SPK = [
     '...PWWWWWWP...', '..PPWWWWWWPP..', '..PPPWWWWPPP..', '..PPPWWWWPPP..'] },
 ];
 // [ドット絵の番号, 声のフォルダ, クレジットの名前, ひとこと]
+const MARK = { VOICEVOX: '#8fd4a0', COEIROINK: '#e8e0f0', AivisSpeech: '#6ab0f0' };
 const GROUPS = [
   ['VOICEVOX', 'ボイスボックス', [
     [0, 'koe-metan', 'VOICEVOX:四国めたん', 'ノーマル'], [1, 'koe-tsumugi', 'VOICEVOX:春日部つむぎ', 'ノーマル'],
@@ -169,7 +172,7 @@ const KOE_V = 2; // 動画と同じ（声のファイルの版）
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 let n = 0;
 document.getElementById('list').innerHTML = GROUPS.map(([g, yomi, ps]) =>
-  `<h2>${g}<small>${yomi}・${ps.length}人</small></h2><div class="grid">` +
+  `<h2><i style="background:${MARK[g]}"></i>${g}<small>${yomi}・${ps.length}人</small></h2><div class="grid">` +
   ps.map(([v, dir, cr, st]) => `<div class="card" data-dir="${dir}"><canvas width="14" height="16" data-v="${v}"></canvas>` +
     `<div class="who"><b><span class="no" style="display:inline;font-size:11px">${++n}</span> ${esc(SPK[v].name)}</b><span>${esc(cr)}</span><span>${esc(st)}</span></div>` +
     `<button aria-label="${esc(SPK[v].name)}の声を聞く">▶</button></div>`).join('') + '</div>').join('');
