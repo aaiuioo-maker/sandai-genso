@@ -15,6 +15,7 @@ VOICEVOX・AivisSpeech・COEIROINK のエンジンを手元で起動しておい
   COEIROINK    http://127.0.0.1:50032 （v2）
 
 音量は、ほかの動画（omakase/）の同じ人の声の平均音量にそろえる。
+環境変数 OUT にフォルダを指定すると、そこで作ってから 1人分そろうたびに naosu/ へ移す（作りかけのファイルを置かないため）。
 """
 import json, os, re, subprocess, sys, tempfile, urllib.parse, urllib.request
 
@@ -137,9 +138,12 @@ def main():
             continue
         spk, sid = hit
         target = ref_db(folder)
-        os.makedirs(os.path.join(HERE, folder), exist_ok=True)
+        work = os.path.join(os.environ.get('OUT') or HERE, folder)
+        os.makedirs(work, exist_ok=True)
         for n, text in enumerate(texts):
-            out = os.path.join(HERE, folder, f'{n:02d}.mp3')
+            out = os.path.join(work, f'{n:02d}.mp3')
+            if os.path.exists(os.path.join(HERE, folder, f'{n:02d}.mp3')) and not redo:
+                continue
             if os.path.exists(out) and not redo:
                 continue
             wav = synth_coe(URL[eng], spk, sid, text) if eng == 'COEIROINK' else synth_vv(URL[eng], sid, text)
@@ -155,6 +159,10 @@ def main():
                             '-ac', '1', '-b:a', '64k', out], check=True)
             os.unlink(tmp)
             made += 1
+        if work != os.path.join(HERE, folder):
+            os.makedirs(os.path.join(HERE, folder), exist_ok=True)
+            for f in sorted(os.listdir(work)):
+                os.replace(os.path.join(work, f), os.path.join(HERE, folder, f))
         print(f'  {folder}: できた（{name}・{style}・見本の音量 {target if target is None else round(target, 1)} dB）', flush=True)
     print(f'作ったファイル：{made}個')
 
