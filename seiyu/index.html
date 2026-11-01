@@ -46,14 +46,14 @@
 <div class="wrap">
   <a class="back" href="../tana/">◀ 動画棚へ</a>
   <h1>声の一覧</h1>
-  <p class="sub">動画を読む 16人の声<br>▶ を押すと、その人の声が聞けます</p>
+  <p class="sub">動画を読む 18人の声<br>▶ を押すと、その人の声が聞けます</p>
   <div id="list"></div>
-  <p class="note">「順番」で読むときは、グループの中で 上の一覧の順に 1人ずつ交代します。「ランダム」は16人全員から選びます。<br>
+  <p class="note">「順番」で読むときは、グループの中で 上の一覧の順に 1人ずつ交代します。「ランダム」は18人全員から選びます。<br>
   見本の声は、トップの動画「三大元素といのち」の最初の字幕です。<br>
   ドット絵は この動画のために描いたもので、本物のキャラクターとは見た目がちがうことがあります。</p>
 </div>
 <script>
-// ---------- 声の16人（動画と同じドット絵） ----------
+// ---------- 声の18人（動画と同じドット絵） ----------
 const SPK = [
   { name: 'めたん', pal: { H: '#e04b8f', D: '#c43a7a', d: '#f07ab0', S: '#ffe2cc', E: '#d9a020', K: '#2b2733', W: '#f4f0f0' }, map: [
     '....HHHHHH....', '..HHHHHHHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
@@ -136,12 +136,24 @@ const SPK = [
     'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
     'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.GWWWWWWG.HH',
     'HH.GGWWWWGG.HH', '.H.GGGGGGGG.H.', '...GGGGGGGG...', '...GGGGGGGG...'] },
+  // VOICEVOX の 冥鳴ひまり・ナースロボ＿タイプＴ
+  { name: 'ひまり', pal: { H: '#2a2234', h: '#4a3a5a', S: '#ffe2cc', E: '#b03050', W: '#f4f0f4', K: '#3a2a3a', R: '#c03a5a' }, map: [
+    '....HHHHHH....', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.KWWRRWWK.HH',
+    'HH.KKWWWWKK.HH', 'HH.KKKKKKKK.HH', 'HH.KKKKKKKK.HH', '...KKKKKKKK...'] },
+  { name: 'ナースロボ', pal: { C: '#ffffff', X: '#e04848', H: '#f0b8c8', S: '#e8e4ec', E: '#40b0c0', G: '#a0a0b0', W: '#ffffff', P: '#f0a0b8' }, map: [
+    '...CCCCCCCC...', '..CCCCXCCCCC..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HGSSSSSSSSSSGH', 'HGSEESSSSEESGH', 'HGSEESSSSEESGH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'H..PWWXXWWP..H',
+    '...PWWWWWWP...', '..PPWWWWWWPP..', '..PPPWWWWPPP..', '..PPPWWWWPPP..'] },
 ];
 // [ドット絵の番号, 声のフォルダ, クレジットの名前, ひとこと]
 const GROUPS = [
   ['VOICEVOX', 'ボイスボックス', [
     [0, 'koe-metan', 'VOICEVOX:四国めたん', 'ノーマル'], [1, 'koe-tsumugi', 'VOICEVOX:春日部つむぎ', 'ノーマル'],
-    [2, 'koe-hau', 'VOICEVOX:雨晴はう', 'ノーマル'], [3, 'koe-sayo', 'VOICEVOX:小夜/SAYO', 'ノーマル']]],
+    [2, 'koe-hau', 'VOICEVOX:雨晴はう', 'ノーマル'], [3, 'koe-sayo', 'VOICEVOX:小夜/SAYO', 'ノーマル'],
+    [16, 'koe-himari', 'VOICEVOX:冥鳴ひまり', 'ノーマル'], [17, 'koe-nurserobo', 'VOICEVOX:ナースロボ＿タイプＴ', 'ノーマル']]],
   ['COEIROINK', 'コエイロインク', [
     [4, 'koe-tsukuyomi', 'COEIROINK:つくよみちゃん', 'れいせい'], [5, 'koe-mana', 'COEIROINK:MANA', 'のーまる'],
     [6, 'koe-kana', 'COEIROINK:KANA', 'のーまる'], [8, 'koe-ameno-kuma', 'COEIROINK:アメノちゃん', '熊本弁'],
