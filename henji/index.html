@@ -37,7 +37,7 @@
   h2 { font-size: 13px; font-weight: 400; color: var(--sub); margin: 10px 0 6px; }
   button { font-family: inherit; color: var(--fg); background: #1c1930; border: 2px solid #3a3358; border-radius: 6px; cursor: pointer; }
   button:active { transform: translateY(1px); }
-  /* 声をえらぶ（16人＋ランダム） */
+  /* 声をえらぶ（18人＋ランダム） */
   .who { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
   .who button { padding: 3px 0 4px; display: flex; flex-direction: column; align-items: center; background: var(--card); border-color: var(--line); min-width: 0; }
   .who button.on { border-color: var(--accent); background: #1c1930; }
@@ -85,12 +85,12 @@
   <div class="chips" id="chips"></div>
   <p class="note" id="note">お返事は 前もって決めてある <b id="cnt"></b>種類の中から、メッセージの言葉に合うものを えらびます（AI が その場で考えるのではありません）。<br>
   返事の「📤 送る」を押すと、その返事の声を LINE などで 友だちに送れます（スマホの共有画面で LINE をえらぶ）。<br>
-  声は VOICEVOX・AivisSpeech で作りました。COEIROINK の5人（声はまだ）は 端末の声で読みます。ランダムは 声のある11人から えらびます。<br>
+  声は VOICEVOX・AivisSpeech で作りました。COEIROINK の5人（声はまだ）は 端末の声で読みます。ランダムは 声のある13人から えらびます。<br>
   ドット絵は この ページのために描いたもので、本物のキャラクターとは見た目がちがうことがあります。</p>
   <p class="note" id="credit"></p>
 </div>
 <script>
-// ---------- 声の16人（声の一覧のページと同じドット絵・同じ順番） ----------
+// ---------- 声の18人（声の一覧のページと同じドット絵・同じ順番） ----------
 const SPK = [
   { name: 'めたん', pal: { H: '#e04b8f', D: '#c43a7a', d: '#f07ab0', S: '#ffe2cc', E: '#d9a020', K: '#2b2733', W: '#f4f0f0' }, map: [
     '....HHHHHH....', '..HHHHHHHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
@@ -169,11 +169,23 @@ const SPK = [
     'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
     'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.GWWWWWWG.HH',
     'HH.GGWWWWGG.HH', '.H.GGGGGGGG.H.', '...GGGGGGGG...', '...GGGGGGGG...'] },
+  // VOICEVOX の 冥鳴ひまり・ナースロボ＿タイプＴ
+  { name: 'ひまり', pal: { H: '#2a2234', h: '#4a3a5a', S: '#ffe2cc', E: '#b03050', W: '#f4f0f4', K: '#3a2a3a', R: '#c03a5a' }, map: [
+    '....HHHHHH....', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.KWWRRWWK.HH',
+    'HH.KKWWWWKK.HH', 'HH.KKKKKKKK.HH', 'HH.KKKKKKKK.HH', '...KKKKKKKK...'] },
+  { name: 'ナースロボ', pal: { C: '#ffffff', X: '#e04848', H: '#f0b8c8', S: '#e8e4ec', E: '#40b0c0', G: '#a0a0b0', W: '#ffffff', P: '#f0a0b8' }, map: [
+    '...CCCCCCCC...', '..CCCCXCCCCC..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HGSSSSSSSSSSGH', 'HGSEESSSSEESGH', 'HGSEESSSSEESGH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'H..PWWXXWWP..H',
+    '...PWWWWWWP...', '..PPWWWWWWPP..', '..PPPWWWWPPP..', '..PPPWWWWPPP..'] },
 ];
 // 声の一覧と同じ順番：[ドット絵の番号, 声のフォルダ, クレジット, 自己紹介で言う名前]
 const VOICES = [
   [0, 'koe-metan', 'VOICEVOX:四国めたん', '四国めたん'], [1, 'koe-tsumugi', 'VOICEVOX:春日部つむぎ', '春日部つむぎ'],
   [2, 'koe-hau', 'VOICEVOX:雨晴はう', '雨晴はう'], [3, 'koe-sayo', 'VOICEVOX:小夜/SAYO', '小夜'],
+  [16, 'koe-himari', 'VOICEVOX:冥鳴ひまり', '冥鳴ひまり'], [17, 'koe-nurserobo', 'VOICEVOX:ナースロボ＿タイプＴ', 'ナースロボ タイプT'],
   [4, 'koe-tsukuyomi', 'COEIROINK:つくよみちゃん', 'つくよみちゃん'], [5, 'koe-mana', 'COEIROINK:MANA', 'MANA'],
   [6, 'koe-kana', 'COEIROINK:KANA', 'KANA'], [8, 'koe-ameno-kuma', 'COEIROINK:アメノちゃん', 'アメノちゃん'],
   [7, 'koe-lilin', 'COEIROINK:リリンちゃん', 'リリンちゃん'],
@@ -199,7 +211,7 @@ function spkCanvas(v) { const c = document.createElement('canvas'); c.width = 14
 
 // ---------- 声をえらぶ ----------
 let pick = RAND;
-try { const n = parseInt(localStorage.getItem('henjiVoice')); if (n >= RAND && n < VOICES.length) pick = n; } catch (e) {}
+try { const n = parseInt(localStorage.getItem('henjiVoice2')); if (n >= RAND && n < VOICES.length) pick = n; } catch (e) {}
 const whoEl = $('who');
 VOICES.forEach(([v], k) => {
   const b = document.createElement('button'); b.dataset.k = k; b.setAttribute('aria-label', SPK[v].name);
@@ -212,7 +224,7 @@ function showPick() { whoEl.querySelectorAll('button').forEach(b => b.classList.
 whoEl.onclick = e => {
   const b = e.target.closest('button'); if (!b) return;
   pick = +b.dataset.k; showPick();
-  try { localStorage.setItem('henjiVoice', pick); } catch (e) {}
+  try { localStorage.setItem('henjiVoice2', pick); } catch (e) {}
 };
 showPick();
 
