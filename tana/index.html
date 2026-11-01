@@ -27,6 +27,8 @@
   h1 { font-size: 18px; font-weight: 400; margin: 0 0 4px; letter-spacing: .08em; position: relative; text-align: center; }
   #ccTitle { position: absolute; left: 36px; top: 50%; transform: translateY(-58%); width: 24px; height: 26px; image-rendering: pixelated; }
   .sub { font-size: 11px; opacity: .6; margin: 0 0 14px; text-align: center; }
+  .koeRow { margin: -8px 0 14px; text-align: center; }
+  .koeLink { font-size: 13px; color: #ffcf8a; text-decoration: none; }
   h2 { font-size: 13px; font-weight: 400; color: #8a84a8; margin: 18px 0 8px; letter-spacing: .08em; }
   /* 新着：いちばん新しい動画を大きく */
   .hero { display: flex; gap: 14px; align-items: center; padding: 14px; background: linear-gradient(135deg, #2a1a30, #12101f); border: 2px solid var(--accent); border-radius: 10px; }
@@ -111,6 +113,7 @@
 <div class="wrap">
   <h1><canvas id="ccTitle" width="48" height="52" aria-hidden="true"></canvas>動画棚</h1>
   <p class="sub">ドット絵の動画を えらんで再生（声と音が出ます）</p>
+  <p class="koeRow"><a class="koeLink" href="../seiyu/">🎤 声の一覧（16人）</a></p>
 
   <div id="heroArea"><h2>新着</h2>
   <div id="hero"></div></div>
