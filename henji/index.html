@@ -85,7 +85,7 @@
   <div class="chips" id="chips"></div>
   <p class="note" id="note">お返事は 前もって決めてある <b id="cnt"></b>種類の中から、メッセージの言葉に合うものを えらびます（AI が その場で考えるのではありません）。<br>
   返事の「📤 送る」を押すと、その返事の声を LINE などで 友だちに送れます（スマホの共有画面で LINE をえらぶ）。<br>
-  声は VOICEVOX・AivisSpeech で作りました。COEIROINK の5人（声はまだ）は 端末の声で読みます。ランダムは 声のある13人から えらびます。<br>
+  声は VOICEVOX・COEIROINK・AivisSpeech で作りました。ランダムは 18人全員から えらびます。<br>
   ドット絵は この ページのために描いたもので、本物のキャラクターとは見た目がちがうことがあります。</p>
   <p class="note" id="credit"></p>
 </div>
@@ -195,8 +195,8 @@ const VOICES = [
   [13, 'koe-sakurane', 'AivisSpeech:桜音', '桜音'],
 ];
 const RAND = -1;
-// 声のファイルがまだない人（COEIROINK）。端末の声で読む。ランダムでは選ばない
-const NO_KOE = new Set(['koe-tsukuyomi', 'koe-mana', 'koe-kana', 'koe-ameno-kuma', 'koe-lilin']);
+// 声のファイルがまだない人をここに書くと、端末の声で読む（ランダムでは選ばない）
+const NO_KOE = new Set([]); // いまは全員 声がある
 const READY = VOICES.map((v, k) => k).filter(k => !NO_KOE.has(VOICES[k][1]));
 const KOE_V = 1; // お返事の声を作り直したら 1 つ増やす（端末に残った前の声を使わないように）
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
