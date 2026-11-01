@@ -64,7 +64,7 @@ def find_style(speakers, name, style, name_key, styles_key, id_key):
         return None
     for s in cands:
         for st in s[styles_key]:
-            if st['name'] == style:
+            if st.get('styleName', st.get('name')) == style:
                 return s, st[id_key]
     return cands[0], cands[0][styles_key][0][id_key]
 
