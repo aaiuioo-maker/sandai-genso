@@ -6,6 +6,16 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="お返事">
 <title>お返事</title>
+<!-- LINE などにリンクを貼ったときに出る カード（タイトル・説明・絵） -->
+<meta name="description" content="メッセージを書くと、ドット絵のキャラクターが 声で お返事します">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://aaiuioo-maker.github.io/sandai-genso/henji/">
+<meta property="og:title" content="お返事">
+<meta property="og:description" content="メッセージを書くと、ドット絵のキャラクターが 声で お返事します">
+<meta property="og:image" content="https://aaiuioo-maker.github.io/sandai-genso/henji/icon-512.png?v=1">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta name="twitter:card" content="summary">
 <link rel="apple-touch-icon" href="icon-180.png?v=1">
 <link rel="manifest" href="henji.webmanifest?v=1">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -48,6 +58,7 @@
   .ai.on .bub { border-color: var(--accent); }
   .bub small { display: block; font-size: 10px; color: var(--sub); }
   .bub button { font-size: 11px; padding: 1px 8px; margin-top: 4px; color: #ffcf8a; }
+  .bub button + button { margin-left: 6px; }
   .empty { color: var(--sub); font-size: 12px; text-align: center; margin: auto 0; line-height: 1.8; }
   /* 書くところ */
   .send { display: flex; gap: 6px; margin-top: 8px; }
@@ -73,6 +84,7 @@
   </form>
   <div class="chips" id="chips"></div>
   <p class="note" id="note">お返事は 前もって決めてある <b id="cnt"></b>種類の中から、メッセージの言葉に合うものを えらびます（AI が その場で考えるのではありません）。<br>
+  返事の「📤 送る」を押すと、その返事の声を LINE などで 友だちに送れます（スマホの共有画面で LINE をえらぶ）。<br>
   声は VOICEVOX・AivisSpeech で作りました。COEIROINK の5人（声はまだ）は 端末の声で読みます。ランダムは 声のある11人から えらびます。<br>
   ドット絵は この ページのために描いたもので、本物のキャラクターとは見た目がちがうことがあります。</p>
   <p class="note" id="credit"></p>
@@ -269,6 +281,27 @@ function addMsg(cls, html, v) {
   logEl.appendChild(row); logEl.scrollTop = logEl.scrollHeight;
   return row;
 }
+// ---------- LINE などで送る ----------
+const PAGE_URL = 'https://aaiuioo-maker.github.io/sandai-genso/henji/';
+// 声のファイルを先に読んでおく（iPhone は「送る」を押したその場で共有しないと 共有画面が開かないため）
+function loadFile(row, k, n) {
+  if (NO_KOE.has(VOICES[k][1])) return;
+  fetch(VOICES[k][1] + '/' + String(n).padStart(2, '0') + '.mp3?v=' + KOE_V).then(r => r.ok ? r.blob() : null).then(b => {
+    if (b) row._file = new File([b], 'お返事_' + SPK[VOICES[k][0]].name + '.mp3', { type: 'audio/mpeg' });
+  }).catch(() => {});
+}
+function share(row, k, text) {
+  const msg = SPK[VOICES[k][0]].name + '：「' + text + '」\n' + PAGE_URL;
+  const f = row._file;
+  // 1. 声のファイルごと送る（スマホの共有画面で LINE をえらぶ）
+  if (f && navigator.canShare && navigator.canShare({ files: [f] })) {
+    navigator.share({ files: [f], text: msg }).catch(() => {}); return;
+  }
+  // 2. 文とリンクだけ 共有画面で送る
+  if (navigator.share) { navigator.share({ text: msg }).catch(() => {}); return; }
+  // 3. 共有画面がない（パソコンなど）ときは LINE の送る画面を開く
+  window.open('https://line.me/R/share?text=' + encodeURIComponent(msg), '_blank');
+}
 function answer(msg) {
   msg = msg.trim(); if (!msg || !REPLIES.length) return;
   addMsg('me', esc(msg));
@@ -276,8 +309,11 @@ function answer(msg) {
   const k = pick === RAND ? READY[Math.floor(Math.random() * READY.length)] : pick;
   const [v, , , myName] = VOICES[k];
   const text = REPLIES[n].text.replace('{name}', myName);
-  const row = addMsg('ai', `<small>${esc(SPK[v].name)}</small>${esc(text)}<br><button aria-label="もう一度聞く">▶ もう一度</button>`, v);
-  row.querySelector('button').onclick = () => say(row, k, n, text);
+  const row = addMsg('ai', `<small>${esc(SPK[v].name)}</small>${esc(text)}<br><button aria-label="もう一度聞く">▶ もう一度</button><button aria-label="LINE などで送る">📤 送る</button>`, v);
+  const [again, send] = row.querySelectorAll('button');
+  again.onclick = () => say(row, k, n, text);
+  send.onclick = () => share(row, k, text);
+  loadFile(row, k, n);
   say(row, k, n, text); // 押したその場で流す（iPhone は 押した瞬間でないと 音が出ないことがある）
 }
 $('form').onsubmit = e => { e.preventDefault(); const t = $('text'); answer(t.value); t.value = ''; };
