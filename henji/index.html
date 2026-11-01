@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="お返事">
+<title>お返事</title>
+<link rel="apple-touch-icon" href="icon-180.png?v=1">
+<link rel="manifest" href="henji.webmanifest?v=1">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05040d">
+<link rel="icon" href="icon-180.png?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; --card:#12101f; --line:#2a2540; --sub:#8a84a8; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { font-family: "DotGothic16", sans-serif; display: flex; flex-direction: column; align-items: center;
+         padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  .wrap { width: 100%; max-width: 480px; }
+  h1 { font-size: 20px; font-weight: 400; margin: 4px 0 4px; letter-spacing: .08em; text-align: center; }
+  .sub { font-size: 12px; color: var(--sub); margin: 0 0 10px; text-align: center; line-height: 1.6; }
+  h2 { font-size: 13px; font-weight: 400; color: var(--sub); margin: 10px 0 6px; }
+  button { font-family: inherit; color: var(--fg); background: #1c1930; border: 2px solid #3a3358; border-radius: 6px; cursor: pointer; }
+  button:active { transform: translateY(1px); }
+  /* 声をえらぶ（16人＋ランダム） */
+  .who { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+  .who button { padding: 3px 0 4px; display: flex; flex-direction: column; align-items: center; background: var(--card); border-color: var(--line); min-width: 0; }
+  .who button.on { border-color: var(--accent); background: #1c1930; }
+  .who canvas { width: 28px; height: 32px; image-rendering: pixelated; }
+  .who span { font-size: 10px; line-height: 1.2; color: #cfc6e8; white-space: nowrap; overflow: hidden; max-width: 100%; }
+  .who button.nokoe canvas { opacity: .55; }
+  .who i { font-style: normal; font-size: 8px; color: var(--sub); line-height: 1.1; }
+  .who .rnd { font-size: 20px; height: 32px; line-height: 32px; }
+  /* やりとり */
+  .log { margin-top: 12px; background: #0b0a18; border: 2px solid var(--line); border-radius: 6px; padding: 10px; min-height: 200px;
+         max-height: 46vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .msg { display: flex; gap: 8px; align-items: flex-end; }
+  .msg.me { justify-content: flex-end; }
+  .msg canvas { width: 35px; height: 40px; image-rendering: pixelated; flex-shrink: 0; }
+  .bub { max-width: 78%; padding: 7px 10px; border-radius: 10px; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+  .me .bub { background: #2a2050; border: 2px solid #4a3a80; border-bottom-right-radius: 2px; }
+  .ai .bub { background: var(--card); border: 2px solid var(--line); border-bottom-left-radius: 2px; }
+  .ai.on .bub { border-color: var(--accent); }
+  .bub small { display: block; font-size: 10px; color: var(--sub); }
+  .bub button { font-size: 11px; padding: 1px 8px; margin-top: 4px; color: #ffcf8a; }
+  .empty { color: var(--sub); font-size: 12px; text-align: center; margin: auto 0; line-height: 1.8; }
+  /* 書くところ */
+  .send { display: flex; gap: 6px; margin-top: 8px; }
+  .send input { flex: 1; min-width: 0; font-family: inherit; font-size: 16px; color: var(--fg); background: var(--card);
+                border: 2px solid #3a3358; border-radius: 6px; padding: 8px; }
+  .send input:focus { outline: none; border-color: var(--accent); }
+  .send button { font-size: 15px; padding: 0 14px; border-color: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .chips button { font-size: 12px; padding: 5px 9px; color: #cfc6e8; }
+  .note { font-size: 11px; color: var(--sub); line-height: 1.7; margin: 14px 0 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>お返事</h1>
+  <p class="sub">メッセージを書いて「送る」を押すと<br>えらんだキャラクターが 声で お返事します</p>
+  <h2>だれに 返事してもらう？</h2>
+  <div class="who" id="who"></div>
+  <div class="log" id="log"><p class="empty" id="empty">下に メッセージを書くか、<br>ボタンを 押してみてね</p></div>
+  <form class="send" id="form" autocomplete="off">
+    <input id="text" type="text" placeholder="メッセージを書く" enterkeyhint="send" maxlength="200">
+    <button type="submit">送る</button>
+  </form>
+  <div class="chips" id="chips"></div>
+  <p class="note" id="note">お返事は 前もって決めてある <b id="cnt"></b>種類の中から、メッセージの言葉に合うものを えらびます（AI が その場で考えるのではありません）。<br>
+  声は VOICEVOX・AivisSpeech で作りました。COEIROINK の5人（声はまだ）は 端末の声で読みます。ランダムは 声のある11人から えらびます。<br>
+  ドット絵は この ページのために描いたもので、本物のキャラクターとは見た目がちがうことがあります。</p>
+  <p class="note" id="credit"></p>
+</div>
+<script>
+// ---------- 声の16人（声の一覧のページと同じドット絵・同じ順番） ----------
+const SPK = [
+  { name: 'めたん', pal: { H: '#e04b8f', D: '#c43a7a', d: '#f07ab0', S: '#ffe2cc', E: '#d9a020', K: '#2b2733', W: '#f4f0f0' }, map: [
+    '....HHHHHH....', '..HHHHHHHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'DHHSSHSSHSSHHD', 'dHSSSSSSSSSSHd', 'DHSEESSSSEESHD', 'dHSEESSSSEESHd',
+    'DDSSSSSSSSSSDD', 'dd.SSSSSSSS.dd', 'DD..SSSSSS..DD', '.dd.KWWWWK.dd.',
+    '.DD.KKWWKK.DD.', '..d.KKKKKK.d..', '...KKKKKKKK...', '...KKKKKKKK...'] },
+  { name: 'つむぎ', pal: { H: '#f2c740', h: '#ffe08a', S: '#ffe2cc', E: '#7a4a2a', W: '#f4f4f4', R: '#e04848' }, map: [
+    '.....HHHH.....', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHHSSHSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HHH.WWRRWW.HHH',
+    'HHH.WWRRWW.HHH', '.HH.WWWWWW.HH.', '...WWWWWWWW...', '...WWWWWWWW...'] },
+  { name: 'はう', pal: { H: '#9ccbe8', C: '#ffffff', X: '#e04848', S: '#ffe2cc', E: '#4a7ab0', W: '#ffffff', P: '#f6b8c8' }, map: [
+    '...CCCCCCCC...', '..CCCCXCCCCC..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    '.HSSSSSSSSSSH.', '.H.SSSSSSSS.H.', '....SSSSSS....', '...PWWWWWWP...',
+    '..PPWWWWWWPP..', '..PPWWWWWWPP..', '..PPPWWWWPPP..', '..PPPWWWWPPP..'] },
+  { name: '小夜', pal: { H: '#8a5a3a', I: '#f2a0b0', S: '#ffe2cc', E: '#3a8a5a', G: '#e8d070', K: '#b04040' }, map: [
+    '.HH........HH.', '.HIH......HIH.', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...GGGGGGGG...',
+    '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..'] },
+  { name: 'つくよみ', pal: { H: '#c8d8f0', h: '#e8f0ff', R: '#e07090', S: '#ffe2cc', E: '#4a4a6a', W: '#f8f8f8', K: '#d04050' }, map: [
+    '....HHHHHH....', '..HHhHHHHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'RHHSSHSSHSSHHR', 'RHSSSSSSSSSSHR', '.HSSSSSSSSSSH.', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.WWWKKWWW.HH',
+    'HH.WWWWWWWW.HH', '.H.WWWWWWWW.H.', '...WWWWWWWW...', '...WWWWWWWW...'] },
+  { name: 'MANA', pal: { H: '#f4a0a8', D: '#e07880', S: '#ffe2cc', E: '#d08a2a', B: '#7a4a2a', W: '#f4f0f0' }, map: [
+    'DD..HHHHHH..DD', 'DDHHHHHHHHHHDD', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', '.H.SSSSSSSS.H.', '.H..SSSSSS..H.', '...BBWWWWBB...',
+    '..BBBBWWBBBB..', '..BBBBBBBBBB..', '..BBBBBBBBBB..', '..BBBBBBBBBB..'] },
+  { name: 'KANA', pal: { H: '#8ac8f0', h: '#b0e0ff', S: '#ffe2cc', E: '#8a70c0', K: '#2a2a33', W: '#d0d0d8' }, map: [
+    '...HHHHHHH....', '..HHHHHhHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHHSSHSSHSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...KKKWWKKK...',
+    '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..'] },
+  { name: 'リリン', pal: { H: '#f0a050', P: '#a070e0', S: '#ffe2cc', E: '#9a60d0', U: '#4a2a6a' }, map: [
+    'PP..HHHHHH..PP', 'PPPHHHHHHHHPPP', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.UUUUUUUU.HH',
+    'HH.UUUUUUUU.HH', '.HHUUUUUUUUHH.', '..HUUUUUUUUH..', '...UUUUUUUU...'] },
+  { name: '熊本弁', pal: { H: '#ecd0b0', R: '#d02a2a', k: '#1a1a1a', S: '#ffe8d8', E: '#3a9a5a', W: '#f8f8f8', P: '#f0a0a0', J: '#2a2a2a', K: '#a08a5a', B: '#ff9ab0' }, map: [
+    '...HHHHHHH....', '..HHHHHHHHRk..', '.HHHHHHHHHRRH.', '.HHHHHHHHHHHH.', 'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH', 'HHSBSSSSSSBSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..H.', 'HJJWWPPWWJJ.H.', '.HJJWWWWWWJJ..', '..JJWWWWWWJJ..', '..JKJWWWWJKJ..', '..JKJWWWWJKJ..'] },
+  { name: 'まお', pal: { H: '#f2a6c0', h: '#ffd0e0', R: '#ffffff', S: '#ffe2cc', E: '#c0507a', W: '#f8f0f4', P: '#e07aa0' }, map: [
+    '.HH..HHHH..HH.', '.HhHHHHHHHHhH.', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.WWWPPWWW.HH',
+    '.H.WWWWWWWW.H.', '...WWWWWWWW...', '...PPPPPPPP...', '...WWWWWWWW...'] },
+  { name: 'まい', pal: { H: '#2a2438', h: '#4a4260', R: '#e04848', S: '#ffe2cc', E: '#6a4a8a', W: '#f4f4f4', N: '#2a3a6a' }, map: [
+    '....HHHHHH.RR.', '..HHHHHHHHHRR.', '.HHHHHhHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.NWWRRWWN.HH',
+    'HH.NNWWWWNN.HH', 'HH.NNNNNNNN.HH', '...NNNNNNNN...', '...NNNNNNNN...'] },
+  { name: 'コハク', pal: { H: '#e8a840', h: '#ffd070', S: '#ffe2cc', E: '#c07a20', W: '#f8f4ec', G: '#d08a30', B: '#7a5a3a' }, map: [
+    '....HHHHHH....', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...WWWGGWWW...',
+    '..BWWWWWWWWB..', '..BWWWWWWWWB..', '..BBWWWWWWBB..', '..BBWWWWWWBB..'] },
+  { name: 'るな', pal: { H: '#c8c0e8', h: '#ece6ff', Y: '#ffd84a', S: '#ffe2cc', E: '#6a5ab0', W: '#f4f2ff', N: '#3a3470' }, map: [
+    '....HHHHHH.YY.', '..HHHHHHHHHY..', '.HHHHhHHHHHYY.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.NNWWWWNN.HH',
+    'HH.NNNYYNNN.HH', '.H.NNNNNNNN.H.', '...NNNNNNNN...', '...NNNNNNNN...'] },
+  { name: '桜音', pal: { H: '#f6b8cc', h: '#ffe0ea', F: '#ffffff', P: '#e05a8a', S: '#ffe2cc', E: '#c0507a', W: '#fff4f8', K: '#e88aa8' }, map: [
+    '.FPF.HHHHHH...', '.PFPHHHHHHHH..', '.FPFHHhHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.WWWKKWWW.HH',
+    'HH.WWWWWWWW.HH', '.H.KKKKKKKK.H.', '...WWWWWWWW...', '...KKKKKKKK...'] },
+  { name: '中2', pal: { H: '#1e1a2a', h: '#3a3450', S: '#ffe2cc', E: '#d03030', B: '#101018', R: '#c02a3a', K: '#1a1a24' }, map: [
+    '...HHHHHHHH...', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHBBBBSSSSSSHH', 'HHBBBSSSSEESHH', 'HHSBBSSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...KKKRRKKK...',
+    '..KKKKRRKKKK..', '..KKKKKKKKKK..', '..KRKKKKKKRK..', '..KKKKKKKKKK..'] },
+  { name: '花音', pal: { H: '#f0a050', h: '#ffd090', F: '#ffffff', Y: '#ffd84a', S: '#ffe2cc', E: '#c06a30', W: '#fff8ec', G: '#7ac07a' }, map: [
+    '....HHHHHH.FYF', '..HHHHHHHHHFYF', '.HHHHhHHHHHHF.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.GWWWWWWG.HH',
+    'HH.GGWWWWGG.HH', '.H.GGGGGGGG.H.', '...GGGGGGGG...', '...GGGGGGGG...'] },
+];
+// 声の一覧と同じ順番：[ドット絵の番号, 声のフォルダ, クレジット, 自己紹介で言う名前]
+const VOICES = [
+  [0, 'koe-metan', 'VOICEVOX:四国めたん', '四国めたん'], [1, 'koe-tsumugi', 'VOICEVOX:春日部つむぎ', '春日部つむぎ'],
+  [2, 'koe-hau', 'VOICEVOX:雨晴はう', '雨晴はう'], [3, 'koe-sayo', 'VOICEVOX:小夜/SAYO', '小夜'],
+  [4, 'koe-tsukuyomi', 'COEIROINK:つくよみちゃん', 'つくよみちゃん'], [5, 'koe-mana', 'COEIROINK:MANA', 'MANA'],
+  [6, 'koe-kana', 'COEIROINK:KANA', 'KANA'], [8, 'koe-ameno-kuma', 'COEIROINK:アメノちゃん', 'アメノちゃん'],
+  [7, 'koe-lilin', 'COEIROINK:リリンちゃん', 'リリンちゃん'],
+  [9, 'koe-mao', 'AivisSpeech:まお', 'まお'], [10, 'koe-mai', 'AivisSpeech:まい', 'まい'],
+  [11, 'koe-kohaku', 'AivisSpeech:コハク', 'コハク'], [14, 'koe-chuni', 'AivisSpeech:中2', '中2'],
+  [12, 'koe-runa', 'AivisSpeech:るな', 'るな'], [15, 'koe-kanon', 'AivisSpeech:花音', '花音'],
+  [13, 'koe-sakurane', 'AivisSpeech:桜音', '桜音'],
+];
+const RAND = -1;
+// 声のファイルがまだない人（COEIROINK）。端末の声で読む。ランダムでは選ばない
+const NO_KOE = new Set(['koe-tsukuyomi', 'koe-mana', 'koe-kana', 'koe-ameno-kuma', 'koe-lilin']);
+const READY = VOICES.map((v, k) => k).filter(k => !NO_KOE.has(VOICES[k][1]));
+const KOE_V = 1; // お返事の声を作り直したら 1 つ増やす（端末に残った前の声を使わないように）
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const $ = id => document.getElementById(id);
+
+function drawSpk(c, v) {
+  const sp = SPK[v], g = c.getContext('2d');
+  sp.map.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === '.') return; g.fillStyle = sp.pal[ch]; g.fillRect(x, y, 1, 1); }));
+  g.fillStyle = '#c0505a'; g.fillRect(6, 9, 2, 1); // 口
+}
+function spkCanvas(v) { const c = document.createElement('canvas'); c.width = 14; c.height = 16; drawSpk(c, v); return c; }
+
+// ---------- 声をえらぶ ----------
+let pick = RAND;
+try { const n = parseInt(localStorage.getItem('henjiVoice')); if (n >= RAND && n < VOICES.length) pick = n; } catch (e) {}
+const whoEl = $('who');
+VOICES.forEach(([v], k) => {
+  const b = document.createElement('button'); b.dataset.k = k; b.setAttribute('aria-label', SPK[v].name);
+  b.appendChild(spkCanvas(v)); const s = document.createElement('span'); s.textContent = SPK[v].name; b.appendChild(s);
+  if (NO_KOE.has(VOICES[k][1])) { b.classList.add('nokoe'); const m = document.createElement('i'); m.textContent = '声はまだ'; b.appendChild(m); }
+  whoEl.appendChild(b);
+});
+{ const b = document.createElement('button'); b.dataset.k = RAND; b.innerHTML = '<div class="rnd">🔀</div><span>ランダム</span>'; whoEl.appendChild(b); }
+function showPick() { whoEl.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.k === pick)); }
+whoEl.onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  pick = +b.dataset.k; showPick();
+  try { localStorage.setItem('henjiVoice', pick); } catch (e) {}
+};
+showPick();
+
+// ---------- 端末の声（録音がないときの代わり） ----------
+const ttsOK = 'speechSynthesis' in window;
+const MALE = ['otoya', 'ichiro', 'keita', 'hattori', 'daichi', 'naoki', 'male'];
+const FEMALE = ['kyoko', 'o-ren', 'oren', 'nanami', 'haruka', 'ayumi', 'sayaka', 'mizuki', 'female', 'google'];
+function voiceQuality(v) {
+  const s = ((v.voiceURI || '') + ' ' + (v.name || '')).toLowerCase();
+  if (s.includes('eloquence')) return -1;
+  if (s.includes('premium')) return 3;
+  if (s.includes('enhanced') || s.includes('natural') || s.includes('neural')) return 2;
+  if (s.includes('compact')) return 0;
+  return 1;
+}
+function pickTTS() {
+  let vs = []; try { vs = speechSynthesis.getVoices() || []; } catch (e) {}
+  const name = v => ((v.voiceURI || '') + ' ' + (v.name || '')).toLowerCase();
+  const ja = vs.filter(v => v.lang && v.lang.toLowerCase().replace('_', '-').startsWith('ja') && !MALE.some(m => name(v).includes(m)));
+  const rank = v => { const i = FEMALE.findIndex(f => name(v).includes(f)); return i < 0 ? FEMALE.length : i; };
+  ja.sort((a, b) => (voiceQuality(b) - voiceQuality(a)) || (rank(a) - rank(b)));
+  return ja[0] || null;
+}
+let ttsVoice = null;
+if (ttsOK) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => { ttsVoice = pickTTS(); }; } catch (e) {} }
+
+// ---------- 声を流す ----------
+const audio = new Audio();
+let curBub = null;
+function stop() {
+  audio.pause(); try { if (ttsOK) speechSynthesis.cancel(); } catch (e) {}
+  if (curBub) curBub.classList.remove('on'); curBub = null;
+}
+audio.onended = () => { if (curBub) curBub.classList.remove('on'); curBub = null; };
+function say(row, k, n, text) {
+  stop(); curBub = row; row.classList.add('on');
+  const tts = () => { // 録音がない・流せないときは端末の声で読む
+    if (curBub !== row) return;
+    if (!ttsOK) { row.classList.remove('on'); curBub = null; return; }
+    const u = new SpeechSynthesisUtterance(text); u.lang = 'ja-JP';
+    ttsVoice = ttsVoice || pickTTS(); if (ttsVoice) u.voice = ttsVoice;
+    u.onend = u.onerror = () => { if (curBub === row) { row.classList.remove('on'); curBub = null; } };
+    speechSynthesis.speak(u);
+  };
+  if (NO_KOE.has(VOICES[k][1])) { tts(); return; }
+  audio.src = VOICES[k][1] + '/' + String(n).padStart(2, '0') + '.mp3?v=' + KOE_V;
+  audio.play().catch(tts);
+}
+
+// ---------- 返事をえらぶ ----------
+let REPLIES = [];
+// カタカナ→ひらがな・英字は小文字・空白や記号はとる（「オハヨウ！」も「おはよう」に合うように）
+const norm = s => String(s).normalize('NFKC').toLowerCase().replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60)).replace(/[\s、。！？!?.,…ー〜~「」]/g, '');
+function findReply(msg) {
+  const m = norm(msg); let best = REPLIES.length - 1, len = 0;
+  REPLIES.forEach((r, i) => r.keys.forEach(k => { const kk = norm(k); if (kk && kk.length > len && m.includes(kk)) { best = i; len = kk.length; } }));
+  return best;
+}
+
+const logEl = $('log');
+function addMsg(cls, html, v) {
+  const e = $('empty'); if (e) e.remove();
+  const row = document.createElement('div'); row.className = 'msg ' + cls;
+  if (v !== undefined) row.appendChild(spkCanvas(v));
+  const b = document.createElement('div'); b.className = 'bub'; b.innerHTML = html; row.appendChild(b);
+  logEl.appendChild(row); logEl.scrollTop = logEl.scrollHeight;
+  return row;
+}
+function answer(msg) {
+  msg = msg.trim(); if (!msg || !REPLIES.length) return;
+  addMsg('me', esc(msg));
+  const n = findReply(msg);
+  const k = pick === RAND ? READY[Math.floor(Math.random() * READY.length)] : pick;
+  const [v, , , myName] = VOICES[k];
+  const text = REPLIES[n].text.replace('{name}', myName);
+  const row = addMsg('ai', `<small>${esc(SPK[v].name)}</small>${esc(text)}<br><button aria-label="もう一度聞く">▶ もう一度</button>`, v);
+  row.querySelector('button').onclick = () => say(row, k, n, text);
+  say(row, k, n, text); // 押したその場で流す（iPhone は 押した瞬間でないと 音が出ないことがある）
+}
+$('form').onsubmit = e => { e.preventDefault(); const t = $('text'); answer(t.value); t.value = ''; };
+
+fetch('henji.json?v=' + KOE_V).then(r => r.json()).then(d => {
+  REPLIES = d.replies;
+  $('cnt').textContent = REPLIES.filter(r => r.label).length;
+  $('chips').innerHTML = REPLIES.map((r, i) => r.label ? `<button data-i="${i}">${esc(r.label)}</button>` : '').join('');
+  $('chips').onclick = e => { const b = e.target.closest('button'); if (b) answer(REPLIES[b.dataset.i].label); };
+}).catch(() => { $('note').textContent = '返事の一覧が 読みこめませんでした。ページを 開きなおしてください。'; });
+
+$('credit').textContent = '声：' + READY.map(k => VOICES[k][2]).join('、');
+</script>
+<!-- 更新した日時（GitHub に反映した日時が自動で出る）。画面のいちばん下に小さく出す -->
+<script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
+var e=document.createElement('div');e.id='appVer';e.textContent='更新 '+d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+e.style.cssText='display:block;width:100%;text-align:center;font:11px/1.4 sans-serif;color:inherit;opacity:.6;margin-top:10px;pointer-events:none;';
+document.body.appendChild(e);})();</script>
+</body>
+</html>
