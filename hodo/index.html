@@ -620,11 +620,22 @@ const ENGINES = [['VOICEVOX', [0, 1, 2, 3, 16, 17]], ['COEIROINK', [4, 5, 6, 8, 
 const RAND = ENGINES.length; // 「ランダム」のボタンの番号
 const ALL = VOICES.map((v, i) => i);
 const MIX = -1; // 「順番」
-const koeOK = VOICES.map(() => []), koeRaw = [], koeBuf = VOICES.map(() => []); // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
-function loadVoice(v) {
-  if (koeRaw[v]) return;
-  koeRaw[v] = CAPS.map((c, i) => fetch(VOICES[v][0] + '/' + String(i).padStart(2, '0') + '.' + (VOICES[v][3] || 'wav') + '?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[v][i] = !!ab; return ab; }));
-  if (ac) CAPS.forEach((c, i) => koeDecode(v, i));
+const koeOK = VOICES.map(() => []), koeRaw = VOICES.map(() => []), koeBuf = VOICES.map(() => []); // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
+// 声の録音は、いま読む字幕とその少し先の分だけ読みこむ（全部の声を一度に用意すると、iPhone などでメモリが足りなくなってページが落ちるため）
+function koeFetch(v, i) {
+  if (!koeRaw[v][i]) koeRaw[v][i] = fetch(VOICES[v][0] + '/' + String(i).padStart(2, '0') + '.' + (VOICES[v][3] || 'wav') + '?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[v][i] = !!ab; return ab; });
+  return koeRaw[v][i];
+}
+// 字幕 i の前1つ〜先3つの読み手の声だけを用意して、それ以外は捨てる（捨てた分は、また要るときに読み直す）
+const KOE_BACK = 1, KOE_AHEAD = 3;
+function koePrepare(i) {
+  const keep = VOICES.map(() => []);
+  for (let k = Math.max(0, i - KOE_BACK); k <= Math.min(CAPS.length - 1, i + KOE_AHEAD); k++) {
+    const v = voiceOf(k); keep[v][k] = true;
+    koeFetch(v, k);
+    if (ac && k >= i) koeDecode(v, k);
+  }
+  VOICES.forEach((x, v) => CAPS.forEach((c, k) => { if (!keep[v][k]) { koeRaw[v][k] = null; koeBuf[v][k] = null; } }));
 }
 let voiceNo = MIX;
 let vset = 0; // 0：VOICEVOX、1：COEIROINK、2：AivisSpeech、3：ランダム（全員から字幕ごとに選ぶ）
@@ -649,7 +660,7 @@ shuffleVoices();
 const group = () => ENGINES[vset][1];
 const voiceOf = i => vset === RAND ? randVoice[i] : voiceNo === MIX ? group()[segVoice[i] % group().length] : group()[voiceNo];
 function koeDecode(v, i) {
-  if (!koeBuf[v][i]) koeBuf[v][i] = koeRaw[v][i].then(ab => ab && new Promise(res => {
+  if (!koeBuf[v][i]) koeBuf[v][i] = koeFetch(v, i).then(ab => ab && new Promise(res => {
     try { ac.decodeAudioData(ab.slice(0), b => res(b), () => res(null)); } catch (e) { res(null); }
   }));
   return koeBuf[v][i];
@@ -660,6 +671,7 @@ function speak(i) {
   speaking = true;
   const token = {}; cur = token;
   const v = voiceOf(i);
+  koePrepare(i);
   if (!ac || koeOK[v][i] === false) { speakTTS(CAPS[i][4], token); return; }
   koeDecode(v, i).then(b => {
     if (cur !== token) return; // もう別の字幕に進んだ・止めた
@@ -743,7 +755,7 @@ function startSound() {
       ac.onstatechange = () => { if (playing && !muted) wakeAudio(); };
       bgm = ac.createGain(); bgm.gain.value = 0; bgm.connect(ac.destination);
       nextBeat = ac.currentTime + .1; bgmTick();
-      koeRaw.forEach((r, v) => r && CAPS.forEach((c, i) => koeDecode(v, i))); // 録音の声を先に準備しておく
+      koePrepare(seg); // いまの字幕の少し先までの声を先に準備しておく
     }
     ac.resume();
   } catch (e) {}
@@ -825,7 +837,7 @@ function showVoice() {
   document.getElementById('credit').textContent = '声：' + (vset === RAND ? ENGINES.map((e, k) => cr(k)).join('／') : cr(vset));
 }
 function pickChanged() {
-  showVoice(); stopSpeak(); useVoices().forEach(loadVoice);
+  showVoice(); stopSpeak(); koePrepare(seg);
   if (playing && !muted) { startSound(); enterSeg(seg, false); }
 }
 // VOICEVOX・COEIROINK・AivisSpeech・ランダム の切り替え：選んだ方の声で、いまの字幕から読み直す
@@ -835,7 +847,7 @@ eBtns.forEach(b => b.onclick = () => {
   try { localStorage.setItem('hodoEngine', vset); } catch (e) {}
   makeNameBtns(); pickChanged();
 });
-makeNameBtns(); showVoice(); useVoices().forEach(loadVoice);
+makeNameBtns(); showVoice(); koePrepare(0);
 
 // ---------- タイトルの左のオレンジのキャラクター（前に字幕の左にいたときと同じ動き） ----------
 // 再生中：しゃべる（手をふる）→ 最後の場面でジャンプ → 終わったら歩く。止まっているときは歩く
