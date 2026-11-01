@@ -316,6 +316,13 @@ function speakerDot(v, ox, oy, t, talk) {
   if (open) { R(ox + 6, y0 + 9, 2, 2, '#8a2a3a'); P(ox + 6, y0 + 10, '#e07080'); }
   else R(ox + 6, y0 + 9, 2, 1, '#c0505a');
   T(sp.name, ox + 7, oy + 20.5, 6, talk ? '#ffe8b0' : '#b0a8c8', 'center');
+  // 名前の下に、どのグループの声か（VOICEVOX・COEIROINK・AivisSpeech）を小さく。左に グループの色のしるし
+  const gi = typeof ENGINES === 'undefined' ? -1 : ENGINES.findIndex(e => e[1].includes(v));
+  if (gi >= 0) {
+    const gc = ['#8fd4a0', '#e8e0f0', '#6ab0f0'][gi] || '#b0a8c8', gn = ENGINES[gi][0], gw = gn.length * 1.95;
+    R(ox + 7 - gw / 2 - 3.5, oy + 25.5, 2, 2, gc);
+    T(gn, ox + 7 + 1, oy + 26.6, 4, gc, 'center', talk ? 1 : .75);
+  }
 }
 
 
