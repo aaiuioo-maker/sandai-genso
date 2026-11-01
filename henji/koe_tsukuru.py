@@ -27,6 +27,8 @@ VOICES = [
     ['koe-tsumugi', 'VOICEVOX', '春日部つむぎ', 'ノーマル', 'かすかべつむぎ'],
     ['koe-hau', 'VOICEVOX', '雨晴はう', 'ノーマル', 'あめはれはう'],
     ['koe-sayo', 'VOICEVOX', '小夜/SAYO', 'ノーマル', 'さよ'],
+    ['koe-himari', 'VOICEVOX', '冥鳴ひまり', 'ノーマル', 'めいめいひまり'],
+    ['koe-nurserobo', 'VOICEVOX', 'ナースロボ＿タイプＴ', 'ノーマル', 'なーすろぼ たいぷてぃー'],
     ['koe-tsukuyomi', 'COEIROINK', 'つくよみちゃん', 'れいせい', 'つくよみちゃん'],
     ['koe-mana', 'COEIROINK', 'MANA', 'のーまる', 'まな'],
     ['koe-kana', 'COEIROINK', 'KANA', 'のーまる', 'かな'],
