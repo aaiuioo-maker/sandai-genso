@@ -33,6 +33,8 @@
   .who button.on { border-color: var(--accent); background: #1c1930; }
   .who canvas { width: 28px; height: 32px; image-rendering: pixelated; }
   .who span { font-size: 10px; line-height: 1.2; color: #cfc6e8; white-space: nowrap; overflow: hidden; max-width: 100%; }
+  .who button.nokoe canvas { opacity: .55; }
+  .who i { font-style: normal; font-size: 8px; color: var(--sub); line-height: 1.1; }
   .who .rnd { font-size: 20px; height: 32px; line-height: 32px; }
   /* やりとり */
   .log { margin-top: 12px; background: #0b0a18; border: 2px solid var(--line); border-radius: 6px; padding: 10px; min-height: 200px;
@@ -71,7 +73,7 @@
   </form>
   <div class="chips" id="chips"></div>
   <p class="note" id="note">お返事は 前もって決めてある <b id="cnt"></b>種類の中から、メッセージの言葉に合うものを えらびます（AI が その場で考えるのではありません）。<br>
-  声は VOICEVOX・COEIROINK・AivisSpeech で作りました。<br>
+  声は VOICEVOX・AivisSpeech で作りました。COEIROINK の5人（声はまだ）は 端末の声で読みます。ランダムは 声のある11人から えらびます。<br>
   ドット絵は この ページのために描いたもので、本物のキャラクターとは見た目がちがうことがあります。</p>
   <p class="note" id="credit"></p>
 </div>
@@ -169,6 +171,9 @@ const VOICES = [
   [13, 'koe-sakurane', 'AivisSpeech:桜音', '桜音'],
 ];
 const RAND = -1;
+// 声のファイルがまだない人（COEIROINK）。端末の声で読む。ランダムでは選ばない
+const NO_KOE = new Set(['koe-tsukuyomi', 'koe-mana', 'koe-kana', 'koe-ameno-kuma', 'koe-lilin']);
+const READY = VOICES.map((v, k) => k).filter(k => !NO_KOE.has(VOICES[k][1]));
 const KOE_V = 1; // お返事の声を作り直したら 1 つ増やす（端末に残った前の声を使わないように）
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const $ = id => document.getElementById(id);
@@ -187,6 +192,7 @@ const whoEl = $('who');
 VOICES.forEach(([v], k) => {
   const b = document.createElement('button'); b.dataset.k = k; b.setAttribute('aria-label', SPK[v].name);
   b.appendChild(spkCanvas(v)); const s = document.createElement('span'); s.textContent = SPK[v].name; b.appendChild(s);
+  if (NO_KOE.has(VOICES[k][1])) { b.classList.add('nokoe'); const m = document.createElement('i'); m.textContent = '声はまだ'; b.appendChild(m); }
   whoEl.appendChild(b);
 });
 { const b = document.createElement('button'); b.dataset.k = RAND; b.innerHTML = '<div class="rnd">🔀</div><span>ランダム</span>'; whoEl.appendChild(b); }
@@ -231,15 +237,17 @@ function stop() {
 audio.onended = () => { if (curBub) curBub.classList.remove('on'); curBub = null; };
 function say(row, k, n, text) {
   stop(); curBub = row; row.classList.add('on');
-  audio.src = VOICES[k][1] + '/' + String(n).padStart(2, '0') + '.mp3?v=' + KOE_V;
-  audio.play().catch(() => { // 録音がない・流せないときは端末の声で読む
+  const tts = () => { // 録音がない・流せないときは端末の声で読む
     if (curBub !== row) return;
     if (!ttsOK) { row.classList.remove('on'); curBub = null; return; }
     const u = new SpeechSynthesisUtterance(text); u.lang = 'ja-JP';
     ttsVoice = ttsVoice || pickTTS(); if (ttsVoice) u.voice = ttsVoice;
     u.onend = u.onerror = () => { if (curBub === row) { row.classList.remove('on'); curBub = null; } };
     speechSynthesis.speak(u);
-  });
+  };
+  if (NO_KOE.has(VOICES[k][1])) { tts(); return; }
+  audio.src = VOICES[k][1] + '/' + String(n).padStart(2, '0') + '.mp3?v=' + KOE_V;
+  audio.play().catch(tts);
 }
 
 // ---------- 返事をえらぶ ----------
@@ -265,7 +273,7 @@ function answer(msg) {
   msg = msg.trim(); if (!msg || !REPLIES.length) return;
   addMsg('me', esc(msg));
   const n = findReply(msg);
-  const k = pick === RAND ? Math.floor(Math.random() * VOICES.length) : pick;
+  const k = pick === RAND ? READY[Math.floor(Math.random() * READY.length)] : pick;
   const [v, , , myName] = VOICES[k];
   const text = REPLIES[n].text.replace('{name}', myName);
   const row = addMsg('ai', `<small>${esc(SPK[v].name)}</small>${esc(text)}<br><button aria-label="もう一度聞く">▶ もう一度</button>`, v);
@@ -281,7 +289,7 @@ fetch('henji.json?v=' + KOE_V).then(r => r.json()).then(d => {
   $('chips').onclick = e => { const b = e.target.closest('button'); if (b) answer(REPLIES[b.dataset.i].label); };
 }).catch(() => { $('note').textContent = '返事の一覧が 読みこめませんでした。ページを 開きなおしてください。'; });
 
-$('credit').textContent = '声：' + VOICES.map(v => v[2]).join('、');
+$('credit').textContent = '声：' + READY.map(k => VOICES[k][2]).join('、');
 </script>
 <!-- 更新した日時（GitHub に反映した日時が自動で出る）。画面のいちばん下に小さく出す -->
 <script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
