@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dockerd:*)",
+      "Bash(docker pull:*)",
+      "Bash(docker run:*)",
+      "Bash(docker start:*)",
+      "Bash(docker stop:*)",
+      "Bash(docker rm:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker cp:*)",
+      "Bash(python3 */koe_tsukuru.py:*)"
+    ]
+  }
+}
