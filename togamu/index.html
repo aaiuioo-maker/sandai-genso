@@ -1,0 +1,1241 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="咎むる勿れ">
+<title>人を咎むる勿れ</title>
+<link rel="apple-touch-icon" href="icon-180.png?v=1">
+<link rel="manifest" href="togamu.webmanifest?v=1">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05040d">
+<link rel="icon" href="icon-180.png?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&text=%E3%80%85%E3%81%AE%E3%82%80%E3%82%8B%E3%82%8C%E4%B9%97%E5%8A%B9%E5%8B%BF%E5%92%8E%E5%9C%B0%E5%B0%8F%E5%BD%93%E5%BF%83%E6%80%AA%E6%84%9B%E6%85%A2%E6%88%91%E6%9C%AC%E6%9E%9C%E6%A5%BD%E7%8D%84%E7%9A%84%E7%A5%9E%E7%BD%AA%E9%80%86&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  /* iPhone で ほかの画面から戻ったときなどに、文字が勝手に大きくならないようにする */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { font-family: "DotGothic16", sans-serif; display: flex; flex-direction: column; align-items: center;
+         padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  /* タイトルは真ん中。オレンジのキャラクターは左はしに小さく */
+  h1 { font-size: 18px; font-weight: 400; margin: 0 0 4px; letter-spacing: .08em; position: relative; width: 100%; max-width: 480px; text-align: center; }
+  #ccTitle { position: absolute; left: 36px; top: 50%; transform: translateY(-58%); width: 24px; height: 26px; image-rendering: pixelated; border: none; border-radius: 0; background: transparent; }
+  .sub { font-size: 11px; opacity: .6; margin: 0 0 10px; }
+  .stage { width: 100%; max-width: 480px; position: relative; }
+  canvas { width: 100%; display: block; image-rendering: pixelated; border: 2px solid #2a2540; border-radius: 6px; background: #000; }
+  .panel { margin-top: 10px; background: #12101f; border: 2px solid #2a2540; border-radius: 6px; padding: 10px 12px; }
+  .seek { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .seek span { width: 40px; flex-shrink: 0; text-align: center; color: #ffcf8a; }
+  .seek span:last-child { color: #8a84a8; }
+  .seek input { flex: 1; min-width: 0; accent-color: var(--accent); height: 22px; }
+  /* 左から「最初から・再生・声と音」を横一列に。画面の幅に合わせて文字の大きさを変える */
+  .btns { display: flex; flex-wrap: nowrap; gap: 6px; margin-top: 8px; }
+  .btns button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 7px 2px; border-color: #5a5478; }
+  .btns .snd { color: #6fe0a0; flex-grow: 1.25; }
+  .btns .snd.off { color: #8a84a8; }
+  /* 声の選びかた（4人） */
+  .voices { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; }
+  .voices span { flex-shrink: 0; color: #8a84a8; }
+  .voices button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 5px 2px; border-color: #3a3358; color: #8a84a8; }
+  .voices button.on { border-color: var(--accent); color: var(--fg); }
+  /* VOICEVOX・COEIROINK・AivisSpeech・ランダム：文字の長さに合わせて幅を分ける（AivisSpeech がはみ出さないように） */
+  #engRow button { flex: 1 1 auto; font-size: clamp(10px, 3vw, 14px); padding: 5px 1px; }
+  /* 順番・人の名前の段は 左はしから並べる */
+  #nameRow span { display: none; }
+  /* 人数が多いとき（COEIROINK）は 2段に並べる */
+  #nameRow.many { display: grid; grid-template-columns: repeat(3, 1fr); }
+  #nameRow.many span { display: none; }
+  button { font-family: inherit; font-size: 15px; color: var(--fg); background: #1c1930; border: 2px solid var(--accent);
+           border-radius: 6px; padding: 8px 18px; cursor: pointer; }
+  button:active { transform: translateY(1px); }
+  .start { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .start button { font-size: 18px; padding: 12px 26px; background: rgba(28,25,48,.9); }
+  .hide { display: none !important; }
+</style>
+</head>
+<body>
+<h1><canvas id="ccTitle" width="48" height="52" aria-hidden="true"></canvas>人を咎むる勿れ</h1>
+<p class="sub">裁かず 待つのが 本当の愛（約3分・声と音が出ます）<br><span id="credit">声：VOICEVOX:四国めたん</span></p>
+<div class="stage">
+  <canvas id="cv"></canvas>
+  <div class="start" id="startBox"><button id="startBtn">▶ 再生する</button></div>
+</div>
+<div class="stage panel">
+  <div class="seek"><span id="curT">00:00</span><input type="range" id="seekBar" min="0" max="85" step="0.1" value="0" aria-label="再生位置"><span id="totT">00:00</span></div>
+  <div class="btns">
+    <button id="rsBtn">🔄 最初から</button>
+    <button id="ppBtn">▶ 再生</button>
+    <button id="sndBtn" class="snd">🔊 声・音 ON</button>
+  </div>
+  <div class="voices" id="engRow"><span>声</span>
+    <button data-e="0" class="on">VOICEVOX</button>
+    <button data-e="1">COEIROINK</button>
+    <button data-e="2">AivisSpeech</button>
+    <button data-e="3">ランダム</button>
+  </div>
+  <div class="voices" id="nameRow"><span>　　</span></div>
+</div>
+
+<script>
+const W = 180, H = 260, S = 3, SH = 216, DUR = 21;
+const cv = document.getElementById('cv');
+cv.width = W * S; cv.height = H * S;
+const ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+// ---------- 描画の道具 ----------
+const rd = Math.round;
+function R(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(rd(x) * S, rd(y) * S, rd(w) * S, rd(h) * S); }
+function P(x, y, c, s = 1) { R(x, y, s, s, c); }
+function disc(cx, cy, r, c) {
+  for (let y = -r; y <= r; y++) { const w = Math.floor(Math.sqrt(r * r - y * y) + 0.3); R(cx - w, cy + y, w * 2 + 1, 1, c); }
+}
+function T(s, x, y, size, c, align = 'center', a = 1) {
+  ctx.globalAlpha = a;
+  ctx.font = `${size * S}px "DotGothic16", monospace`;
+  ctx.textAlign = align; ctx.textBaseline = 'middle';
+  ctx.lineWidth = S * 1.4; ctx.lineJoin = 'round'; ctx.strokeStyle = '#000';
+  ctx.strokeText(s, x * S, y * S);
+  ctx.fillStyle = c; ctx.fillText(s, x * S, y * S);
+  ctx.globalAlpha = 1;
+}
+// 筆文字：縁取りなしで細く読みやすく
+function B(s, x, y, size, c) {
+  ctx.font = `${size * S}px "Yuji Syuku", serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = c; ctx.fillText(s, x * S, y * S);
+}
+function A(a, fn) { ctx.globalAlpha = Math.max(0, Math.min(1, a)); fn(); ctx.globalAlpha = 1; }
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const fadeIn = (lt, st, d = 0.3) => clamp((lt - st) / d);
+const ease = k => k * k * (3 - 2 * k);
+function mix(c1, c2, k) {
+  const a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16);
+  const ch = s => rd(lerp((a >> s) & 255, (b >> s) & 255, k));
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+}
+// 小さなタグ（ラベル）
+function tag(s, x, y, c, a = 1, size = 8) { T(s, x, y, size, c, 'center', a); }
+
+// ---------- 星 ----------
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const stars = [...Array(70)].map(() => ({ x: rnd() * W | 0, y: rnd() * SH | 0, p: rnd() * 6.28, s: rnd() < .15 ? 2 : 1 }));
+function drawStars(t, a = 1) {
+  for (const s of stars) { const b = .5 + .5 * Math.sin(t * 3 + s.p); ctx.globalAlpha = a * (.25 + .75 * b); P(s.x, s.y, '#fff', s.s); }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- 太陽・月・地球 ----------
+function sun(cx, cy, t, r = 13) {
+  A(.25 + .1 * Math.sin(t * 6), () => disc(cx, cy, r + 5, '#ff7a2e'));
+  disc(cx, cy, r, '#ffb02e'); disc(cx - 1, cy - 1, r - 4, '#ffd84a'); disc(cx - 3, cy - 3, 2, '#fff6c0');
+  for (let i = 0; i < 8; i++) {
+    const an = i * Math.PI / 4 + t * .6, L = r + 7 + (Math.sin(t * 8 + i) > 0 ? 2 : 0);
+    P(cx + Math.cos(an) * L, cy + Math.sin(an) * L, '#ffd84a', 2);
+  }
+}
+// ---------- 人（小さな人形）----------
+// (x, y) は足もとのまんなか。k は大きさ（k=1 で高さ 26 マス）
+// pose：down 腕を下ろす／reachR 右へ手をのばす／reachL 左へ手をのばす／up 両手を上げる／give 右手で差し出す
+function personShape(x, y, c, pose, k) {
+  const r = (dx, dy, w, h) => R(x + dx * k, y + dy * k, w * k, h * k, c);
+  disc(x, y - 22 * k, 3 * k, c);
+  r(-3, -18, 7, 10);
+  r(-3, -8, 2, 8); r(2, -8, 2, 8);
+  if (pose === 'reachR') { r(-5, -17, 2, 7); r(4, -16, 6, 2); }
+  else if (pose === 'reachL') { r(-9, -16, 6, 2); r(4, -17, 2, 7); }
+  else if (pose === 'up') { r(-5, -25, 2, 8); r(4, -25, 2, 8); }
+  else if (pose === 'give') { r(-5, -17, 2, 7); r(4, -15, 7, 2); }
+  else { r(-5, -17, 2, 8); r(4, -17, 2, 8); }
+}
+function person(x, y, fill = '#2c2f52', line = '#9a90d0', pose = 'down', k = 1, a = 1) {
+  A(a, () => {
+    [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dx, dy]) => personShape(x + dx, y + dy, line, pose, k));
+    personShape(x, y, fill, pose, k);
+    P(x - 2 * k, y - 23 * k, '#f3ead6', Math.max(1, k | 0)); P(x + 1 * k, y - 23 * k, '#f3ead6', Math.max(1, k | 0));
+  });
+}
+// 小さなハート
+function smallHeart(x, y, c = '#ff6a7a') { P(x, y, c); P(x + 2, y, c); R(x - 1, y + 1, 5, 1, c); R(x, y + 2, 3, 1, c); P(x + 1, y + 3, c); }
+function ground(c = '#5a3d24') { R(0, 202, W, 14, c); R(0, 202, W, 2, '#3f8f3a'); for (let x = 3; x < W; x += 11) P(x, 207 + (x % 3), '#6b4a2c', 2); }
+function room(t, a = .5) { R(0, 0, W, SH, '#0f1028'); drawStars(t, a); ground(); }
+
+// ---------- Claude Code のキャラクター（字幕の左にいる案内役） ----------
+function mascot(ox, oy, t, mode = "walk", p = 1) {
+  // ox, oy, p は画面の1マス（3画素）単位。p は小数でもよい（画素単位で描くので、にじまない）
+  const R = (x, y, w, h, c) => { const q = (v) => Math.round(v * S); ctx.fillStyle = c; ctx.fillRect(q(x), q(y), q(x + w) - q(x), q(y + h) - q(y)); };
+  const c = '#d97757', f = Math.floor(t * 6) % 4;
+  const hop = (mode === "jump" ? -Math.abs(Math.sin(t * 7)) * 4 : (f % 2 ? -1 : 0)) * p;
+  const up = [f === 1, f === 3, f === 3, f === 1];
+  [2, 4, 7, 9].forEach((x, i) => R(ox + x * p, oy + 6 * p, p, (up[i] && mode === 'walk' ? 1 : 2) * p, c));
+  const y0 = oy + hop;
+  R(ox + 2 * p, y0, 8 * p, 6 * p, c);
+  const wave = mode === "talk" && Math.sin(t * 10) > 0 ? -p : 0;
+  R(ox, y0 + 2 * p + wave, 2 * p, 2 * p, c); R(ox + 10 * p, y0 + 2 * p - wave, 2 * p, 2 * p, c);
+  const blink = (t % 3) > 2.85;
+  R(ox + 3 * p, y0 + p + (blink ? .6 * p : 0), p, blink ? .4 * p : p, "#1a1612"); R(ox + 8 * p, y0 + p + (blink ? .6 * p : 0), p, blink ? .4 * p : p, "#1a1612");
+}
+
+// 案内役の動きに合わせた効果音（声のじゃまにならないよう小さく鳴らす）
+// しゃべる：手をふるたびに「ぴょこ」／ジャンプ：とび上がるたびに「ぴょん」／歩く：一歩ごとに「とこ」／まばたき：「ぱち」
+// 動きが変わったとき：しゃべる→ジャンプ「ポロロン↑」、ジャンプ→歩く「ポロン↓」
+let mPrevT = -1, mPrevMode = '';
+function mascotSfx(t, mode) {
+  const pt = mPrevT, pm = mPrevMode; mPrevT = t; mPrevMode = mode;
+  if (!ac || !playing || muted || seeking || pt < 0 || t <= pt || t - pt > .2) return;
+  try {
+    if (mode !== pm) {
+      if (mode === 'jump') [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .07, .18, 'square', .03));
+      else if (mode === 'walk') [784, 587, 392].forEach((f, i) => tone(f, i * .09, .25, 'triangle', .07));
+      else [880, 1175].forEach((f, i) => tone(f, i * .08, .2, 'sine', .05));
+      return;
+    }
+    const cross = k => Math.floor(t * k) !== Math.floor(pt * k); // t*k が次の整数に進んだ
+    if (mode === 'talk' && Math.sin(t * 10) > 0 && Math.sin(pt * 10) <= 0) tone(620 + Math.random() * 120, 0, .08, 'sine', .035, 980);
+    if (mode === 'jump' && cross(7 / Math.PI)) { tone(140, 0, .06, 'triangle', .12, 90); tone(330, .02, .2, 'square', .025, 900); }
+    if (mode === 'walk' && cross(6) && Math.floor(t * 6) % 2 === 0) tone(Math.floor(t * 6) % 4 ? 440 : 520, 0, .05, 'triangle', .08, 260);
+    if ((t % 3) > 2.85 && (pt % 3) <= 2.85) tone(2200, 0, .03, 'sine', .02, 1600);
+  } catch (e) {}
+}
+
+// ---------- 声の4人（字幕の左で、いま読んでいる人がしゃべる） ----------
+// 1文字＝1ドット（横14×縦16）。S＝はだ、E＝目（まばたき・口は下で動かす）
+const SPK = [
+  { name: 'めたん', pal: { H: '#e04b8f', D: '#c43a7a', d: '#f07ab0', S: '#ffe2cc', E: '#d9a020', K: '#2b2733', W: '#f4f0f0' }, map: [
+    '....HHHHHH....', '..HHHHHHHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'DHHSSHSSHSSHHD', 'dHSSSSSSSSSSHd', 'DHSEESSSSEESHD', 'dHSEESSSSEESHd',
+    'DDSSSSSSSSSSDD', 'dd.SSSSSSSS.dd', 'DD..SSSSSS..DD', '.dd.KWWWWK.dd.',
+    '.DD.KKWWKK.DD.', '..d.KKKKKK.d..', '...KKKKKKKK...', '...KKKKKKKK...'] },
+  { name: 'つむぎ', pal: { H: '#f2c740', h: '#ffe08a', S: '#ffe2cc', E: '#7a4a2a', W: '#f4f4f4', R: '#e04848' }, map: [
+    '.....HHHH.....', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHHSSHSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HHH.WWRRWW.HHH',
+    'HHH.WWRRWW.HHH', '.HH.WWWWWW.HH.', '...WWWWWWWW...', '...WWWWWWWW...'] },
+  { name: 'はう', pal: { H: '#9ccbe8', C: '#ffffff', X: '#e04848', S: '#ffe2cc', E: '#4a7ab0', W: '#ffffff', P: '#f6b8c8' }, map: [
+    '...CCCCCCCC...', '..CCCCXCCCCC..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    '.HSSSSSSSSSSH.', '.H.SSSSSSSS.H.', '....SSSSSS....', '...PWWWWWWP...',
+    '..PPWWWWWWPP..', '..PPWWWWWWPP..', '..PPPWWWWPPP..', '..PPPWWWWPPP..'] },
+  { name: '小夜', pal: { H: '#8a5a3a', I: '#f2a0b0', S: '#ffe2cc', E: '#3a8a5a', G: '#e8d070', K: '#b04040' }, map: [
+    '.HH........HH.', '.HIH......HIH.', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...GGGGGGGG...',
+    '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..'] },
+  // ここから COEIROINK の4人（つくよみちゃん・MANA・KANA・リリンちゃん）
+  { name: 'つくよみ', pal: { H: '#c8d8f0', h: '#e8f0ff', R: '#e07090', S: '#ffe2cc', E: '#4a4a6a', W: '#f8f8f8', K: '#d04050' }, map: [
+    '....HHHHHH....', '..HHhHHHHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'RHHSSHSSHSSHHR', 'RHSSSSSSSSSSHR', '.HSSSSSSSSSSH.', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.WWWKKWWW.HH',
+    'HH.WWWWWWWW.HH', '.H.WWWWWWWW.H.', '...WWWWWWWW...', '...WWWWWWWW...'] },
+  { name: 'MANA', pal: { H: '#f4a0a8', D: '#e07880', S: '#ffe2cc', E: '#d08a2a', B: '#7a4a2a', W: '#f4f0f0' }, map: [
+    'DD..HHHHHH..DD', 'DDHHHHHHHHHHDD', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', '.H.SSSSSSSS.H.', '.H..SSSSSS..H.', '...BBWWWWBB...',
+    '..BBBBWWBBBB..', '..BBBBBBBBBB..', '..BBBBBBBBBB..', '..BBBBBBBBBB..'] },
+  { name: 'KANA', pal: { H: '#8ac8f0', h: '#b0e0ff', S: '#ffe2cc', E: '#8a70c0', K: '#2a2a33', W: '#d0d0d8' }, map: [
+    '...HHHHHHH....', '..HHHHHhHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHHSSHSSHSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...KKKWWKKK...',
+    '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..'] },
+  { name: 'リリン', pal: { H: '#f0a050', P: '#a070e0', S: '#ffe2cc', E: '#9a60d0', U: '#4a2a6a' }, map: [
+    'PP..HHHHHH..PP', 'PPPHHHHHHHHPPP', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.UUUUUUUU.HH',
+    'HH.UUUUUUUU.HH', '.HHUUUUUUUUHH.', '..HUUUUUUUUH..', '...UUUUUUUU...'] },
+  // アメノちゃん（熊本弁）
+  { name: '熊本弁', pal: { H: '#ecd0b0', R: '#d02a2a', k: '#1a1a1a', S: '#ffe8d8', E: '#3a9a5a', W: '#f8f8f8', P: '#f0a0a0', J: '#2a2a2a', K: '#a08a5a', B: '#ff9ab0' }, map: [
+    '...HHHHHHH....', '..HHHHHHHHRk..', '.HHHHHHHHHRRH.', '.HHHHHHHHHHHH.', 'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH', 'HHSBSSSSSSBSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..H.', 'HJJWWPPWWJJ.H.', '.HJJWWWWWWJJ..', '..JJWWWWWWJJ..', '..JKJWWWWJKJ..', '..JKJWWWWJKJ..'] },
+  // ここから AivisSpeech の3人（まお・まい・コハク）
+  { name: 'まお', pal: { H: '#f2a6c0', h: '#ffd0e0', R: '#ffffff', S: '#ffe2cc', E: '#c0507a', W: '#f8f0f4', P: '#e07aa0' }, map: [
+    '.HH..HHHH..HH.', '.HhHHHHHHHHhH.', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.WWWPPWWW.HH',
+    '.H.WWWWWWWW.H.', '...WWWWWWWW...', '...PPPPPPPP...', '...WWWWWWWW...'] },
+  { name: 'まい', pal: { H: '#2a2438', h: '#4a4260', R: '#e04848', S: '#ffe2cc', E: '#6a4a8a', W: '#f4f4f4', N: '#2a3a6a' }, map: [
+    '....HHHHHH.RR.', '..HHHHHHHHHRR.', '.HHHHHhHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.NWWRRWWN.HH',
+    'HH.NNWWWWNN.HH', 'HH.NNNNNNNN.HH', '...NNNNNNNN...', '...NNNNNNNN...'] },
+  { name: 'コハク', pal: { H: '#e8a840', h: '#ffd070', S: '#ffe2cc', E: '#c07a20', W: '#f8f4ec', G: '#d08a30', B: '#7a5a3a' }, map: [
+    '....HHHHHH....', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...WWWGGWWW...',
+    '..BWWWWWWWWB..', '..BWWWWWWWWB..', '..BBWWWWWWBB..', '..BBWWWWWWBB..'] },
+  // AivisSpeech の るな・桜音・中2・花音
+  { name: 'るな', pal: { H: '#c8c0e8', h: '#ece6ff', Y: '#ffd84a', S: '#ffe2cc', E: '#6a5ab0', W: '#f4f2ff', N: '#3a3470' }, map: [
+    '....HHHHHH.YY.', '..HHHHHHHHHY..', '.HHHHhHHHHHYY.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.NNWWWWNN.HH',
+    'HH.NNNYYNNN.HH', '.H.NNNNNNNN.H.', '...NNNNNNNN...', '...NNNNNNNN...'] },
+  { name: '桜音', pal: { H: '#f6b8cc', h: '#ffe0ea', F: '#ffffff', P: '#e05a8a', S: '#ffe2cc', E: '#c0507a', W: '#fff4f8', K: '#e88aa8' }, map: [
+    '.FPF.HHHHHH...', '.PFPHHHHHHHH..', '.FPFHHhHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.WWWKKWWW.HH',
+    'HH.WWWWWWWW.HH', '.H.KKKKKKKK.H.', '...WWWWWWWW...', '...KKKKKKKK...'] },
+  { name: '中2', pal: { H: '#1e1a2a', h: '#3a3450', S: '#ffe2cc', E: '#d03030', B: '#101018', R: '#c02a3a', K: '#1a1a24' }, map: [
+    '...HHHHHHHH...', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHBBBBSSSSSSHH', 'HHBBBSSSSEESHH', 'HHSBBSSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...KKKRRKKK...',
+    '..KKKKRRKKKK..', '..KKKKKKKKKK..', '..KRKKKKKKRK..', '..KKKKKKKKKK..'] },
+  { name: '花音', pal: { H: '#f0a050', h: '#ffd090', F: '#ffffff', Y: '#ffd84a', S: '#ffe2cc', E: '#c06a30', W: '#fff8ec', G: '#7ac07a' }, map: [
+    '....HHHHHH.FYF', '..HHHHHHHHHFYF', '.HHHHhHHHHHHF.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.GWWWWWWG.HH',
+    'HH.GGWWWWGG.HH', '.H.GGGGGGGG.H.', '...GGGGGGGG...', '...GGGGGGGG...'] },
+  // VOICEVOX の 冥鳴ひまり・ナースロボ＿タイプＴ
+  { name: 'ひまり', pal: { H: '#2a2234', h: '#4a3a5a', S: '#ffe2cc', E: '#b03050', W: '#f4f0f4', K: '#3a2a3a', R: '#c03a5a' }, map: [
+    '....HHHHHH....', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.KWWRRWWK.HH',
+    'HH.KKWWWWKK.HH', 'HH.KKKKKKKK.HH', 'HH.KKKKKKKK.HH', '...KKKKKKKK...'] },
+  { name: 'ナースロボ', pal: { C: '#ffffff', X: '#e04848', H: '#f0b8c8', S: '#e8e4ec', E: '#40b0c0', G: '#a0a0b0', W: '#ffffff', P: '#f0a0b8' }, map: [
+    '...CCCCCCCC...', '..CCCCXCCCCC..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HGSSSSSSSSSSGH', 'HGSEESSSSEESGH', 'HGSEESSSSEESGH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'H..PWWXXWWP..H',
+    '...PWWWWWWP...', '..PPWWWWWWPP..', '..PPPWWWWPPP..', '..PPPWWWWPPP..'] },
+];
+// v：だれ（0〜3）、talk：いま声が出ている（口がパクパク・体がゆれる）
+function speakerDot(v, ox, oy, t, talk) {
+  const sp = SPK[v]; if (!sp) return;
+  const bob = talk && Math.floor(t * 4) % 2 ? -1 : 0, y0 = oy + bob;
+  const blink = (t % 3.2) > 3.05;
+  sp.map.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (ch === '.') return;
+    if (ch === 'E' && blink) { if (y === 7) P(ox + x, y0 + y, '#5a3a3a'); return; } // まばたき：下だけ線に
+    P(ox + x, y0 + y, sp.pal[ch]);
+  }));
+  // 口：しゃべっているときはパクパク
+  const open = talk && Math.floor(t * 9) % 3 !== 0;
+  if (open) { R(ox + 6, y0 + 9, 2, 2, '#8a2a3a'); P(ox + 6, y0 + 10, '#e07080'); }
+  else R(ox + 6, y0 + 9, 2, 1, '#c0505a');
+  T(sp.name, ox + 7, oy + 20.5, 6, talk ? '#ffe8b0' : '#b0a8c8', 'center');
+  // 名前の下に、どのグループの声か（VOICEVOX・COEIROINK・AivisSpeech）を グループの色で小さく
+  const gi = typeof ENGINES === 'undefined' ? -1 : ENGINES.findIndex(e => e[1].includes(v));
+  if (gi >= 0) T(ENGINES[gi][0], ox + 7, oy + 26.6, 4, ['#8fd4a0', '#e8e0f0', '#6ab0f0'][gi] || '#b0a8c8', 'center', talk ? 1 : .75);
+}
+
+
+
+
+// ---------- 字幕 ----------
+// [始まり, 終わり, 1行目, 2行目, 読み上げる文（読みにくい言葉はひらがな）, 1行目の色]
+const HO = '#ffe8b0', GO = '#ffd84a', KI = '#ff9a8a', DK = '#c0a070', OK = '#9fe0a0', NY = '#ffe08a';
+// 咎むる勿れの色：咎め＝赤、愛＝桃色、神＝うすい金、慢心・小乗＝むらさき、待つ・天的＝若草
+const TOGA = '#ff9a8a', AI = '#ff9ab0', KAMI = '#fff1b0', MAN = '#c890f0', JA = '#c890f0', HIKI = '#a8e8a0', HIK = '#fff1b0';
+const CAPS = [
+  [0.0, 1.0, '人を咎むる勿れ', '本当の愛の お話', 'ひとを、とがむる、なかれ。ほんとうの、あいの、おはなしです。', HIK],
+  [1.0, 2.0, '人を 非難し 咎めることは', '神の 地位を 犯すこと', '人を、ひなんしたり、とがめたり、することは、神の、ちいを、おかす、行為です。', KAMI],
+  [2.0, 3.0, '多くの 場合', '反発を 招き 逆効果に なる', 'おおくの、ばあい、はんぱつを、まねき、かえって、ぎゃくこうかに、なります。', KI],
+  [3.0, 4.0, '人を 咎めるのは', '人間の 慢心である', '人を、とがめるのは、にんげんの、まんしん、なのです。', MAN],
+  [4.0, 5.0, '霊的に 見れば', '咎める人の方が 下のことも', 'れいてきに、みれば、とがめられる人よりも、とがめる人の、ほうが、下にいる、ことすら、あります。', KAMI],
+  [5.0, 6.0, '人が 過ちを 犯しているとき', '無理に 止めさせるのは', '人が、あやまちを、おかしているとき、むりに、やめさせようと、するのは、', KI],
+  [6.0, 7.0, '坂を 転がり落ちる 大石を', '途中で 止めるようなもの', 'さかを、ころがりおちる、おおいしを、とちゅうで、とめるような、ものです。', HO],
+  [7.0, 8.0, '止めようとした 自分が', '怪我を してしまう', 'とめようとした、じぶんが、けがを、してしまいます。', KI],
+  [8.0, 9.0, '下まで 落ちて 本人が', '自ら 目を覚ますのを 待つ', 'したまで、おちて、ほんにんが、みずから、めを、さますのを、まちましょう。', HIKI],
+  [9.0, 10.0, '心から 悔い改めるのを 待つ', 'それが 本当の愛', 'こころから、くいあらためるのを、まつ。それが、その人の、しょうらいを、思う、ほんとうの、あい、です。', AI],
+  [10.0, 11.0, '人間には 何が 本当に', '良いか 悪いか 分からない', 'にんげんには、なにが、ほんとうに、よいか、わるいか、かんぺきには、わかりません。', HO],
+  [11.0, 12.0, '善いと 思ってしたことも', '神の目には 邪魔なことがある', 'よいと、おもって、したことでも、かみのめから、みれば、まちがいや、じゃまに、なっていることが、たたあります。', KI],
+  [12.0, 13.0, '自分が 絶対 正しいと 思うのは', '慢心 注意が 必要', 'じぶんの、かんがえが、ぜったいに、ただしいと、おもいこむのは、まんしんです。ちゅういしましょう。', MAN],
+  [13.0, 14.0, '細かい 理屈で 決めつけ', '人の 悪い所ばかり 見るのは', 'こまかい、りくつで、きめつけたり、ひとの、わるいところ、ばかりを、してきするのは、', KI],
+  [14.0, 15.0, '「小乗的」な 考え方', '避けるべきである', 'しょうじょうてきな、かんがえかたで、さけるべきです。', MAN],
+  [15.0, 16.0, '悪意の 悪口は', '言う人が 自分に 罪を 着せる', 'あくいを、もって、ひとの、わるぐちを、いうのは、じぶんに、つみを、きせる、こういです。', JA],
+  [16.0, 17.0, 'だから 悪口を 言われても', '気にする 必要は ない', 'ですから、わるぐちを、いわれても、きにする、ひつようは、ありません。', HIKI],
+  [17.0, 18.0, '人に どう思われるかより', '天地の神に 恥じない 行いを', 'ひとから、どう、おもわれるかよりも、てんちの、かみに、はじない、おこないを、しましょう。', GO],
+  [18.0, 19.0, '神から 愛される ことの方が', 'ずっと 大切である', 'かみから、あいされる、ことのほうが、ずっと、たいせつです。', AI],
+  [19.0, 20.0, 'これまでの 宗教のような', '骨を折る「地獄的」なやり方でなく', 'これまでの、しゅうきょうの、ような、むりに、ほねをおって、くろうする、じごくてきな、やりかたでは、なく、', KI],
+  [20.0, 21.0, '真の救いは 天国を 造るもの', '楽々と行く「天的」なやり方で', 'しんの、すくいは、てんごくを、つくるもの。だから、らくらくと、いく、てんてきな、やりかたで、なければ、ちからを、もちません。', HIK],
+  [21.0, 23.0, "ご視聴ありがとうございました", "", "ごしちょう、ありがとうございました。"],
+];
+// 1つの字幕を見せる時間（秒）。読み上げの長さに合わせ、ゆっくり読めるように長めにとる
+CAPS.forEach(c => { c.dur = Math.max(3.8, c[4].replace(/[、。\s]/g, '').length * 0.2 + 2.0); });
+CAPS[CAPS.length - 1].dur = 5.5; // 最後の「ご視聴ありがとうございました」はゆっくり余韻をとる
+function captions(t) {
+  R(0, SH, W, H - SH, '#0d0b18'); R(0, SH, W, 1, '#3a3358');
+  const c = CAPS.find(c => t >= c[0] && t < c[1]); if (!c) return;
+  const a = clamp((t - c[0]) / .15);
+  T(c[2], 90, c[3] ? 231.5 : 237, c[2].length > 13 ? 8 : 9, c[5] || '#f3ead6', 'center', a);
+  if (c[3]) T(c[3], 90, 244.5, c[3].length > 15 ? 8 : 8.5, '#f3ead6', 'center', a);
+}
+// ---------- 道具 ----------
+// きらきら（十字の光）
+function spark(x, y, c = '#fff1b0', s = 2) { P(x, y, c); for (let i = 1; i <= s; i++) { P(x - i, y, c); P(x + i, y, c); P(x, y - i, c); P(x, y + i, c); } }
+// 吹き出し（？など）
+function bubble(cx, cy, s, a = 1) {
+  A(a, () => { disc(cx, cy, 8, '#f3ead6'); P(cx - 7, cy + 7, '#f3ead6', 2); P(cx - 9, cy + 9, '#f3ead6'); });
+  T(s, cx, cy, 10, '#8a2a20', 'center', a);
+}
+// 人を倒したり傾けたりして描く（足もとを中心にまわす）
+function personRot(x, y, an, ...a) {
+  ctx.save(); ctx.translate(x * S, y * S); ctx.rotate(an); ctx.translate(-x * S, -y * S);
+  person(x, y, ...a); ctx.restore();
+}
+// 筆文字を透明度つきで
+// 昼の空でも読めるように、うしろに暗い影をつける
+function BA(s, x, y, size, c, a) { A(a * .5, () => B(s, x + 1, y + 1, size, '#0d0b18')); A(a, () => B(s, x, y, size, c)); }
+// ハート
+function heart(cx, cy, r, c) {
+  disc(cx - r / 2, cy - r / 4, r / 2 + .5, c); disc(cx + r / 2, cy - r / 4, r / 2 + .5, c);
+  for (let y = 0; y <= r; y++) { const w = rd((r - y) * 1.05); R(cx - w, cy - r / 4 + y, w * 2 + 1, 1, c); }
+}
+// 光の輪
+function halo(cx, cy, r, t, c = '#ffd84a', a = 1) {
+  A(a * (.25 + .1 * Math.sin(t * 4)), () => disc(cx, cy, r, c));
+  A(a * .9, () => { for (let i = 0; i < 24; i++) { const an = i * Math.PI / 12 + t * .5; P(cx + Math.cos(an) * r, cy + Math.sin(an) * r, c); } });
+}
+// 上から差す光の帯（yEnd まで）
+function rays(cx, a, t, yEnd = 202) {
+  if (a <= 0) return;
+  for (let i = -3; i <= 3; i++) A(a * (.14 + .07 * Math.sin(t * 3 + i)), () => {
+    for (let y = 0; y < yEnd; y += 2) R(cx + i * (5 + y * .14) - 2, y, 4, 2, '#fff1b0');
+  });
+}
+// 花火
+function firework(cx, cy, q, c) {
+  if (q <= 0 || q >= 1) return;
+  for (let i = 0; i < 12; i++) { const an = i * Math.PI / 6, L = 4 + q * 20; A(1 - q, () => P(cx + Math.cos(an) * L, cy + Math.sin(an) * L, c, 2)); }
+}
+// 暗い雲
+function darkCloud(cx, cy, t, a = 1, rain = true) {
+  A(a, () => {
+    disc(cx - 8, cy, 7, '#4a4660'); disc(cx + 6, cy - 2, 9, '#4a4660'); disc(cx + 16, cy + 1, 6, '#4a4660'); R(cx - 14, cy, 36, 7, '#4a4660');
+    if (rain) for (let i = 0; i < 6; i++) { const q = (t * 1.4 + i / 6) % 1; P(cx - 10 + i * 5, cy + 9 + q * 14, '#6a8ad0'); P(cx - 10 + i * 5, cy + 10 + q * 14, '#6a8ad0'); }
+  });
+}
+// 怒りのしるし
+function angry(cx, cy, a = 1) {
+  A(a, () => [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy]) => { R(cx + sx * 2 - (sx > 0 ? 0 : 1), cy + sy * 2 - (sy > 0 ? 0 : 2), 1, 3, '#ff4a4a'); R(cx + sx * 2 - (sx > 0 ? 0 : 2), cy + sy * 2 - (sy > 0 ? 0 : 1), 3, 1, '#ff4a4a'); }));
+}
+// 花（g：しおれる 0〜1）
+function flower(cx, by, g = 0, c = '#ff8ab0') {
+  R(cx, by - 14 + g * 4, 1, 14 - g * 4, mix('#3f8f3a', '#6a6050', g));
+  const hx = cx + rd(g * 4), hy = by - 15 + rd(g * 8);
+  disc(hx, hy, 3, mix(c, '#5a5460', g)); P(hx, hy, mix('#ffd84a', '#6a6050', g));
+}
+// 大きなバツ
+function bigX(cx, cy, r, a = 1, c = '#ff4a4a') { A(a, () => { for (let i = -r; i <= r; i++) { R(cx + i - 1, cy + i - 1, 3, 3, c); R(cx + i - 1, cy - i - 1, 3, 3, c); } }); }
+
+// ---------- 咎むる勿れの道具 ----------
+// 昼の空（x0 から 幅 w）。上は濃い青、下は明るい水色。k：昼の明るさ（0 で夜の色）
+const hexMix = (c1, c2, k) => '#' + mix(c1, c2, k).match(/\d+/g).map(n => (+n).toString(16).padStart(2, '0')).join('');
+function daySky(x0 = 0, w = W, k = 1) {
+  const top = hexMix('#0f1028', '#2a5aa8', k), bot = hexMix('#1a1838', '#a8d8f0', k);
+  for (let y = 0; y < 202; y += 6) R(x0, y, w, 6, mix(top, bot, y / 202));
+}
+// 白い雲
+function cloud(cx, cy, a = 1) { A(a, () => { disc(cx - 6, cy, 5, '#f4f8ff'); disc(cx + 4, cy - 2, 7, '#f4f8ff'); disc(cx + 12, cy + 1, 4, '#f4f8ff'); R(cx - 10, cy, 26, 5, '#f4f8ff'); }); }
+// 昼の世界（k：0 夜 → 1 昼）
+function dayRoom(t, k = 1) {
+  daySky(0, W, k);
+  if (k < 1) drawStars(t, (1 - k) * .5);
+  if (k > 0) { cloud(rd(30 + (t * 4) % 40), 40, k * .9); cloud(rd(130 - (t * 3) % 30), 58, k * .8); }
+  ground();
+}
+// 矢じるし（len がプラスで右、マイナスで左）
+function arrow(x, y, len, c, a = 1) {
+  if (!len) return;
+  const d = Math.sign(len), L = Math.abs(len);
+  A(a, () => {
+    R(d > 0 ? x : x - L, y - 1, L, 3, c);
+    for (let i = 0; i < 5; i++) R(x + d * (L + i), y - 4 + i, 1, 9 - 2 * i, c);
+  });
+}
+// たての矢じるし（len がプラスで上、マイナスで下）。(x, y) は根もと
+function vArrow(x, y, len, c, a = 1) {
+  if (!len) return;
+  const d = Math.sign(len), L = Math.abs(len);
+  A(a, () => {
+    R(x - 1, d > 0 ? y - L : y, 3, L, c);
+    for (let i = 0; i < 5; i++) R(x - 4 + i, y - d * (L + i), 9 - 2 * i, 1, c);
+  });
+}
+// ぶつかったところの火花
+function clash(cx, cy, t, a = 1) {
+  if (a <= 0) return;
+  for (let i = 0; i < 8; i++) {
+    const an = i * Math.PI / 4 + t * 2, L = 5 + (Math.floor(t * 10 + i) % 3) * 3;
+    A(a, () => { P(cx + Math.cos(an) * L, cy + Math.sin(an) * L, i % 2 ? '#ffd84a' : '#ff6a5a', 2); });
+  }
+  A(a, () => { disc(cx, cy, 3, '#fff1b0'); });
+}
+// おじぎをする人（g：0 まっすぐ → 1 深くおじぎ）。dir：向き（1 右を向く、-1 左を向く）
+function bowing(x, y, g, line, k = 1, a = 1, dir = 1) { personRot(x, y, dir * g * .4, '#2c2f52', line, 'down', k, a); }
+// 悪口の吹き出し（むらさき）
+function rumor(cx, cy, s, a = 1) {
+  if (a <= 0) return;
+  const w = s.length * 7 + 6;
+  A(a, () => { R(cx - w / 2, cy - 6, w, 12, '#3a2a4a'); R(cx - w / 2, cy - 6, w, 1, '#8a5ab0'); P(cx - 2, cy + 6, '#3a2a4a', 2); P(cx - 3, cy + 8, '#3a2a4a'); });
+  T(s, cx, cy, 7, '#e0b0ff', 'center', a);
+}
+// ことばの吹き出し（白）
+function say(cx, cy, s, c = '#2a5a2a', a = 1) {
+  if (a <= 0) return;
+  const w = s.length * 8 + 6;
+  A(a, () => { R(cx - w / 2, cy - 6, w, 13, '#f3ead6'); P(cx - 1, cy + 7, '#f3ead6', 2); });
+  T(s, cx, cy + .5, 8, c, 'center', a);
+}
+// 注意の札（三角に「！」）。s：大きさ
+function warnSign(cx, cy, s, a = 1) {
+  const h = rd(22 * s);
+  A(a, () => {
+    for (let y = 0; y < h; y++) { const w = rd(y * .6); R(cx - w, cy - h / 2 + y, w * 2 + 1, 1, y < 2 || y > h - 3 ? '#d04030' : '#ffd84a'); }
+    R(cx - 1, cy - h / 2 + rd(7 * s), 3, rd(8 * s), '#2a1a10'); R(cx - 1, cy + h / 2 - rd(5 * s), 3, 2, '#2a1a10');
+  });
+}
+// 坂（左上の台から右下へ下る）。slopeY(x)：その x での地面の高さ
+const SLX0 = 24, SLY0 = 84, SLX1 = 172;
+const slopeY = x => x < SLX0 ? SLY0 : Math.min(202, SLY0 + (x - SLX0) * (202 - SLY0) / (SLX1 - SLX0));
+function hill() {
+  for (let x = 0; x < W; x += 2) {
+    const y = rd(slopeY(x)); if (y >= 202) continue;
+    R(x, y, 2, 202 - y, '#5a3d24'); R(x, y, 2, 2, '#3f8f3a');
+    if (x % 10 === 4 && y < 196) P(x, y + 6 + (x % 3), '#6b4a2c', 2);
+  }
+}
+// 大石（顔つき：過ちを犯している本人）。q：坂の上 0 → 下 1。転がるほど もようが回る。eye：0 目をつむる → 1 目を覚ます
+function boulder(q, eye = 0, a = 1) {
+  const x = lerp(SLX0 + 4, SLX1 - 6, q), r = 10, y = slopeY(x) - r + 1, an = q * 22;
+  A(a, () => {
+    disc(x, y, r + 1, '#3a3630'); disc(x, y, r, '#8a8478'); disc(x - 3, y - 3, 4, '#a8a296');
+    for (let i = 0; i < 3; i++) { const b = an + i * 2.1; P(x + Math.cos(b) * 6, y + Math.sin(b) * 6, '#5a5448', 2); }
+    if (eye < .5) { R(x - 5, y - 1, 3, 1, '#2a2620'); R(x + 3, y - 1, 3, 1, '#2a2620'); }
+    else { R(x - 5, y - 2, 2, 3, '#1a1612'); R(x + 3, y - 2, 2, 3, '#1a1612'); P(x - 5, y - 2, '#fff'); P(x + 3, y - 2, '#fff'); }
+    R(x - 1, y + 4, 3, 1, eye < .5 ? '#3a2a20' : '#8a2a3a');
+  });
+  return { x, y };
+}
+// 天秤（cy：横棒の高さ、an：かたむき）
+function scales(cx, cy, an, a = 1) {
+  A(a, () => {
+    R(cx - 1, cy, 3, 196 - cy, '#c8a050'); R(cx - 12, 196, 25, 6, '#a07a30'); disc(cx, cy, 3, '#ffd84a');
+    for (let i = -34; i <= 34; i++) R(cx + Math.cos(an) * i - 1, cy + Math.sin(an) * i - 1, 2, 2, '#e8c060');
+    [-1, 1].forEach(s => {
+      const px = cx + Math.cos(an) * 34 * s, py = cy + Math.sin(an) * 34 * s;
+      for (let j = 0; j < 16; j += 2) { P(px - 6 + j * .35, py + j, '#c8a050'); P(px + 6 - j * .35, py + j, '#c8a050'); }
+      R(px - 11, py + 16, 23, 3, '#e8c060'); R(px - 8, py + 19, 17, 2, '#a07a30');
+    });
+  });
+}
+// 虫めがね
+function loupe(cx, cy, r, a = 1) {
+  A(a, () => {
+    A(a * .25, () => disc(cx, cy, r, '#c8e8ff'));
+    for (let i = 0; i < 32; i++) { const b = i * Math.PI / 16; R(cx + Math.cos(b) * r - 1, cy + Math.sin(b) * r - 1, 2, 2, '#e8d8a0'); }
+    for (let i = 0; i < 8; i++) R(cx - r * .7 - i - 1, cy + r * .7 + i - 1, 3, 3, '#7a4a2a');
+  });
+}
+// 小さな荷車
+function cart(cx, by, a = 1) {
+  A(a, () => {
+    R(cx - 12, by - 14, 24, 8, '#8a6a4a'); R(cx - 12, by - 14, 24, 1, '#b08a5a'); R(cx + 12, by - 12, 8, 2, '#8a6a4a');
+    disc(cx - 7, by - 4, 3, '#4a3020'); disc(cx + 7, by - 4, 3, '#4a3020'); P(cx - 7, by - 4, '#c8a070'); P(cx + 7, by - 4, '#c8a070');
+  });
+}
+// 汗のしずく
+function sweat(x, y, t, a = 1) { const q = (t * 1.5) % 1; A(a * (1 - q), () => { P(x, y + q * 6, '#8ac8ff'); R(x - 1, y + 1 + q * 6, 3, 2, '#8ac8ff'); }); }
+// 涙
+function tear(x, y, t, a = 1) { const q = (t * 1.2) % 1; A(a * (1 - q * .6), () => { R(x, y + q * 8, 1, 2, '#8ac8ff'); }); }
+// 悪い所（黒いしみ）
+function spots(x, y, k, a = 1) { A(a, () => [[-2, -15], [1, -12], [-1, -9], [2, -16]].forEach(([dx, dy]) => R(x + dx * k, y + dy * k, 2, 2, '#1a1010'))); }
+
+// 咎める人＝赤みの線、咎められる人＝青い線、待つ人＝若草、慢心＝むらさき
+const TL = '#ff9a8a', TB = '#8ab0ff';
+
+// ---------- 場面1：人を咎むる勿れ ----------
+function scene1(lt, t) {
+  const k = lt, g = ease(clamp((k - .55) / .3));
+  room(t, .6);
+  rays(90, .3 * fadeIn(k, .1, .4), t);
+  BA('咎むる', 90, 40, 26, TOGA, fadeIn(k, .05, .3));
+  BA('勿れ', 90, 76, 28, HIK, fadeIn(k, .2, .3));
+  tag('本当の愛は 待つこと', 90, 108, AI, fadeIn(k, .4), 9);
+  if (g <= 0) person(66, 196, '#2c2f52', TL, 'reachR', 1.4);
+  else person(66, 196, '#2c2f52', mix(TL, '#a8e8a0', g), 'down', 1.4);
+  person(114, 196, '#2c2f52', TB, 'down', 1.4);
+  if (k > .3 && g < 1) bigX(90, 168, 7, fadeIn(k, .3, .1) * (1 - g));
+  if (g > 0) A(g * (.7 + .3 * Math.sin(t * 5)), () => heart(90, 146, 4, '#ff8ab0'));
+}
+
+// ---------- 場面2：咎めの戒め ----------
+function scene2(lt, t) {
+  if (lt < 1) {
+    // 人を 咎めるのは 神の 地位を 犯すこと
+    const k = lt, g = ease(clamp((k - .35) / .35));
+    room(t, .5);
+    halo(90, 52, 26, t, '#fff1b0', .8);
+    BA('神', 90, 54, 26, KAMI, 1);
+    tag('神の 地位', 90, 92, KAMI, fadeIn(k, .1), 9);
+    person(56, 196, '#2c2f52', TL, 'reachR', 1.4);
+    bowing(122, 196, .35, TB, 1.4, 1, -1);
+    for (let i = 0; i < 6; i++) if (g * 6 > i) P(rd(lerp(70, 86, i / 5)), rd(lerp(160, 104, i / 5)), TL, 2);
+    if (g >= 1) bigX(88, 104, 9, fadeIn(k, .7, .1));
+    tag('犯してはならない', 90, 124, KI, fadeIn(k, .75), 9);
+  } else if (lt < 2) {
+    // 反発を 招き 逆効果に なる
+    const k = lt - 1, g = ease(clamp((k - .15) / .3)), back = ease(clamp((k - .5) / .25));
+    room(t, .5);
+    tag('反発を 招く', 90, 20, KI, 1, 9);
+    person(56, 196, '#2c2f52', TL, back > .5 ? 'down' : 'reachR', 1.4);
+    person(124, 196, '#2c2f52', g > .6 ? '#ff6a5a' : TB, g > .6 ? 'reachL' : 'down', 1.4);
+    if (g > 0 && back <= 0) arrow(74, 150, rd(30 * g), TL, 1);
+    if (g > .6) angry(136, 152, fadeIn(k, .35));
+    if (back > 0) arrow(108, 160, -rd(40 * back), '#ff6a5a', 1);
+    if (back >= 1) clash(62, 166, t, fadeIn(k, .75, .1) * (k < .95 ? 1 : 0));
+    BA('逆効果', 90, 64, 24, KI, fadeIn(k, .6, .3));
+  } else if (lt < 3) {
+    // 人を 咎めるのは 人間の 慢心
+    const k = lt - 2, g = fadeIn(k, .3, .3);
+    room(t, .5);
+    BA('慢心', 90, 48, 30, MAN, fadeIn(k, .05, .3));
+    tag('人間の おごり', 90, 88, HO, fadeIn(k, .4), 9);
+    R(48, 186, 44, 16, '#4a4060'); R(48, 186, 44, 2, '#7a70a0');
+    personRot(70, 186, -.18 * g, '#2c2f52', mix(TL, '#c890f0', g), 'reachR', 1.4);
+    bowing(130, 196, .3, TB, 1.2, 1, -1);
+    if (g > .5) A((g - .5) * 2, () => { for (let i = 0; i < 3; i++) P(58 - i * 4, 140 - i * 3 + rd(Math.sin(t * 4 + i)), '#c890f0', 2); });
+  } else {
+    // 霊的に 見れば 咎める人の方が 下にいる
+    const k = lt - 3, g = ease(clamp((k - .3) / .4));
+    room(t, .6);
+    tag('霊的に 見ると', 90, 20, KAMI, 1, 9);
+    for (let i = 0; i < 5; i++) { const h = (i + 1) * 16; R(16 + i * 30, 202 - h, 30, h, '#3a3458'); R(16 + i * 30, 202 - h, 30, 2, '#7a70a0'); }
+    // 咎められる人：上の段。咎める人：いちばん下の段
+    const hy = 202 - 4 * 16;
+    if (g > 0) halo(136, hy - 18, 16, t, '#fff1b0', g * .7);
+    person(136, hy, '#2c2f52', mix(TB, '#ffd84a', g), 'down', 1.2);
+    person(30, 186, '#2c2f52', TL, 'reachR', 1.2);
+    vArrow(70, 142, rd(24 * g), KAMI, g);
+    tag('咎める人の方が 下', 72, 64, KI, fadeIn(k, .6), 9);
+  }
+}
+
+// ---------- 場面3：坂を転がり落ちる大石 ----------
+function scene3(lt, t) {
+  const HX = 112; // 止めようとする人の場所
+  if (lt < 1) {
+    // 過ちを 犯しているとき 無理に 止めさせる
+    const k = lt, q = .12 * ease(clamp(k / .7));
+    room(t, .5); hill();
+    const b = boulder(q, 0);
+    tag('過ち', b.x, b.y - 18, KI, 1, 9);
+    person(HX, rd(slopeY(HX)), '#2c2f52', '#9a90d0', 'reachL', 1.3, fadeIn(k, .3));
+    tag('無理に 止めると…', 120, 40, HO, fadeIn(k, .5), 9);
+  } else if (lt < 2) {
+    // 坂を 転がり落ちる 大石を 途中で 止める
+    const k = lt - 1, g = ease(clamp(k / .55)), q = lerp(.12, .43, g);
+    room(t, .5); hill();
+    const b = boulder(q, 0);
+    if (g < 1) for (let i = 1; i <= 3; i++) A(.5 - i * .12, () => P(b.x - 10 - i * 5, b.y + 4 - i * 4, '#c8c0b0', 2));
+    person(HX, rd(slopeY(HX)), '#2c2f52', '#9a90d0', 'reachL', 1.3);
+    if (g >= 1) { clash(b.x + 9, b.y, t, fadeIn(k, .55, .05)); sweat(HX + 6, rd(slopeY(HX)) - 36, t); }
+    tag('途中で 止める', 116, 40, HO, 1, 9);
+  } else if (lt < 3) {
+    // 止めた 自分が 怪我を する
+    const k = lt - 2, g = ease(clamp((k - .05) / .6)), q = lerp(.43, 1, g), f = fadeIn(k, .05, .2);
+    room(t, .5); hill();
+    personRot(HX + 4, rd(slopeY(HX + 4)), 1.3 * f, '#2c2f52', mix('#9a90d0', '#ff6a5a', f), 'down', 1.3);
+    if (f > .5) for (let i = 0; i < 3; i++) { const an = t * 4 + i * 2.1; spark(rd(HX + 22 + Math.cos(an) * 7), rd(slopeY(HX) - 10 + Math.sin(an) * 4), '#ffd84a', 1); }
+    boulder(q, 0);
+    BA('怪我', 60, 40, 26, KI, fadeIn(k, .4, .3));
+    tag('自分が 傷つく', 60, 66, HO, fadeIn(k, .55), 9);
+  } else if (lt < 4) {
+    // 下まで 落ちて 本人が 自ら 目を覚ます
+    const k = lt - 3, e = k > .45 ? 1 : 0;
+    room(t, .5);
+    A(fadeIn(k, .3, .5) * .5, () => R(0, 0, W, 202, '#2a5aa8'));
+    sun(150, 52, t, 11);
+    hill();
+    halo(14, 70, 14, t, '#a8e8a0', fadeIn(k, .2));
+    person(14, SLY0, '#2c2f52', '#a8e8a0', 'down', 1.1);
+    tag('待つ', 14, 40, HIKI, fadeIn(k, .2), 8);
+    const b = boulder(1, e);
+    if (e) { bubble(b.x - 14, b.y - 24, '！', fadeIn(k, .45, .1)); spark(b.x + 12, b.y - 12, '#fff1b0', 2); }
+    tag('自ら 目を 覚ます', 96, 110, GO, fadeIn(k, .55), 9);
+  } else {
+    // 心から 悔い改めるのを 待つ それが 本当の愛
+    const k = lt - 4, g = ease(clamp((k - .1) / .35));
+    dayRoom(t, 1);
+    rays(90, .4 * fadeIn(k, .4, .4), t);
+    BA('本当の愛', 90, 36, 24, AI, fadeIn(k, .5, .3));
+    tag('心から 悔い改める', 90, 68, HO, fadeIn(k, .1), 9);
+    bowing(64, 196, g, TB, 1.4, 1, 1);
+    if (g > .5) { tear(76, 172, t); tear(79, 174, t + .5); }
+    halo(118, 170, 22, t, '#a8e8a0', fadeIn(k, .4));
+    person(118, 196, '#2c2f52', '#a8e8a0', 'down', 1.4);
+    if (k > .55) A(fadeIn(k, .55) * (.7 + .3 * Math.sin(t * 5)), () => heart(92, 126, 6, '#ff8ab0'));
+  }
+}
+
+// ---------- 場面4：人間の判断の限界 ----------
+function scene4(lt, t) {
+  if (lt < 1) {
+    // 何が 本当に 良いか 悪いか 分からない
+    const k = lt, an = Math.sin(t * 2.2) * .25;
+    room(t, .5);
+    tag('本当に 良いか 悪いか', 90, 20, HO, 1, 9);
+    scales(90, 92, an, fadeIn(k, 0, .3));
+    tag('良', rd(90 - Math.cos(an) * 34), rd(92 - Math.sin(an) * 34) + 6, OK, fadeIn(k, .2), 10);
+    tag('悪', rd(90 + Math.cos(an) * 34), rd(92 + Math.sin(an) * 34) + 6, KI, fadeIn(k, .2), 10);
+    person(40, 196, '#2c2f52', '#9a90d0', 'down', 1.2);
+    bubble(52, 140, '？', fadeIn(k, .45));
+    tag('人間には 分からない', 90, 62, KI, fadeIn(k, .6), 9);
+  } else if (lt < 2) {
+    // 善いと 思ってしたことも 神の目には 邪魔
+    const k = lt - 1, g = ease(clamp((k - .3) / .25));
+    dayRoom(t, 1);
+    rays(90, .5, t, rd(lerp(202, 150, g)));
+    tag('善いと 思っても', 90, 20, HO, 1, 9);
+    [70, 110, 58, 122].forEach((x, i) => flower(x, 202, g * (i < 2 ? 1 : .6), i % 2 ? '#ffd84a' : '#ff8ab0'));
+    if (g <= 0) person(90, 196, '#2c2f52', '#9a90d0', 'down', 1.4);
+    else {
+      person(90, 196, '#2c2f52', '#9a90d0', 'up', 1.4);
+      const by = rd(lerp(170, 148, g));
+      R(68, by - 6, 44, 10, '#8a6a4a'); R(68, by - 6, 44, 1, '#b08a5a');
+      T('善', 90, by - 1, 8, '#fff1b0');
+      A(.2 * g, () => R(66, by + 4, 48, 198 - by - 4, '#0d0b18'));
+    }
+    tag('神の目には じゃま', 90, 60, KI, fadeIn(k, .6), 9);
+  } else {
+    // 自分が 絶対 正しいと 思うのは 慢心
+    const k = lt - 2;
+    room(t, .5);
+    person(90, 196, '#2c2f52', mix('#9a90d0', '#c890f0', fadeIn(k, .4)), 'up', 1.4);
+    say(90, 124, '絶対 正しい', '#8a2a20', fadeIn(k, .05));
+    warnSign(90, 56, 1.5, fadeIn(k, .35, .2));
+    tag('慢心に 注意', 90, 92, MAN, fadeIn(k, .5), 10);
+  }
+}
+
+// ---------- 場面5：神に恥じない ----------
+function scene5(lt, t) {
+  if (lt < 1) {
+    // 細かい 理屈で 決めつけ 人の 悪い所ばかり 見る
+    const k = lt, lx = 116 + rd(Math.sin(t * 2) * 4), ly = 162 + rd(Math.cos(t * 1.6) * 6);
+    room(t, .5);
+    tag('細かい 理屈で 決めつけ', 90, 20, HO, 1, 9);
+    person(52, 196, '#2c2f52', TL, 'reachR', 1.5);
+    person(128, 196, '#2c2f52', TB, 'down', 1.5);
+    spots(128, 196, 1.5, fadeIn(k, .3));
+    loupe(lx, ly, 10, fadeIn(k, .15));
+    tag('悪い所 ばかり', 90, 60, KI, fadeIn(k, .5), 9);
+  } else if (lt < 2) {
+    // 「小乗的」な 考え方は 避ける
+    const k = lt - 1;
+    room(t, .5);
+    BA('小乗', 90, 44, 30, MAN, fadeIn(k, .05, .3));
+    tag('せまい 考え方', 90, 82, HO, fadeIn(k, .2), 9);
+    const cx = 90 + rd(Math.sin(t * 3) * 2);
+    person(cx, 186, '#2c2f52', '#9a90d0', 'down', .8);
+    cart(cx, 202);
+    bigX(90, 160, 22, fadeIn(k, .5, .2));
+    tag('避けよう', 90, 112, HIKI, fadeIn(k, .6), 10);
+  } else if (lt < 3) {
+    // 悪意の 悪口は 自分に 罪を 着せる
+    const k = lt - 2, q = ease(clamp((k - .1) / .35)), g = fadeIn(k, .5, .3);
+    room(t, .5);
+    tag('悪意の 悪口は', 90, 20, JA, 1, 9);
+    person(52, 196, '#2c2f52', mix(TL, '#c890f0', g), 'reachR', 1.4);
+    person(132, 196, '#2c2f52', TB, 'down', 1.4);
+    if (q < 1) rumor(rd(lerp(72, 120, q)), 140, 'わる口', 1);
+    else rumor(120, 140, 'わる口', 1 - g);
+    darkCloud(46, 112, t, g, true);
+    BA('罪', 52, 70, 26, JA, g);
+    tag('自分に 着せる', 118, 70, KI, fadeIn(k, .65), 9);
+  } else if (lt < 4) {
+    // 悪口を 言われても 気にしない
+    const k = lt - 3;
+    dayRoom(t, 1);
+    tag('悪口を 言われても', 90, 20, HO, 1, 9);
+    halo(90, 168, 24, t, '#a8e8a0', fadeIn(k, .2));
+    person(90, 196, '#2c2f52', '#a8e8a0', 'down', 1.5);
+    [[20, 120], [160, 132], [24, 160], [156, 100]].forEach(([sx, sy], i) => {
+      const q = ((t * .5 + i * .27) % 1);
+      rumor(rd(lerp(sx, sx < 90 ? 64 : 116, q)), sy, 'わる口', fadeIn(k, .1 + i * .08) * (1 - q));
+    });
+    tag('気にしない', 90, 60, HIKI, fadeIn(k, .5), 11);
+  } else if (lt < 5) {
+    // 人に どう 思われるかより 天地の神に 恥じない
+    const k = lt - 4, g = fadeIn(k, .35, .3);
+    dayRoom(t, 1);
+    sun(90, 44, t, 12);
+    tag('天地の神に 恥じない', 90, 80, GO, fadeIn(k, .4), 9);
+    [18, 40, 140, 162].forEach((x, i) => {
+      person(x, 196, '#2c2f52', '#8a84a8', 'down', 1, 1 - .6 * g);
+      bubble(x + 6, 152 - (i % 2) * 8, '？', fadeIn(k, .05 + i * .05) * (1 - .8 * g));
+    });
+    halo(90, 170, 20, t, '#ffd84a', g);
+    bowing(90, 196, .3 * g, '#ffd84a', 1.4, 1, 1);
+    tag('人の目より', 90, 112, HO, fadeIn(k, .05) * (1 - g * .5), 8);
+  } else {
+    // 神から 愛される ことの方が 大切
+    const k = lt - 5, q = ease(clamp((k - .1) / .45));
+    dayRoom(t, 1);
+    rays(90, .55, t);
+    heart(90, rd(lerp(24, 128, q)), 8, '#ff8ab0');
+    if (q >= 1) for (let i = 0; i < 6; i++) { const an = i * Math.PI / 3 + t; spark(rd(90 + Math.cos(an) * 22), rd(130 + Math.sin(an) * 14), '#fff1b0', 1); }
+    person(90, 196, '#2c2f52', q >= 1 ? '#ffd84a' : '#9a90d0', q >= 1 ? 'up' : 'down', 1.5);
+    tag('神から 愛される', 90, 20, AI, fadeIn(k, .55), 10);
+  }
+}
+
+// ---------- 場面6：天国的な救い ----------
+function scene6(lt, t) {
+  if (lt < 1) {
+    // これまでの 宗教のような 骨を折る 地獄的な やり方
+    const k = lt, push = rd(Math.sin(t * 5) * 1.5), g = fadeIn(k, .55, .3);
+    room(t, .3);
+    A(.4, () => R(0, 0, 90, 202, '#2a0a10'));
+    daySky(90, 90, g);
+    R(89, 0, 2, 202, '#3a3358');
+    // 左：坂の下から 大石を押し上げる
+    for (let x = 0; x < 90; x += 2) { const y = rd(202 - x * .5); R(x, y, 2, 202 - y, '#4a3020'); R(x, y, 2, 2, '#6a4a2a'); }
+    const bx = 56 + push, by = rd(202 - bx * .5) - 9;
+    disc(bx, by, 10, '#3a3630'); disc(bx, by, 9, '#7a7468');
+    personRot(36 + push, rd(202 - (36 + push) * .5), .45, '#2c2f52', '#ff9a8a', 'reachR', 1.2);
+    sweat(30, 152, t); sweat(40, 148, t + .4);
+    tag('骨を折る', 45, 54, HO, 1, 9);
+    BA('地獄的', 45, 82, 20, KI, fadeIn(k, .2, .3));
+    // 右：明るい世界（これから）
+    A(g, () => { flower(110, 202, 0, '#ff8ab0'); flower(162, 202, 0, '#ffd84a'); });
+    person(136, 196, '#2c2f52', '#ffd84a', 'up', 1.2, g);
+    tag('天国を 造る', 135, 54, GO, g, 9);
+  } else {
+    // 真の救いは 天国を 造る 楽々と行く 天的な やり方で
+    const k = lt - 1, g = fadeIn(k, .2, .4);
+    dayRoom(t, 1);
+    rays(90, .5 * g, t);
+    BA('楽々', 90, 38, 30, HIKI, fadeIn(k, .05, .3));
+    tag('天的な やり方で', 90, 74, GO, fadeIn(k, .3), 10);
+    [8, 36, 64, 116, 144, 172].forEach((x, i) => flower(x, 202, 0, i % 2 ? '#ffd84a' : '#ff8ab0'));
+    [[50, 0], [90, 1], [130, 2]].forEach(([x, i]) => {
+      const hop = Math.floor(t * 3 + i) % 2;
+      person(x + rd(Math.sin(t * 1.5 + i) * 4), 196 - hop * 2, '#2c2f52', '#ffd84a', hop ? 'up' : 'down', 1.3);
+    });
+    if (k > .4) { firework(36, 108, (t * .7) % 1, '#ffd84a'); firework(146, 100, (t * .7 + .5) % 1, '#9fe0a0'); A(fadeIn(k, .4) * (.7 + .3 * Math.sin(t * 5)), () => heart(90, 120, 5, '#ff8ab0')); }
+  }
+}
+
+// ---------- 進行 ----------
+const SCENES = [
+  [0, 1, scene1, '序 咎むる勿れ'],
+  [1, 5, scene2, '一 咎めの戒め'],
+  [5, 10, scene3, '二 坂を落ちる大石'],
+  [10, 13, scene4, '三 人の判断の限界'],
+  [13, 19, scene5, '四 神に恥じない'],
+  [19, 21, scene6, '結 天的な救い'],
+];
+
+
+function frame(t) {
+  lastVT = t;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  const sc = SCENES.find(s => t >= s[0] && t < s[1]) || SCENES[SCENES.length - 1];
+  const lt = t - sc[0];
+  sc[2](lt, AT);
+  // 場面の見出し
+  T(sc[3], 4, 6, 6.5, '#f3ead6', 'left', clamp(1.6 - lt) * .9 + .25);
+  // 場面の切りかわり（黒くフェード）
+  const d = Math.min(t - sc[0] + (sc[0] === 0 ? 9 : 0), sc[1] - t + (sc[1] === DUR ? 9 : 0));
+  if (d < .05) A(1 - d / .05, () => R(0, 0, W, SH, '#000'));
+  // 終わり：ゆっくり暗くして「ご視聴ありがとうございました」
+  if (t > DUR) {
+    const e = t - DUR;
+    A(clamp(e / 1.2) * .93, () => R(0, 0, W, SH, "#000"));
+    T("ご視聴", 90, 80, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
+    T("ありがとう", 90, 104, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
+    T("ございました", 90, 128, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
+  }
+  captions(t);
+  // 字幕の左：いま読んでいる人（めたん・つむぎ・はう・小夜）がしゃべる。オレンジのキャラクターはタイトルの左
+  const ci = CAPS.findIndex(c => t >= c[0] && t < c[1]), si = ci < 0 ? CAPS.length - 1 : ci;
+  speakerDot(voiceOf(si), 9, 227, AT, playing && speaking && si === seg);
+}
+
+// ---------- 進み方：字幕1つずつ、読み上げが終わってから次へ ----------
+let AT = 0; // AT：鼓動や粒の動き用の時計（字幕の進みとは別に、いつも同じ速さで進む）
+let running = false, playing = false, muted = false, seg = 0, pos = 0, lastNow = 0, waitT = 0, speaking = false;
+const STARTS = []; let TOTAL = 0;
+CAPS.forEach(c => { STARTS.push(TOTAL); TOTAL += c.dur; });
+const segAt = p => { let i = 0; while (i < CAPS.length - 1 && p >= STARTS[i + 1]) i++; return i; };
+function loop(now) {
+  const dt = Math.min(.1, (now - lastNow) / 1000); lastNow = now;
+  if (playing) {
+    AT += dt / 1.4;
+    const end = STARTS[seg] + CAPS[seg].dur;
+    let np = pos + dt;
+    if (np >= end) {
+      // 読み上げがまだ続いていたら、終わるまで待つ（声が出ない端末のため 8 秒で打ち切る）
+      if (speaking && !muted && waitT < 8) { np = end - .001; waitT += dt; }
+      else if (seg < CAPS.length - 1) { np = end; enterSeg(seg + 1, true); }
+      else { np = TOTAL; finish(); }
+    }
+    pos = np;
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+function draw() {
+  const i = segAt(Math.min(pos, TOTAL - .001)), c = CAPS[i];
+  const k = pos >= TOTAL ? 1 : clamp((pos - STARTS[i]) / c.dur);
+  frame(lerp(c[0], c[1] - .001, k));
+  if (!seeking) seekBar.value = pos;
+  curT.textContent = mmss(pos);
+}
+// その字幕に入る：声を読み、効果音を鳴らす
+function enterSeg(i, sfx) {
+  seg = i; waitT = 0;
+  if (muted || !playing) { stopSpeak(); return; }
+  speak(i);
+  if (sfx && SFX[i]) try { wakeAudio(); SFX[i](); } catch (e) {}
+}
+function finish() {
+  playing = false; stopSpeak(); bgmOn(false);
+  ppBtn.textContent = '▶ もう一度';
+}
+function stopSpeak() {
+  speaking = false; cur = null;
+  if (koeSrc) { try { koeSrc.onended = null; koeSrc.stop(); } catch (e) {} koeSrc = null; }
+  try { if (ttsOK) speechSynthesis.cancel(); } catch (e) {}
+}
+
+// ---------- 操作パネル ----------
+const seekBar = document.getElementById('seekBar'), curT = document.getElementById('curT');
+const ppBtn = document.getElementById('ppBtn'), rsBtn = document.getElementById('rsBtn'), sndBtn = document.getElementById('sndBtn');
+const mmss = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+seekBar.max = TOTAL.toFixed(1);
+document.getElementById('totT').textContent = mmss(TOTAL);
+let seeking = false;
+// ---------- 女性の声で読み上げ（御神書索引と同じしくみ） ----------
+let cur = null;
+const ttsOK = 'speechSynthesis' in window;
+const MALE = ['otoya', 'ichiro', 'keita', 'hattori', 'daichi', 'naoki', 'male'];
+const FEMALE = ['kyoko', 'o-ren', 'oren', 'nanami', 'haruka', 'ayumi', 'sayaka', 'mizuki', 'female', 'google'];
+function voiceQuality(v) {
+  const s = ((v.voiceURI || '') + ' ' + (v.name || '')).toLowerCase();
+  if (s.includes('eloquence')) return -1;
+  if (s.includes('premium')) return 3;
+  if (s.includes('enhanced') || s.includes('natural') || s.includes('neural')) return 2;
+  if (s.includes('compact')) return 0;
+  return 1;
+}
+function pickVoice() {
+  let vs = []; try { vs = speechSynthesis.getVoices() || []; } catch (e) {}
+  const name = v => ((v.voiceURI || '') + ' ' + (v.name || '')).toLowerCase();
+  const ja = vs.filter(v => v.lang && v.lang.toLowerCase().replace('_', '-').startsWith('ja') && !MALE.some(m => name(v).includes(m)));
+  const rank = v => { const i = FEMALE.findIndex(f => name(v).includes(f)); return i < 0 ? FEMALE.length : i; };
+  ja.sort((a, b) => (voiceQuality(b) - voiceQuality(a)) || (rank(a) - rank(b)));
+  return ja[0] || null;
+}
+let voice = null;
+if (ttsOK) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => { voice = pickVoice(); }; } catch (e) {} }
+let lastUtter = null;
+function speakTTS(text, token) {
+  if (!ttsOK) { speaking = false; return; }
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ja-JP'; u.rate = 0.9; u.pitch = 1.1; u.volume = 1;
+    voice = voice || pickVoice(); if (voice) u.voice = voice;
+    u.onend = u.onerror = () => { if (cur === token) speaking = false; };
+    lastUtter = u; // 読み上げ中に消えないよう持っておく（消えると「読み終わり」が届かない）
+    speechSynthesis.speak(u);
+  } catch (e) { speaking = false; }
+}
+
+// ---------- ナレーション：VOICEVOX の4人（めたん・つむぎ・はう・小夜）と COEIROINK の5人（つくよみちゃん・MANA・KANA・アメノちゃん 熊本弁・リリンちゃん）で作った声（各フォルダに 00.wav〜23.wav）を流す ----------
+// 「順番」のときは、字幕1つごとに グループの人を順番に読む（VOICEVOX：めたん→つむぎ→はう→小夜→ひまり→ナースロボ、COEIROINK：つくよみ→MANA→KANA→熊本弁→リリン）（ランダムではない）。
+// iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
+// 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
+const KOE_V = 2; // 声のファイルを作り直したら 1 つ増やす（端末に残った前の声を使わないように）
+// [フォルダ, クレジットの名前, ボタンの名前, 録音の形式]。0〜3：VOICEVOX の4人、4〜8：COEIROINK の5人（アメノちゃんは熊本弁）
+const VOICES = [['koe', '四国めたん', 'めたん', 'mp3'], ['koe-tsumugi', '春日部つむぎ', 'つむぎ', 'mp3'], ['koe-hau', '雨晴はう', 'はう', 'mp3'], ['koe-sayo', '小夜/SAYO', '小夜', 'mp3'],
+  ['koe-tsukuyomi', 'つくよみちゃん', 'つくよみ', 'mp3'], ['koe-mana', 'MANA', 'MANA', 'mp3'], ['koe-kana', 'KANA', 'KANA', 'mp3'], ['koe-lilin', 'リリンちゃん', 'リリン', 'mp3'],
+  ['koe-ameno-kuma', 'アメノちゃん', '熊本弁', 'mp3'],
+  ['koe-mao', 'まお', 'まお', 'mp3'], ['koe-mai', 'まい', 'まい', 'mp3'], ['koe-kohaku', 'コハク', 'コハク', 'mp3'],
+  ['koe-runa', 'るな', 'るな', 'mp3'], ['koe-sakurane', '桜音', '桜音', 'mp3'], ['koe-chuni', '中2', '中2', 'mp3'],
+  ['koe-kanon', '花音', '花音', 'mp3'],
+  ['koe-himari', '冥鳴ひまり', 'ひまり', 'mp3'], ['koe-nurserobo', 'ナースロボ＿タイプＴ', 'ナースロボ', 'mp3']];
+// 「声」のグループ：VOICEVOX・COEIROINK・AivisSpeech（ボタンで切り替える）。ランダムは全員から選ぶ
+// COEIROINK の並び：つくよみ→MANA→KANA→熊本弁→リリン（リリンをいちばん最後に）
+const ENGINES = [['VOICEVOX', [0, 1, 2, 3, 16, 17]], ['COEIROINK', [4, 5, 6, 8, 7]], ['AivisSpeech', [9, 10, 11, 14, 12, 15, 13]]]; // AivisSpeech の並び：まお→まい→コハク→中2→るな→花音→桜音
+const RAND = ENGINES.length; // 「ランダム」のボタンの番号
+const ALL = VOICES.map((v, i) => i);
+const MIX = -1; // 「順番」
+const koeOK = VOICES.map(() => []), koeRaw = VOICES.map(() => []), koeBuf = VOICES.map(() => []); // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
+// 声の録音は、いま読む字幕とその少し先の分だけ読みこむ（全部の声を一度に用意すると、iPhone などでメモリが足りなくなってページが落ちるため）
+function koeFetch(v, i) {
+  if (!koeRaw[v][i]) koeRaw[v][i] = fetch(VOICES[v][0] + '/' + String(i).padStart(2, '0') + '.' + (VOICES[v][3] || 'wav') + '?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[v][i] = !!ab; return ab; });
+  return koeRaw[v][i];
+}
+// 字幕 i の前1つ〜先3つの読み手の声だけを用意して、それ以外は捨てる（捨てた分は、また要るときに読み直す）
+const KOE_BACK = 1, KOE_AHEAD = 3;
+function koePrepare(i) {
+  const keep = VOICES.map(() => []);
+  for (let k = Math.max(0, i - KOE_BACK); k <= Math.min(CAPS.length - 1, i + KOE_AHEAD); k++) {
+    const v = voiceOf(k); keep[v][k] = true;
+    koeFetch(v, k);
+    if (ac && k >= i) koeDecode(v, k);
+  }
+  VOICES.forEach((x, v) => CAPS.forEach((c, k) => { if (!keep[v][k]) { koeRaw[v][k] = null; koeBuf[v][k] = null; } }));
+}
+let voiceNo = MIX;
+let vset = 0; // 0：VOICEVOX、1：COEIROINK、2：AivisSpeech、3：ランダム（全員から字幕ごとに選ぶ）
+try { const n = parseInt(localStorage.getItem('togamuVoice4')); if (n >= MIX && n < 7) voiceNo = n; } catch (e) {}
+try { const n = parseInt(localStorage.getItem('togamuEngine')); if (n >= 0 && n <= RAND) vset = n; } catch (e) {}
+// 字幕ごとの読み手（「順番」のとき）
+let segVoice = [], randVoice = [];
+function shuffleVoices() {
+  segVoice = []; randVoice = [];
+  CAPS.forEach((c, i) => segVoice.push(i)); // 「順番」：グループの人を、字幕ごとに順番にくり返す（ランダムではない）
+  // 「ランダム」のとき：VOICEVOX・COEIROINK・AivisSpeech の全員を まぜた順に 1人ずつ。全員が話し終わったら（1周したら）まぜ直して次の周へ。
+  // 周の切れ目でも、前の周の最後の人が 次の周の最初にならないようにする
+  while (randVoice.length < CAPS.length) {
+    const bag = ALL.slice();
+    for (let k = bag.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [bag[k], bag[j]] = [bag[j], bag[k]]; }
+    if (randVoice.length && bag[0] === randVoice[randVoice.length - 1]) bag.push(bag.shift());
+    randVoice.push(...bag);
+  }
+  randVoice.length = CAPS.length;
+}
+shuffleVoices();
+const group = () => ENGINES[vset][1];
+const voiceOf = i => vset === RAND ? randVoice[i] : voiceNo === MIX ? group()[segVoice[i] % group().length] : group()[voiceNo];
+function koeDecode(v, i) {
+  if (!koeBuf[v][i]) koeBuf[v][i] = koeFetch(v, i).then(ab => ab && new Promise(res => {
+    try { ac.decodeAudioData(ab.slice(0), b => res(b), () => res(null)); } catch (e) { res(null); }
+  }));
+  return koeBuf[v][i];
+}
+let koeSrc = null;
+function speak(i) {
+  stopSpeak();
+  speaking = true;
+  const token = {}; cur = token;
+  const v = voiceOf(i);
+  koePrepare(i);
+  if (!ac || koeOK[v][i] === false) { speakTTS(CAPS[i][4], token); return; }
+  koeDecode(v, i).then(b => {
+    if (cur !== token) return; // もう別の字幕に進んだ・止めた
+    if (!b) { speakTTS(CAPS[i][4], token); return; }
+    const s = ac.createBufferSource(); s.buffer = b;
+    s.connect(ac.destination);
+    s.onended = () => { if (cur === token) speaking = false; };
+    koeSrc = s; s.start();
+  });
+}
+
+// ---------- 音楽と効果音（Web Audio で作る） ----------
+let ac = null, bgm = null;
+function tone(f, at, len, type, vol, f2, dest) {
+  const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + at;
+  o.type = type; o.frequency.setValueAtTime(f, t0);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + len);
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .01);
+  g.gain.exponentialRampToValueAtTime(.0001, t0 + len);
+  o.connect(g).connect(dest || ac.destination); o.start(t0); o.stop(t0 + len + .05);
+}
+// ざわざわした音（ゴォー・シュワー・息など）。type と freq で音色、up で「だんだん大きく」
+function noise(at, len, vol, freq = 900, type = 'bandpass', up = 0, q = 1) {
+  const b = ac.createBuffer(1, ac.sampleRate * len, ac.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const s = ac.createBufferSource(), g = ac.createGain(), fl = ac.createBiquadFilter(), t0 = ac.currentTime + at;
+  fl.type = type; fl.frequency.value = freq; fl.Q.value = q;
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .02 + up * len);
+  g.gain.linearRampToValueAtTime(0, t0 + len);
+  s.buffer = b; s.connect(fl).connect(g).connect(ac.destination); s.start(t0);
+}
+const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
+// 背景の音楽：声が聞こえるように小さく、ゆっくり（1拍 = 0.5秒）
+const MEL = [67,69,72,74,72,69,67,64, 67,72,74,76,74,72,69,67], BASS = [48,48,43,43,45,45,43,43];
+let beat = 0, nextBeat = 0;
+function bgmTick() {
+  if (!ac) return;
+  while (nextBeat < ac.currentTime + .6) {
+    const at = nextBeat - ac.currentTime;
+    tone(NOTE(MEL[beat % 16]), at, .45, 'triangle', .05, 0, bgm);
+    if (beat % 2 === 0) tone(NOTE(BASS[(beat >> 1) % 8]), at, .9, 'triangle', .1, 0, bgm);
+    beat++; nextBeat += .5;
+  }
+  setTimeout(bgmTick, 200);
+}
+const chime = () => { tone(1320, 0, .25, 'sine', .1); tone(1760, .08, .3, 'sine', .08); };
+// 雷の音（ゴロッ・ピシャッ）：前の版の発熱の音。いきなり大きく鳴って、だんだん消える
+function thunder(at, len, vol) {
+  const b = ac.createBuffer(1, ac.sampleRate * len, ac.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+  const s = ac.createBufferSource(), g = ac.createGain(), fl = ac.createBiquadFilter();
+  fl.type = "bandpass"; fl.frequency.value = 900; g.gain.value = vol;
+  s.buffer = b; s.connect(fl).connect(g).connect(ac.destination); s.start(ac.currentTime + at);
+}
+// 心臓の音（ドクン）：低い音を2つ続ける
+// iPhone のスピーカーは低い音が出にくいので、少し高めの音を重ねる
+const thump = at => { tone(170, at, .16, "triangle", .4, 70); tone(80, at, .18, "sine", .4, 40); tone(140, at + .2, .14, "triangle", .3, 60); };
+// 字幕の番号ごとの効果音（場面に合わせて1回ずつ）
+const rise = (ns, at, gap, len, type = 'sine', vol = .04) => ns.forEach((n, i) => tone(NOTE(n), at + i * gap, len, type, vol));
+const SFX = {
+  0: () => { tone(220, .2, 2.4, 'sine', .1); rise([64, 67, 71, 76], .8, .3, .7, 'sine', .05); },                    // ゴーン・咎むる勿れ
+  1: () => { tone(220, .2, 2.0, 'sine', .07); rise([72, 76, 79], .5, .3, .9, 'sine', .04); noise(1.6, .25, .05, 1200); }, // 神の光 → バツ
+  2: () => { tone(NOTE(62), .4, .2, 'square', .03); tone(NOTE(55), .9, .3, 'square', .04); noise(1.3, .15, .07, 900, 'lowpass'); tone(120, 1.3, .2, 'square', .04, 70); }, // 反発・ぶつかる
+  3: () => { tone(NOTE(45), .2, 1.8, 'sawtooth', .03); rise([70, 73, 76], .6, .25, .5, 'square', .025); },             // 慢心
+  4: () => { [0, 1, 2, 3, 4].forEach(i => tone(NOTE(60 + i * 2), .3 + i * .15, .25, 'triangle', .035)); chime(); },  // 階段・霊的に見ると
+  5: () => { noise(.4, 1.2, .03, 300, 'lowpass', .5); },                                                               // ゴロ…
+  6: () => { noise(.1, 1.8, .05, 260, 'lowpass', .6); tone(120, 1.9, .25, 'square', .05, 60); },                     // ゴロゴロ → ドン
+  7: () => { noise(.1, .2, .08, 900, 'lowpass'); tone(700, .2, .5, 'triangle', .04, 200); noise(.6, 1.2, .04, 260, 'lowpass', .2); }, // いたっ・ゴロゴロ
+  8: () => { tone(90, .1, .4, 'sine', .15, 50); rise([67, 72, 76], 1.4, .2, .5, 'sine', .05); chime(); },             // ドスン → 目を覚ます！
+  9: () => { rise([60, 64, 67, 72, 76], .5, .3, .9, 'sine', .04); chime(); },                                          // 本当の愛
+  10: () => { [0, .5, 1, 1.5].forEach((d, i) => tone(NOTE(i % 2 ? 64 : 67), .3 + d, .3, 'triangle', .035)); tone(NOTE(71), 2.0, .4, 'sine', .04, NOTE(66)); }, // ゆらゆら・？
+  11: () => { rise([67, 72, 76], .3, .2, .6, 'sine', .04); [0, .3, .6].forEach((d, i) => tone(NOTE(67 - i * 4), 1.4 + d, .3, 'square', .025)); }, // 善い → しおれる
+  12: () => { tone(NOTE(76), .5, .15, 'square', .04); tone(NOTE(76), .75, .15, 'square', .04); },                    // 注意！
+  13: () => { [0, .2, .4, .6].forEach(d => tone(NOTE(84), .4 + d, .06, 'square', .02)); tone(NOTE(50), 1.3, .6, 'sawtooth', .025); }, // じろじろ
+  14: () => { [0, .25, .5].forEach(d => tone(NOTE(55), .3 + d, .12, 'square', .03)); noise(1.2, .25, .05, 1200); }, // 小乗 → バツ
+  15: () => { [0, .35, .7].forEach(d => noise(.3 + d, .3, .03, 1800, 'bandpass')); thunder(1.6, 1.0, .06); },       // ひそひそ → ゴロゴロ
+  16: () => { [0, .5, 1].forEach(d => tone(NOTE(72), .4 + d, .15, 'sine', .03)); rise([67, 72, 76, 79], 1.5, .2, .8, 'sine', .04); }, // へいき
+  17: () => { tone(220, .2, 2.2, 'sine', .07); rise([64, 67, 72, 76], .8, .25, .8, 'triangle', .04); },              // 天地の神
+  18: () => { rise([72, 76, 79, 84], .3, .3, .9, 'sine', .04); chime(); },                                           // 神の愛
+  19: () => { [0, .6, 1.2].forEach(d => { tone(NOTE(43), .3 + d, .4, 'sawtooth', .03); noise(.3 + d, .3, .03, 400, 'lowpass'); }); }, // うんうん（重い）
+  20: () => { tone(220, .2, 2.2, 'sine', .08); rise([67, 72, 76, 79, 84], .5, .18, .8, 'triangle', .05); chime(); }, // 楽々・天的
+  21: () => { bgm.gain.setTargetAtTime(0, ac.currentTime, 1.2); [60, 64, 67, 72].forEach((n, i) => tone(NOTE(n), i * .25, 3.5 - i * .25, "triangle", .07)); }, // 終わりの和音と音楽のフェードアウト
+};
+function startSound() {
+  try {
+    // iPhone の消音スイッチが入っていても声と音が出るようにする（声も音もすべて Web Audio で鳴らすので使える）
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+    if (!ac) {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      ac.onstatechange = () => { if (playing && !muted) wakeAudio(); };
+      bgm = ac.createGain(); bgm.gain.value = 0; bgm.connect(ac.destination);
+      nextBeat = ac.currentTime + .1; bgmTick();
+      koePrepare(seg); // いまの字幕の少し先までの声を先に準備しておく
+    }
+    ac.resume();
+  } catch (e) {}
+}
+// iPhone で声の読み上げなどのあと音が止まっていたら、また鳴るようにする
+function wakeAudio() { try { if (ac && ac.state !== "running") ac.resume(); } catch (e) {} }
+// 背景の音楽を出す・止める（音量を上げ下げする）
+function bgmOn(on) { if (bgm) bgm.gain.setTargetAtTime(on && !muted ? .7 : 0, ac.currentTime, .15); }
+
+// 最初から再生（ボタンを押したその場で声を出す：iPhone は押した瞬間でないと声が出ないため）
+function playFromStart() {
+  startSound();
+  document.getElementById('startBox').classList.add('hide');
+  pos = 0; AT = 0; playing = true; bgmOn(true);
+  ppBtn.textContent = '⏸ 一時停止';
+  shuffleVoices();
+  enterSeg(0, true);
+  if (!running) { running = true; lastNow = performance.now(); requestAnimationFrame(loop); }
+}
+document.getElementById('startBtn').onclick = playFromStart;
+rsBtn.onclick = playFromStart;
+ppBtn.onclick = () => {
+  if (!running || pos >= TOTAL) { playFromStart(); return; }
+  playing = !playing;
+  if (playing) {
+    startSound(); bgmOn(true); ppBtn.textContent = '⏸ 一時停止';
+    enterSeg(segAt(pos), false); // 止めたところの字幕を、もう一度読む
+  } else {
+    stopSpeak(); bgmOn(false); ppBtn.textContent = '▶ 再生';
+  }
+};
+// 再生位置のバー：動かすと好きな場面へ
+seekBar.addEventListener('input', () => {
+  seeking = true; stopSpeak();
+  pos = Math.min(parseFloat(seekBar.value), TOTAL - .01); seg = segAt(pos);
+  if (!running) draw();
+});
+seekBar.addEventListener('change', () => {
+  seeking = false;
+  if (!running) { playFromStart(); pos = parseFloat(seekBar.value); seg = segAt(pos); enterSeg(seg, false); return; }
+  if (pos < TOTAL && !playing && ppBtn.textContent === '▶ もう一度') { playing = true; bgmOn(true); ppBtn.textContent = '⏸ 一時停止'; }
+  if (playing) enterSeg(seg, false);
+});
+// 声・音のオン・オフ
+sndBtn.onclick = () => {
+  muted = !muted;
+  sndBtn.textContent = muted ? '🔇 声・音 OFF' : '🔊 声・音 ON';
+  sndBtn.classList.toggle('off', muted);
+  if (muted) { stopSpeak(); bgmOn(false); }
+  else if (playing) { startSound(); bgmOn(true); enterSeg(seg, false); }
+};
+
+// 声を選ぶ：選んだ声で、いまの字幕から読み直す
+const eBtns = document.querySelectorAll('.voices button[data-e]'), nameRow = document.getElementById('nameRow');
+const useVoices = () => vset === RAND ? ALL : voiceNo === MIX ? group() : [group()[voiceNo]];
+// 1人を選ぶ段：いまのグループの人数ぶん、ボタンを作り直す
+function makeNameBtns() {
+  nameRow.querySelectorAll('button').forEach(b => b.remove());
+  if (vset === RAND) return;
+  [MIX, ...group().map((v, k) => k)].forEach(k => {
+    const b = document.createElement('button');
+    b.dataset.v = k; b.textContent = k === MIX ? '順番' : VOICES[group()[k]][2];
+    b.onclick = () => {
+      voiceNo = k;
+      try { localStorage.setItem('togamuVoice4', voiceNo); } catch (e) {}
+      pickChanged();
+    };
+    nameRow.appendChild(b);
+  });
+  nameRow.classList.toggle('many', group().length > 4);
+}
+function showVoice() {
+  if (vset < RAND && voiceNo >= group().length) voiceNo = MIX;
+  eBtns.forEach(b => b.classList.toggle('on', +b.dataset.e === vset));
+  // ランダムのときは 1人を選ぶ段をかくす
+  nameRow.classList.toggle('hide', vset === RAND);
+  nameRow.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.v === voiceNo));
+  const cr = e => ENGINES[e][0] + ':' + [...new Set(ENGINES[e][1].filter(v => useVoices().includes(v)).map(v => VOICES[v][1]))].join('・');
+  document.getElementById('credit').textContent = '声：' + (vset === RAND ? ENGINES.map((e, k) => cr(k)).join('／') : cr(vset));
+}
+function pickChanged() {
+  showVoice(); stopSpeak(); koePrepare(seg);
+  if (playing && !muted) { startSound(); enterSeg(seg, false); }
+}
+// VOICEVOX・COEIROINK・AivisSpeech・ランダム の切り替え：選んだ方の声で、いまの字幕から読み直す
+eBtns.forEach(b => b.onclick = () => {
+  vset = +b.dataset.e;
+  if (vset === RAND) shuffleVoices(); // ランダムを押すたびに、くじを引き直す
+  try { localStorage.setItem('togamuEngine', vset); } catch (e) {}
+  makeNameBtns(); pickChanged();
+});
+makeNameBtns(); showVoice(); koePrepare(0);
+
+// ---------- タイトルの左のオレンジのキャラクター（前に字幕の左にいたときと同じ動き） ----------
+// 再生中：しゃべる（手をふる）→ 最後の場面でジャンプ → 終わったら歩く。止まっているときは歩く
+let lastVT = 0;
+(function titleMascot() {
+  const c = document.getElementById('ccTitle'); if (!c) return;
+  const g = c.getContext('2d'), q = 4, oy = 5; // 1ドット4画素。上にジャンプの分をあける
+  function draw(now) {
+    const t = now / 1000 / 1.4;
+    const mode = !playing ? 'walk' : lastVT >= DUR ? 'walk' : lastVT >= DUR - 1 ? 'jump' : 'talk';
+    const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x * q), Math.round(y * q), Math.round(w * q), Math.round(h * q)); };
+    g.clearRect(0, 0, c.width, c.height);
+    const col = '#d97757', f = Math.floor(t * 6) % 4;
+    const hop = mode === 'jump' ? -Math.abs(Math.sin(t * 7)) * 4 : (f % 2 ? -1 : 0);
+    const up = [f === 1, f === 3, f === 3, f === 1];
+    [2, 4, 7, 9].forEach((x, i) => R(x, oy + 6, 1, up[i] && mode === 'walk' ? 1 : 2, col));
+    const y0 = oy + hop;
+    R(2, y0, 8, 6, col);
+    const wave = mode === 'talk' && Math.sin(t * 10) > 0 ? -1 : 0;
+    R(0, y0 + 2 + wave, 2, 2, col); R(10, y0 + 2 - wave, 2, 2, col);
+    const blink = (t % 3) > 2.85;
+    R(3, y0 + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612'); R(8, y0 + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612');
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+
+// 最初の一枚（文字の準備ができてから）
+Promise.race([Promise.all([document.fonts.ready, document.fonts.load('20px "Yuji Syuku"', '々のむるれ乗効勿咎地小当心怪愛慢我本果楽獄的神罪逆')]), new Promise(r => setTimeout(r, 1500))]).then(() => { if (!running) frame(0.95); });
+</script>
+<!-- 更新した日時（GitHub に反映した日時が自動で出る）。画面のいちばん下（操作パネルの下）に小さく出す -->
+<script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
+var e=document.createElement('div');e.id='appVer';e.textContent='更新 '+d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+e.style.cssText='display:block;width:100%;text-align:center;font:11px/1.4 sans-serif;color:inherit;opacity:.6;margin-top:10px;pointer-events:none;';
+document.body.appendChild(e);})();</script>
+</body>
+</html>
