@@ -1,0 +1,1627 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="神人合一・メシヤ降誕">
+<title>神人合一・メシヤ降誕</title>
+<link rel="apple-touch-icon" href="icon-180.png?v=1">
+<link rel="manifest" href="meshiya.webmanifest?v=1">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05040d">
+<link rel="icon" href="icon-180.png?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&text=125%E3%81%86%E3%81%8C%E3%81%97%E3%81%9F%E3%81%A3%E3%81%A6%E3%81%A7%E3%81%A8%E3%81%AA%E3%81%AB%E3%81%AE%E3%81%BE%E3%82%8B%E3%82%92%E3%82%B7%E3%83%81%E3%83%9D%E3%83%A1%E3%83%A4%E4%B8%80%E4%B8%89%E4%B8%8A%E4%B8%8D%E4%B8%BB%E4%BA%89%E4%BA%BA%E4%BC%8A%E4%BD%BF%E5%85%83%E5%85%89%E5%85%A5%E5%86%99%E5%8E%98%E5%90%88%E5%91%BD%E5%92%8C%E5%9B%BD%E5%9C%B0%E5%A3%B2%E5%A4%A7%E5%AE%88%E5%AE%9F%E5%B0%8A%E5%B8%B8%E5%B9%B4%E5%BE%A1%E6%80%9D%E6%95%91%E6%98%AD%E6%9C%88%E6%A7%98%E6%A9%9F%E6%B9%96%E7%8E%89%E7%90%B5%E7%90%B6%E7%9C%9F%E7%9F%A5%E7%A5%9E%E7%A8%AE%E7%AB%8B%E7%AD%89%E8%80%85%E8%81%96%E8%83%BD%E8%87%A8%E8%A6%B3%E8%AA%95%E8%AD%B0%E8%AD%B7%E8%BA%AB%E9%82%87%E9%83%BD%E9%96%A2%E9%97%98%E9%99%8D%E9%9F%B3%E9%AD%82%E9%BA%BB&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  /* iPhone で ほかの画面から戻ったときなどに、文字が勝手に大きくならないようにする */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { font-family: "DotGothic16", sans-serif; display: flex; flex-direction: column; align-items: center;
+         padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  /* タイトルは真ん中。オレンジのキャラクターは左はしに小さく */
+  h1 { font-size: 18px; font-weight: 400; margin: 0 0 4px; letter-spacing: .08em; position: relative; width: 100%; max-width: 480px; text-align: center; }
+  #ccTitle { position: absolute; left: 36px; top: 50%; transform: translateY(-58%); width: 24px; height: 26px; image-rendering: pixelated; border: none; border-radius: 0; background: transparent; }
+  .sub { font-size: 11px; opacity: .6; margin: 0 0 10px; }
+  .stage { width: 100%; max-width: 480px; position: relative; }
+  canvas { width: 100%; display: block; image-rendering: pixelated; border: 2px solid #2a2540; border-radius: 6px; background: #000; }
+  .panel { margin-top: 10px; background: #12101f; border: 2px solid #2a2540; border-radius: 6px; padding: 10px 12px; }
+  .seek { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .seek span { width: 40px; flex-shrink: 0; text-align: center; color: #ffcf8a; }
+  .seek span:last-child { color: #8a84a8; }
+  .seek input { flex: 1; min-width: 0; accent-color: var(--accent); height: 22px; }
+  /* 左から「最初から・再生・声と音」を横一列に。画面の幅に合わせて文字の大きさを変える */
+  .btns { display: flex; flex-wrap: nowrap; gap: 6px; margin-top: 8px; }
+  .btns button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 7px 2px; border-color: #5a5478; }
+  .btns .snd { color: #6fe0a0; flex-grow: 1.25; }
+  .btns .snd.off { color: #8a84a8; }
+  /* 声の選びかた（4人） */
+  .voices { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; }
+  .voices span { flex-shrink: 0; color: #8a84a8; }
+  .voices button { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(11px, 3.3vw, 14px); padding: 5px 2px; border-color: #3a3358; color: #8a84a8; }
+  .voices button.on { border-color: var(--accent); color: var(--fg); }
+  /* VOICEVOX・COEIROINK・AivisSpeech・ランダム：文字の長さに合わせて幅を分ける（AivisSpeech がはみ出さないように） */
+  #engRow button { flex: 1 1 auto; font-size: clamp(10px, 3vw, 14px); padding: 5px 1px; }
+  /* 順番・人の名前の段は 左はしから並べる */
+  #nameRow span { display: none; }
+  /* 人数が多いとき（COEIROINK）は 2段に並べる */
+  #nameRow.many { display: grid; grid-template-columns: repeat(3, 1fr); }
+  #nameRow.many span { display: none; }
+  button { font-family: inherit; font-size: 15px; color: var(--fg); background: #1c1930; border: 2px solid var(--accent);
+           border-radius: 6px; padding: 8px 18px; cursor: pointer; }
+  button:active { transform: translateY(1px); }
+  .start { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .start button { font-size: 18px; padding: 12px 26px; background: rgba(28,25,48,.9); }
+  .hide { display: none !important; }
+</style>
+</head>
+<body>
+<h1><canvas id="ccTitle" width="48" height="52" aria-hidden="true"></canvas>神人合一・メシヤ降誕</h1>
+<p class="sub">明主様の お腹に 光の玉（約3分・声と音が出ます）<br><span id="credit">声：VOICEVOX:四国めたん</span></p>
+<div class="stage">
+  <canvas id="cv"></canvas>
+  <div class="start" id="startBox"><button id="startBtn">▶ 再生する</button></div>
+</div>
+<div class="stage panel">
+  <div class="seek"><span id="curT">00:00</span><input type="range" id="seekBar" min="0" max="85" step="0.1" value="0" aria-label="再生位置"><span id="totT">00:00</span></div>
+  <div class="btns">
+    <button id="rsBtn">🔄 最初から</button>
+    <button id="ppBtn">▶ 再生</button>
+    <button id="sndBtn" class="snd">🔊 声・音 ON</button>
+  </div>
+  <div class="voices" id="engRow"><span>声</span>
+    <button data-e="0" class="on">VOICEVOX</button>
+    <button data-e="1">COEIROINK</button>
+    <button data-e="2">AivisSpeech</button>
+    <button data-e="3">ランダム</button>
+  </div>
+  <div class="voices" id="nameRow"><span>　　</span></div>
+</div>
+
+<script>
+const W = 180, H = 260, S = 3, SH = 216, DUR = 22;
+const cv = document.getElementById('cv');
+cv.width = W * S; cv.height = H * S;
+const ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+// ---------- 描画の道具 ----------
+const rd = Math.round;
+function R(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(rd(x) * S, rd(y) * S, rd(w) * S, rd(h) * S); }
+function P(x, y, c, s = 1) { R(x, y, s, s, c); }
+function disc(cx, cy, r, c) {
+  for (let y = -r; y <= r; y++) { const w = Math.floor(Math.sqrt(r * r - y * y) + 0.3); R(cx - w, cy + y, w * 2 + 1, 1, c); }
+}
+function T(s, x, y, size, c, align = 'center', a = 1) {
+  ctx.globalAlpha = a;
+  ctx.font = `${size * S}px "DotGothic16", monospace`;
+  ctx.textAlign = align; ctx.textBaseline = 'middle';
+  ctx.lineWidth = S * 1.4; ctx.lineJoin = 'round'; ctx.strokeStyle = '#000';
+  ctx.strokeText(s, x * S, y * S);
+  ctx.fillStyle = c; ctx.fillText(s, x * S, y * S);
+  ctx.globalAlpha = 1;
+}
+// 筆文字：縁取りなしで細く読みやすく
+function B(s, x, y, size, c) {
+  ctx.font = `${size * S}px "Yuji Syuku", serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = c; ctx.fillText(s, x * S, y * S);
+}
+function A(a, fn) { ctx.globalAlpha = Math.max(0, Math.min(1, a)); fn(); ctx.globalAlpha = 1; }
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const fadeIn = (lt, st, d = 0.3) => clamp((lt - st) / d);
+const ease = k => k * k * (3 - 2 * k);
+function mix(c1, c2, k) {
+  const a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16);
+  const ch = s => rd(lerp((a >> s) & 255, (b >> s) & 255, k));
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+}
+// 小さなタグ（ラベル）
+function tag(s, x, y, c, a = 1, size = 8) { T(s, x, y, size, c, 'center', a); }
+
+// ---------- 星 ----------
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const stars = [...Array(70)].map(() => ({ x: rnd() * W | 0, y: rnd() * SH | 0, p: rnd() * 6.28, s: rnd() < .15 ? 2 : 1 }));
+function drawStars(t, a = 1) {
+  for (const s of stars) { const b = .5 + .5 * Math.sin(t * 3 + s.p); ctx.globalAlpha = a * (.25 + .75 * b); P(s.x, s.y, '#fff', s.s); }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- 太陽・月・地球 ----------
+function sun(cx, cy, t, r = 13) {
+  A(.25 + .1 * Math.sin(t * 6), () => disc(cx, cy, r + 5, '#ff7a2e'));
+  disc(cx, cy, r, '#ffb02e'); disc(cx - 1, cy - 1, r - 4, '#ffd84a'); disc(cx - 3, cy - 3, 2, '#fff6c0');
+  for (let i = 0; i < 8; i++) {
+    const an = i * Math.PI / 4 + t * .6, L = r + 7 + (Math.sin(t * 8 + i) > 0 ? 2 : 0);
+    P(cx + Math.cos(an) * L, cy + Math.sin(an) * L, '#ffd84a', 2);
+  }
+}
+// ---------- 人（小さな人形）----------
+// (x, y) は足もとのまんなか。k は大きさ（k=1 で高さ 26 マス）
+// pose：down 腕を下ろす／reachR 右へ手をのばす／reachL 左へ手をのばす／up 両手を上げる／give 右手で差し出す
+function personShape(x, y, c, pose, k) {
+  const r = (dx, dy, w, h) => R(x + dx * k, y + dy * k, w * k, h * k, c);
+  disc(x, y - 22 * k, 3 * k, c);
+  r(-3, -18, 7, 10);
+  r(-3, -8, 2, 8); r(2, -8, 2, 8);
+  if (pose === 'reachR') { r(-5, -17, 2, 7); r(4, -16, 6, 2); }
+  else if (pose === 'reachL') { r(-9, -16, 6, 2); r(4, -17, 2, 7); }
+  else if (pose === 'up') { r(-5, -25, 2, 8); r(4, -25, 2, 8); }
+  else if (pose === 'give') { r(-5, -17, 2, 7); r(4, -15, 7, 2); }
+  else { r(-5, -17, 2, 8); r(4, -17, 2, 8); }
+}
+function person(x, y, fill = '#2c2f52', line = '#9a90d0', pose = 'down', k = 1, a = 1) {
+  A(a, () => {
+    [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dx, dy]) => personShape(x + dx, y + dy, line, pose, k));
+    personShape(x, y, fill, pose, k);
+    P(x - 2 * k, y - 23 * k, '#f3ead6', Math.max(1, k | 0)); P(x + 1 * k, y - 23 * k, '#f3ead6', Math.max(1, k | 0));
+  });
+}
+// 小さなハート
+function smallHeart(x, y, c = '#ff6a7a') { P(x, y, c); P(x + 2, y, c); R(x - 1, y + 1, 5, 1, c); R(x, y + 2, 3, 1, c); P(x + 1, y + 3, c); }
+function ground(c = '#5a3d24') { R(0, 202, W, 14, c); R(0, 202, W, 2, '#3f8f3a'); for (let x = 3; x < W; x += 11) P(x, 207 + (x % 3), '#6b4a2c', 2); }
+function room(t, a = .5) { R(0, 0, W, SH, '#0f1028'); drawStars(t, a); ground(); }
+
+// ---------- Claude Code のキャラクター（字幕の左にいる案内役） ----------
+function mascot(ox, oy, t, mode = "walk", p = 1) {
+  // ox, oy, p は画面の1マス（3画素）単位。p は小数でもよい（画素単位で描くので、にじまない）
+  const R = (x, y, w, h, c) => { const q = (v) => Math.round(v * S); ctx.fillStyle = c; ctx.fillRect(q(x), q(y), q(x + w) - q(x), q(y + h) - q(y)); };
+  const c = '#d97757', f = Math.floor(t * 6) % 4;
+  const hop = (mode === "jump" ? -Math.abs(Math.sin(t * 7)) * 4 : (f % 2 ? -1 : 0)) * p;
+  const up = [f === 1, f === 3, f === 3, f === 1];
+  [2, 4, 7, 9].forEach((x, i) => R(ox + x * p, oy + 6 * p, p, (up[i] && mode === 'walk' ? 1 : 2) * p, c));
+  const y0 = oy + hop;
+  R(ox + 2 * p, y0, 8 * p, 6 * p, c);
+  const wave = mode === "talk" && Math.sin(t * 10) > 0 ? -p : 0;
+  R(ox, y0 + 2 * p + wave, 2 * p, 2 * p, c); R(ox + 10 * p, y0 + 2 * p - wave, 2 * p, 2 * p, c);
+  const blink = (t % 3) > 2.85;
+  R(ox + 3 * p, y0 + p + (blink ? .6 * p : 0), p, blink ? .4 * p : p, "#1a1612"); R(ox + 8 * p, y0 + p + (blink ? .6 * p : 0), p, blink ? .4 * p : p, "#1a1612");
+}
+
+// 案内役の動きに合わせた効果音（声のじゃまにならないよう小さく鳴らす）
+// しゃべる：手をふるたびに「ぴょこ」／ジャンプ：とび上がるたびに「ぴょん」／歩く：一歩ごとに「とこ」／まばたき：「ぱち」
+// 動きが変わったとき：しゃべる→ジャンプ「ポロロン↑」、ジャンプ→歩く「ポロン↓」
+let mPrevT = -1, mPrevMode = '';
+function mascotSfx(t, mode) {
+  const pt = mPrevT, pm = mPrevMode; mPrevT = t; mPrevMode = mode;
+  if (!ac || !playing || muted || seeking || pt < 0 || t <= pt || t - pt > .2) return;
+  try {
+    if (mode !== pm) {
+      if (mode === 'jump') [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .07, .18, 'square', .03));
+      else if (mode === 'walk') [784, 587, 392].forEach((f, i) => tone(f, i * .09, .25, 'triangle', .07));
+      else [880, 1175].forEach((f, i) => tone(f, i * .08, .2, 'sine', .05));
+      return;
+    }
+    const cross = k => Math.floor(t * k) !== Math.floor(pt * k); // t*k が次の整数に進んだ
+    if (mode === 'talk' && Math.sin(t * 10) > 0 && Math.sin(pt * 10) <= 0) tone(620 + Math.random() * 120, 0, .08, 'sine', .035, 980);
+    if (mode === 'jump' && cross(7 / Math.PI)) { tone(140, 0, .06, 'triangle', .12, 90); tone(330, .02, .2, 'square', .025, 900); }
+    if (mode === 'walk' && cross(6) && Math.floor(t * 6) % 2 === 0) tone(Math.floor(t * 6) % 4 ? 440 : 520, 0, .05, 'triangle', .08, 260);
+    if ((t % 3) > 2.85 && (pt % 3) <= 2.85) tone(2200, 0, .03, 'sine', .02, 1600);
+  } catch (e) {}
+}
+
+// ---------- 声の4人（字幕の左で、いま読んでいる人がしゃべる） ----------
+// 1文字＝1ドット（横14×縦16）。S＝はだ、E＝目（まばたき・口は下で動かす）
+const SPK = [
+  { name: 'めたん', pal: { H: '#e04b8f', D: '#c43a7a', d: '#f07ab0', S: '#ffe2cc', E: '#d9a020', K: '#2b2733', W: '#f4f0f0' }, map: [
+    '....HHHHHH....', '..HHHHHHHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'DHHSSHSSHSSHHD', 'dHSSSSSSSSSSHd', 'DHSEESSSSEESHD', 'dHSEESSSSEESHd',
+    'DDSSSSSSSSSSDD', 'dd.SSSSSSSS.dd', 'DD..SSSSSS..DD', '.dd.KWWWWK.dd.',
+    '.DD.KKWWKK.DD.', '..d.KKKKKK.d..', '...KKKKKKKK...', '...KKKKKKKK...'] },
+  { name: 'つむぎ', pal: { H: '#f2c740', h: '#ffe08a', S: '#ffe2cc', E: '#7a4a2a', W: '#f4f4f4', R: '#e04848' }, map: [
+    '.....HHHH.....', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHHSSHSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HHH.WWRRWW.HHH',
+    'HHH.WWRRWW.HHH', '.HH.WWWWWW.HH.', '...WWWWWWWW...', '...WWWWWWWW...'] },
+  { name: 'はう', pal: { H: '#9ccbe8', C: '#ffffff', X: '#e04848', S: '#ffe2cc', E: '#4a7ab0', W: '#ffffff', P: '#f6b8c8' }, map: [
+    '...CCCCCCCC...', '..CCCCXCCCCC..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    '.HSSSSSSSSSSH.', '.H.SSSSSSSS.H.', '....SSSSSS....', '...PWWWWWWP...',
+    '..PPWWWWWWPP..', '..PPWWWWWWPP..', '..PPPWWWWPPP..', '..PPPWWWWPPP..'] },
+  { name: '小夜', pal: { H: '#8a5a3a', I: '#f2a0b0', S: '#ffe2cc', E: '#3a8a5a', G: '#e8d070', K: '#b04040' }, map: [
+    '.HH........HH.', '.HIH......HIH.', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...GGGGGGGG...',
+    '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..'] },
+  // ここから COEIROINK の4人（つくよみちゃん・MANA・KANA・リリンちゃん）
+  { name: 'つくよみ', pal: { H: '#c8d8f0', h: '#e8f0ff', R: '#e07090', S: '#ffe2cc', E: '#4a4a6a', W: '#f8f8f8', K: '#d04050' }, map: [
+    '....HHHHHH....', '..HHhHHHHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'RHHSSHSSHSSHHR', 'RHSSSSSSSSSSHR', '.HSSSSSSSSSSH.', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.WWWKKWWW.HH',
+    'HH.WWWWWWWW.HH', '.H.WWWWWWWW.H.', '...WWWWWWWW...', '...WWWWWWWW...'] },
+  { name: 'MANA', pal: { H: '#f4a0a8', D: '#e07880', S: '#ffe2cc', E: '#d08a2a', B: '#7a4a2a', W: '#f4f0f0' }, map: [
+    'DD..HHHHHH..DD', 'DDHHHHHHHHHHDD', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', '.H.SSSSSSSS.H.', '.H..SSSSSS..H.', '...BBWWWWBB...',
+    '..BBBBWWBBBB..', '..BBBBBBBBBB..', '..BBBBBBBBBB..', '..BBBBBBBBBB..'] },
+  { name: 'KANA', pal: { H: '#8ac8f0', h: '#b0e0ff', S: '#ffe2cc', E: '#8a70c0', K: '#2a2a33', W: '#d0d0d8' }, map: [
+    '...HHHHHHH....', '..HHHHHhHHHH..', '.HHHHHHHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHHSSHSSHSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...KKKWWKKK...',
+    '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..', '..KKKKKKKKKK..'] },
+  { name: 'リリン', pal: { H: '#f0a050', P: '#a070e0', S: '#ffe2cc', E: '#9a60d0', U: '#4a2a6a' }, map: [
+    'PP..HHHHHH..PP', 'PPPHHHHHHHHPPP', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.UUUUUUUU.HH',
+    'HH.UUUUUUUU.HH', '.HHUUUUUUUUHH.', '..HUUUUUUUUH..', '...UUUUUUUU...'] },
+  // アメノちゃん（熊本弁）
+  { name: '熊本弁', pal: { H: '#ecd0b0', R: '#d02a2a', k: '#1a1a1a', S: '#ffe8d8', E: '#3a9a5a', W: '#f8f8f8', P: '#f0a0a0', J: '#2a2a2a', K: '#a08a5a', B: '#ff9ab0' }, map: [
+    '...HHHHHHH....', '..HHHHHHHHRk..', '.HHHHHHHHHRRH.', '.HHHHHHHHHHHH.', 'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH', 'HHSBSSSSSSBSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..H.', 'HJJWWPPWWJJ.H.', '.HJJWWWWWWJJ..', '..JJWWWWWWJJ..', '..JKJWWWWJKJ..', '..JKJWWWWJKJ..'] },
+  // ここから AivisSpeech の3人（まお・まい・コハク）
+  { name: 'まお', pal: { H: '#f2a6c0', h: '#ffd0e0', R: '#ffffff', S: '#ffe2cc', E: '#c0507a', W: '#f8f0f4', P: '#e07aa0' }, map: [
+    '.HH..HHHH..HH.', '.HhHHHHHHHHhH.', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.WWWPPWWW.HH',
+    '.H.WWWWWWWW.H.', '...WWWWWWWW...', '...PPPPPPPP...', '...WWWWWWWW...'] },
+  { name: 'まい', pal: { H: '#2a2438', h: '#4a4260', R: '#e04848', S: '#ffe2cc', E: '#6a4a8a', W: '#f4f4f4', N: '#2a3a6a' }, map: [
+    '....HHHHHH.RR.', '..HHHHHHHHHRR.', '.HHHHHhHHHHHH.', '.HHHHHHHHHHHH.',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.NWWRRWWN.HH',
+    'HH.NNWWWWNN.HH', 'HH.NNNNNNNN.HH', '...NNNNNNNN...', '...NNNNNNNN...'] },
+  { name: 'コハク', pal: { H: '#e8a840', h: '#ffd070', S: '#ffe2cc', E: '#c07a20', W: '#f8f4ec', G: '#d08a30', B: '#7a5a3a' }, map: [
+    '....HHHHHH....', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...WWWGGWWW...',
+    '..BWWWWWWWWB..', '..BWWWWWWWWB..', '..BBWWWWWWBB..', '..BBWWWWWWBB..'] },
+  // AivisSpeech の るな・桜音・中2・花音
+  { name: 'るな', pal: { H: '#c8c0e8', h: '#ece6ff', Y: '#ffd84a', S: '#ffe2cc', E: '#6a5ab0', W: '#f4f2ff', N: '#3a3470' }, map: [
+    '....HHHHHH.YY.', '..HHHHHHHHHY..', '.HHHHhHHHHHYY.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.NNWWWWNN.HH',
+    'HH.NNNYYNNN.HH', '.H.NNNNNNNN.H.', '...NNNNNNNN...', '...NNNNNNNN...'] },
+  { name: '桜音', pal: { H: '#f6b8cc', h: '#ffe0ea', F: '#ffffff', P: '#e05a8a', S: '#ffe2cc', E: '#c0507a', W: '#fff4f8', K: '#e88aa8' }, map: [
+    '.FPF.HHHHHH...', '.PFPHHHHHHHH..', '.FPFHHhHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.WWWKKWWW.HH',
+    'HH.WWWWWWWW.HH', '.H.KKKKKKKK.H.', '...WWWWWWWW...', '...KKKKKKKK...'] },
+  { name: '中2', pal: { H: '#1e1a2a', h: '#3a3450', S: '#ffe2cc', E: '#d03030', B: '#101018', R: '#c02a3a', K: '#1a1a24' }, map: [
+    '...HHHHHHHH...', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHBBBBSSSSSSHH', 'HHBBBSSSSEESHH', 'HHSBBSSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', '.H..SSSSSS..H.', '...KKKRRKKK...',
+    '..KKKKRRKKKK..', '..KKKKKKKKKK..', '..KRKKKKKKRK..', '..KKKKKKKKKK..'] },
+  { name: '花音', pal: { H: '#f0a050', h: '#ffd090', F: '#ffffff', Y: '#ffd84a', S: '#ffe2cc', E: '#c06a30', W: '#fff8ec', G: '#7ac07a' }, map: [
+    '....HHHHHH.FYF', '..HHHHHHHHHFYF', '.HHHHhHHHHHHF.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.GWWWWWWG.HH',
+    'HH.GGWWWWGG.HH', '.H.GGGGGGGG.H.', '...GGGGGGGG...', '...GGGGGGGG...'] },
+  // VOICEVOX の 冥鳴ひまり・ナースロボ＿タイプＴ
+  { name: 'ひまり', pal: { H: '#2a2234', h: '#4a3a5a', S: '#ffe2cc', E: '#b03050', W: '#f4f0f4', K: '#3a2a3a', R: '#c03a5a' }, map: [
+    '....HHHHHH....', '..HHHHhHHHHH..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HHSSSSSSSSSSHH', 'HHSEESSSSEESHH', 'HHSEESSSSEESHH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'HH.KWWRRWWK.HH',
+    'HH.KKWWWWKK.HH', 'HH.KKKKKKKK.HH', 'HH.KKKKKKKK.HH', '...KKKKKKKK...'] },
+  { name: 'ナースロボ', pal: { C: '#ffffff', X: '#e04848', H: '#f0b8c8', S: '#e8e4ec', E: '#40b0c0', G: '#a0a0b0', W: '#ffffff', P: '#f0a0b8' }, map: [
+    '...CCCCCCCC...', '..CCCCXCCCCC..', '.HHHHHHHHHHHH.', 'HHHHHHHHHHHHHH',
+    'HHHSSHSSHSSHHH', 'HGSSSSSSSSSSGH', 'HGSEESSSSEESGH', 'HGSEESSSSEESGH',
+    'HHSSSSSSSSSSHH', 'HH.SSSSSSSS.HH', 'HH..SSSSSS..HH', 'H..PWWXXWWP..H',
+    '...PWWWWWWP...', '..PPWWWWWWPP..', '..PPPWWWWPPP..', '..PPPWWWWPPP..'] },
+];
+// v：だれ（0〜3）、talk：いま声が出ている（口がパクパク・体がゆれる）
+function speakerDot(v, ox, oy, t, talk) {
+  const sp = SPK[v]; if (!sp) return;
+  const bob = talk && Math.floor(t * 4) % 2 ? -1 : 0, y0 = oy + bob;
+  const blink = (t % 3.2) > 3.05;
+  sp.map.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (ch === '.') return;
+    if (ch === 'E' && blink) { if (y === 7) P(ox + x, y0 + y, '#5a3a3a'); return; } // まばたき：下だけ線に
+    P(ox + x, y0 + y, sp.pal[ch]);
+  }));
+  // 口：しゃべっているときはパクパク
+  const open = talk && Math.floor(t * 9) % 3 !== 0;
+  if (open) { R(ox + 6, y0 + 9, 2, 2, '#8a2a3a'); P(ox + 6, y0 + 10, '#e07080'); }
+  else R(ox + 6, y0 + 9, 2, 1, '#c0505a');
+  T(sp.name, ox + 7, oy + 20.5, 6, talk ? '#ffe8b0' : '#b0a8c8', 'center');
+  // 名前の下に、どのグループの声か（VOICEVOX・COEIROINK・AivisSpeech）を グループの色で小さく
+  const gi = typeof ENGINES === 'undefined' ? -1 : ENGINES.findIndex(e => e[1].includes(v));
+  if (gi >= 0) T(ENGINES[gi][0], ox + 7, oy + 26.6, 4, ['#8fd4a0', '#e8e0f0', '#6ab0f0'][gi] || '#b0a8c8', 'center', talk ? 1 : .75);
+}
+
+
+
+
+// ---------- 字幕 ----------
+// [始まり, 終わり, 1行目, 2行目, 読み上げる文（読みにくい言葉はひらがな）, 1行目の色]
+const HO = '#ffe8b0', GO = '#ffd84a', KI = '#ff9a8a', DK = '#c0a070', OK = '#9fe0a0', NY = '#ffe08a';
+// 神人合一・メシヤ降誕の色：金＝大切なこと、神＝うすい金、もも＝愛、緑＝善いこと、青＝守護、むらさき＝よくないこと、赤＝きびしいこと
+const KIN = '#ffd84a', AKA = '#ff7a5a', KAMI = '#fff1b0', SHU = '#c890f0', MIDO = '#9fe0a0', AO = '#8ad0ff', MOMO = '#ffa8c0';
+const CAPS = [
+  [0.0, 1.0, '神人合一・メシヤ降誕', '明主様と 神様が 一つに なる', 'しんじんごういつ、めしや、こうたん。めいしゅさまと、かみさまが、ひとつに、なる、という、おはなしです。', KAMI],
+  [1.0, 2.0, '御主神の 御働きは 二つ', '国常立尊と 伊都能売大神', 'ごしゅしんの、おはたらきは、ふたつに、わかれます。くにとこたちのみことと、いづのめのおおかみ、です。', KIN],
+  [2.0, 3.0, '国常立尊は 艮の金神', '閻魔大王として 最後の審判', 'くにとこたちのみことは、うしとらのこんじん、そして、えんまだいおう、として、さいごの、しんぱんを、なさいます。', AKA],
+  [3.0, 4.0, '伊都能売大神は 観世音菩薩', '兄の花姫尊・伊都能売金龍', 'いづのめのおおかみは、いんどでは、かんぜおんぼさつ、ふじさんでは、このはなひめのみこと、びわこでは、いづのめきんりゅう、です。そして、めいしゅさまとの、しんじんごういつ、めしやこうたん、となり、さんぜんねんぶりに、あらわれる、きかんが、めしやきょう、なのです。', KAMI],
+  [4.0, 5.0, '最初は 神様が 憑った 神憑り', 'やがて お腹に 神様が 入った', 'いちばん、さいしょは、かみさまが、わたしに、かかったんです。かみがかり、というんですね。そのうちに、わたしの、おなかに、かみさまが、はいった。かみと、ひととが、いっちして、しまうんです。', HO],
+  [5.0, 6.0, '釈迦・キリスト・マホメットも', '実は 神の 取次者', 'むかしから、しんじんごういつ、という、ことばが、あるが、そういう、ひとは、いままで、ひとりも、なかった。しゃか、きりすと、まほめっとの、さんだいせいじゃも、じつは、かみの、とりつぎしゃ、であったのです。', HO],
+  [6.0, 7.0, '神に 祈らず 指示も 仰がない', '思うが ままに 行えば いい', 'わたしは、かみを、いのることも、ないし、かみの、しじを、あおぐことも、ない。ただ、じぶんの、おもうが、ままを、じっこう、していれば、いい、わけで、はなはだ、かんたん、なのです。', MIDO],
+  [7.0, 8.0, '腹には 光の玉が ある', '神と 人の 区別が ない 神人合一', 'わたしの、はらには、ひかりのたまが、ある。これは、ある、さいこうの、かみさまの、たましいで、わたしの、げんどうは、すべて、かみさまが、じゆうじざいに、うごかして、いるのです。かみと、ひとの、くべつが、ない、これが、しんの、しんじんごういつ、なのです。', KIN],
+  [8.0, 9.0, '肉体のまま 天から 降らない', '神霊が 選ばれた 肉体に 宿る', 'きりすとの、さいりん、めしやの、こうりん、というが、にくたい、そのままで、てんから、ふるのでは、ない。とくしゅな、しんれいが、てんから、こうかし、えらばれた、にんげんの、にくたいに、やどるのです。', KAMI],
+  [9.0, 10.0, '麻邇の玉は 仏教で 如意宝珠', '観音様の 身魂 玉とは 魂', 'まにのたまは、ぶっきょうでは、にょいほうじゅ、といい、かんのんさまの、みたま、という、ことです。たまとは、たましいの、ことで、ぜったいりょくの、いみです。これは、わたしの、おなかの、なかに、あるのです。', KIN],
+  [10.0, 11.0, '一厘の 御魂こそ ポチ', '五六七の 御代が 生まれる', 'この、いちりんの、みたまこそ、ぽちであり、まにのたまであり、にょいほうじゅであり、これによって、みろくの、みよが、うまれるのです。', KIN],
+  [11.0, 12.0, '大正13年 或る 人が 訪ねて来た', '右に 等身大の 観音様が 見える', 'たいしょう、じゅうさんねん、あるひとが、たずねてきて、せんせいの、みぎのほうに、とうしんだいの、かんのんさまが、みえる、と、いうのです。せんせいが、たつと、かんのんさまも、ついて、いかれる、と、いうのでした。', HO],
+  [12.0, 13.0, '伊都能売の 神様が 憑られ', '使命を 知らされた', 'そのご、かんのんさまの、ごほんたいである、いづのめの、かみさまが、かかられ、わたしの、しめいを、しらして、くれた。にせんろっぴゃくねん、いぜん、かんじざいぼさつ、として、いんどの、ふだらくせんじょうに、あんじゅう、されていた、ことなども、あかされたのです。', KAMI],
+  [13.0, 14.0, '昭和元年から 肉体を 使われる', '一切衆生を 救わせ給う', 'しょうわ、がんねんから、かんのんさまは、しじゅう、わたしの、にくたいに、かかられ、じゆうじざいに、わたしの、にくたいを、つかわれる。まったく、わたしを、きかんとして、いっさいしゅじょうを、すくわせたもうのです。', KIN],
+  [14.0, 15.0, '昭和元年12月 或る夜', '「紙と筆を 用意しろ」', 'しょうわ、がんねん、じゅうにがつの、あるよる、ふしぎな、かんじが、こころに、おこり、しゃべらずには、いられない。かみと、ふでを、よういしろ、という、ことばが、さいしょ、でした。こうして、しんこうせいかつに、はいったのです。', HO],
+  [15.0, 16.0, '昭和4年4月 琵琶湖に 大暴風雨', '金龍神と 赤龍の 大争闘', 'しょうわ、よねん、しがつ、びわこの、こじょうに、だいぼうふううが、おこった。すうせんねんかん、こていに、ひそんでいた、きんりゅうじんが、しょうてんするとき、せきりゅうが、とびきたり、だいそうとうを、えんじ、ついに、はいぼくして、ほっぽうへ、にげさったのです。', AO],
+  [16.0, 17.0, '金龍神は 私の 守護神に', '数千年 琵琶湖で 時を 待たれた', 'その、いっかげつご、わたしの、すまいの、じょうくうに、だいぼうふうう、らいめいが、おこったが、そのときから、きんりゅうじんは、わたしの、しゅごじんと、なったのです。すうせんねんかん、びわこで、ときを、またれて、いたのです。', KIN],
+  [17.0, 18.0, '昭和9年 不思議な 写真', '頭上に 千手観音の 姿', 'しょうわ、くねん、ふしぎな、しゃしんが、できた。わたしの、よこばらから、はくしょくの、うんえんのような、ものが、ふきでて、ずじょうに、せんじゅかんのんの、すがたが、みえる。ああ、めぐまれた、われなるかな、と、おもったのです。', KAMI],
+  [18.0, 19.0, '千手観音の 画が 切り刻まれた', '雲上から 降りて 地上で 救う', 'かきかけの、せんじゅかんのんの、えが、ないふで、きりきざまれた。れいしゃしんと、くらべると、えんこうが、おおきく、おとしが、わかく、くものうえから、おりられて、ちじょうで、すくいの、わざを、なされる、という、わけです。', MIDO],
+  [19.0, 20.0, '昭和25年 留置場で 18日間', '6月15日 光の玉に 魂が 宿る', 'しょうわ、にじゅうごねん、りゅうちじょうに、いるのは、じゅうはちにちかん、という、おしらせが、あった。かぞえると、ろくがつ、じゅうごにち。わたしの、おなかの、ひかりのたまに、こういの、かみさまの、たましいが、やどられたのです。', HO],
+  [20.0, 21.0, '実の 種の 中心の ポチ', '神と 人との 隔てが 撤去された', 'はなが、ちって、みを、むすぶ、その、みの、たねの、ちゅうしんの、ぽちが、はらのなかへ、やどった。かみと、ひととの、へだてが、てっきょされ、しんじんごういつの、きょうちに、なったのです。', KIN],
+  [21.0, 22.0, 'メシヤ降誕・王の王', '私が 出て 人類は 救われる', 'めいしゅ、の、ことたまは、めしやと、ごじっぽ、ひゃっぽ。めしやこうたん、といってね、めしやが、うまれた、わけです。せかいじゅうで、さいこうの、くらい、きんぐおぶきんぐす、おうのおう、です。わたしが、でて、はじめて、じんるいは、すくわれる、のです。', KAMI],
+  [22.0, 24.0, "ご視聴ありがとうございました", "", "ごしちょう、ありがとうございました。"],
+];
+// 1つの字幕を見せる時間（秒）。読み上げの長さに合わせ、ゆっくり読めるように長めにとる
+CAPS.forEach(c => { c.dur = Math.max(3.8, c[4].replace(/[、。\s]/g, '').length * 0.2 + 2.0); });
+CAPS[CAPS.length - 1].dur = 5.5; // 最後の「ご視聴ありがとうございました」はゆっくり余韻をとる
+function captions(t) {
+  R(0, SH, W, H - SH, '#0d0b18'); R(0, SH, W, 1, '#3a3358');
+  const c = CAPS.find(c => t >= c[0] && t < c[1]); if (!c) return;
+  const a = clamp((t - c[0]) / .15);
+  T(c[2], 90, c[3] ? 231.5 : 237, c[2].length > 13 ? 8 : 9, c[5] || '#f3ead6', 'center', a);
+  if (c[3]) T(c[3], 90, 244.5, c[3].length > 15 ? 8 : 8.5, '#f3ead6', 'center', a);
+}
+// ---------- 道具 ----------
+// きらきら（十字の光）
+function spark(x, y, c = '#fff1b0', s = 2) { P(x, y, c); for (let i = 1; i <= s; i++) { P(x - i, y, c); P(x + i, y, c); P(x, y - i, c); P(x, y + i, c); } }
+// 吹き出し（？など）
+function bubble(cx, cy, s, a = 1) {
+  A(a, () => { disc(cx, cy, 8, '#f3ead6'); P(cx - 7, cy + 7, '#f3ead6', 2); P(cx - 9, cy + 9, '#f3ead6'); });
+  T(s, cx, cy, 10, '#8a2a20', 'center', a);
+}
+// 人を倒したり傾けたりして描く（足もとを中心にまわす）
+function personRot(x, y, an, ...a) {
+  ctx.save(); ctx.translate(x * S, y * S); ctx.rotate(an); ctx.translate(-x * S, -y * S);
+  person(x, y, ...a); ctx.restore();
+}
+// 筆文字を透明度つきで
+// 昼の空でも読めるように、うしろに暗い影をつける
+function BA(s, x, y, size, c, a) { A(a * .5, () => B(s, x + 1, y + 1, size, '#0d0b18')); A(a, () => B(s, x, y, size, c)); }
+// ハート
+function heart(cx, cy, r, c) {
+  disc(cx - r / 2, cy - r / 4, r / 2 + .5, c); disc(cx + r / 2, cy - r / 4, r / 2 + .5, c);
+  for (let y = 0; y <= r; y++) { const w = rd((r - y) * 1.05); R(cx - w, cy - r / 4 + y, w * 2 + 1, 1, c); }
+}
+// 光の輪
+function halo(cx, cy, r, t, c = '#ffd84a', a = 1) {
+  A(a * (.25 + .1 * Math.sin(t * 4)), () => disc(cx, cy, r, c));
+  A(a * .9, () => { for (let i = 0; i < 24; i++) { const an = i * Math.PI / 12 + t * .5; P(cx + Math.cos(an) * r, cy + Math.sin(an) * r, c); } });
+}
+// 上から差す光の帯（yEnd まで）
+function rays(cx, a, t, yEnd = 202) {
+  if (a <= 0) return;
+  for (let i = -3; i <= 3; i++) A(a * (.14 + .07 * Math.sin(t * 3 + i)), () => {
+    for (let y = 0; y < yEnd; y += 2) R(cx + i * (5 + y * .14) - 2, y, 4, 2, '#fff1b0');
+  });
+}
+// 花火
+function firework(cx, cy, q, c) {
+  if (q <= 0 || q >= 1) return;
+  for (let i = 0; i < 12; i++) { const an = i * Math.PI / 6, L = 4 + q * 20; A(1 - q, () => P(cx + Math.cos(an) * L, cy + Math.sin(an) * L, c, 2)); }
+}
+// 暗い雲
+function darkCloud(cx, cy, t, a = 1, rain = true) {
+  A(a, () => {
+    disc(cx - 8, cy, 7, '#4a4660'); disc(cx + 6, cy - 2, 9, '#4a4660'); disc(cx + 16, cy + 1, 6, '#4a4660'); R(cx - 14, cy, 36, 7, '#4a4660');
+    if (rain) for (let i = 0; i < 6; i++) { const q = (t * 1.4 + i / 6) % 1; P(cx - 10 + i * 5, cy + 9 + q * 14, '#6a8ad0'); P(cx - 10 + i * 5, cy + 10 + q * 14, '#6a8ad0'); }
+  });
+}
+// 怒りのしるし
+function angry(cx, cy, a = 1) {
+  A(a, () => [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy]) => { R(cx + sx * 2 - (sx > 0 ? 0 : 1), cy + sy * 2 - (sy > 0 ? 0 : 2), 1, 3, '#ff4a4a'); R(cx + sx * 2 - (sx > 0 ? 0 : 2), cy + sy * 2 - (sy > 0 ? 0 : 1), 3, 1, '#ff4a4a'); }));
+}
+// 花（g：しおれる 0〜1）
+function flower(cx, by, g = 0, c = '#ff8ab0') {
+  R(cx, by - 14 + g * 4, 1, 14 - g * 4, mix('#3f8f3a', '#6a6050', g));
+  const hx = cx + rd(g * 4), hy = by - 15 + rd(g * 8);
+  disc(hx, hy, 3, mix(c, '#5a5460', g)); P(hx, hy, mix('#ffd84a', '#6a6050', g));
+}
+// 大きなバツ
+function bigX(cx, cy, r, a = 1, c = '#ff4a4a') { A(a, () => { for (let i = -r; i <= r; i++) { R(cx + i - 1, cy + i - 1, 3, 3, c); R(cx + i - 1, cy - i - 1, 3, 3, c); } }); }
+
+// ---------- 共通の道具 ----------
+// 昼の空（x0 から 幅 w）。上は濃い青、下は明るい水色。k：昼の明るさ（0 で夜の色）
+const hexMix = (c1, c2, k) => '#' + mix(c1, c2, k).match(/\d+/g).map(n => (+n).toString(16).padStart(2, '0')).join('');
+function daySky(x0 = 0, w = W, k = 1) {
+  const top = hexMix('#0f1028', '#2a5aa8', k), bot = hexMix('#1a1838', '#a8d8f0', k);
+  for (let y = 0; y < 202; y += 6) R(x0, y, w, 6, mix(top, bot, y / 202));
+}
+// 白い雲
+function cloud(cx, cy, a = 1) { A(a, () => { disc(cx - 6, cy, 5, '#f4f8ff'); disc(cx + 4, cy - 2, 7, '#f4f8ff'); disc(cx + 12, cy + 1, 4, '#f4f8ff'); R(cx - 10, cy, 26, 5, '#f4f8ff'); }); }
+// 昼の世界（k：0 夜 → 1 昼）
+function dayRoom(t, k = 1) {
+  daySky(0, W, k);
+  if (k < 1) drawStars(t, (1 - k) * .5);
+  if (k > 0) { cloud(rd(30 + (t * 4) % 40), 40, k * .9); cloud(rd(130 - (t * 3) % 30), 58, k * .8); }
+  ground();
+}
+// 矢じるし（len がプラスで右、マイナスで左）
+function arrow(x, y, len, c, a = 1) {
+  if (!len) return;
+  const d = Math.sign(len), L = Math.abs(len);
+  A(a, () => {
+    R(d > 0 ? x : x - L, y - 1, L, 3, c);
+    for (let i = 0; i < 5; i++) R(x + d * (L + i), y - 4 + i, 1, 9 - 2 * i, c);
+  });
+}
+// たての矢じるし（len がプラスで上、マイナスで下）。(x, y) は根もと
+function vArrow(x, y, len, c, a = 1) {
+  if (!len) return;
+  const d = Math.sign(len), L = Math.abs(len);
+  A(a, () => {
+    R(x - 1, d > 0 ? y - L : y, 3, L, c);
+    for (let i = 0; i < 5; i++) R(x - 4 + i, y - d * (L + i), 9 - 2 * i, 1, c);
+  });
+}
+// ぶつかったところの火花
+function clash(cx, cy, t, a = 1) {
+  if (a <= 0) return;
+  for (let i = 0; i < 8; i++) {
+    const an = i * Math.PI / 4 + t * 2, L = 5 + (Math.floor(t * 10 + i) % 3) * 3;
+    A(a, () => { P(cx + Math.cos(an) * L, cy + Math.sin(an) * L, i % 2 ? '#ffd84a' : '#ff6a5a', 2); });
+  }
+  A(a, () => { disc(cx, cy, 3, '#fff1b0'); });
+}
+// おじぎをする人（g：0 まっすぐ → 1 深くおじぎ）。dir：向き（1 右を向く、-1 左を向く）
+function bowing(x, y, g, line, k = 1, a = 1, dir = 1) { personRot(x, y, dir * g * .4, '#2c2f52', line, 'down', k, a); }
+// 悪口の吹き出し（むらさき）
+function rumor(cx, cy, s, a = 1) {
+  if (a <= 0) return;
+  const w = s.length * 7 + 6;
+  A(a, () => { R(cx - w / 2, cy - 6, w, 12, '#3a2a4a'); R(cx - w / 2, cy - 6, w, 1, '#8a5ab0'); P(cx - 2, cy + 6, '#3a2a4a', 2); P(cx - 3, cy + 8, '#3a2a4a'); });
+  T(s, cx, cy, 7, '#e0b0ff', 'center', a);
+}
+// ことばの吹き出し（白）
+function say(cx, cy, s, c = '#2a5a2a', a = 1) {
+  if (a <= 0) return;
+  const w = s.length * 8 + 6;
+  A(a, () => { R(cx - w / 2, cy - 6, w, 13, '#f3ead6'); P(cx - 1, cy + 7, '#f3ead6', 2); });
+  T(s, cx, cy + .5, 8, c, 'center', a);
+}
+// 注意の札（三角に「！」）。s：大きさ
+function warnSign(cx, cy, s, a = 1) {
+  const h = rd(22 * s);
+  A(a, () => {
+    for (let y = 0; y < h; y++) { const w = rd(y * .6); R(cx - w, cy - h / 2 + y, w * 2 + 1, 1, y < 2 || y > h - 3 ? '#d04030' : '#ffd84a'); }
+    R(cx - 1, cy - h / 2 + rd(7 * s), 3, rd(8 * s), '#2a1a10'); R(cx - 1, cy + h / 2 - rd(5 * s), 3, 2, '#2a1a10');
+  });
+}
+
+// ---------- 前の動画からの道具 ----------
+// ごはん茶わん（白飯に梅干し）。by：茶わんの下、s：大きさ
+function bowl(cx, by, s = 1, a = 1, ume = true) {
+  const r = Math.max(4, rd(12 * s)), h = Math.max(3, rd(9 * s)), rh = Math.max(2, rd(7 * s));
+  A(a, () => {
+    for (let y = 0; y <= rh; y++) { const w = rd((r - 1) * Math.sqrt(1 - (y / (rh + 1)) ** 2)); R(cx - w, by - h - y, w * 2 + 1, 1, y > rh - 2 ? '#ffffff' : '#fff6e0'); }
+    for (let i = 0; i < 6; i++) P(cx - r + 3 + ((i * 7) % (2 * r - 4)), by - h - 1 - (i % 3), '#e8dcc0');
+    for (let y = 0; y <= h; y++) { const w = rd(r * Math.sqrt(1 - (y / (h + 1)) ** 2)); R(cx - w, by - h + y, w * 2 + 1, 1, y < 2 ? '#c85050' : '#a03a3a'); }
+    R(cx - r + 2, by - h + rd(h * .45), 2 * r - 3, 1, '#f3ead6');
+    R(cx - rd(r * .4), by, rd(r * .8) + 1, Math.max(1, rd(s)), '#7a2a2a');
+    if (ume) { const ur = Math.max(1, rd(2.6 * s)); disc(cx, by - h - rh + 1, ur, '#d03040'); P(cx - 1, by - h - rh, '#ff8a8a'); }
+  });
+}
+// あせ
+function sweat(x, y, t, a = 1) {
+  A(a, () => { const q = (t * 1.2) % 1; P(x, y + q * 6, '#8ac8ff', 2); P(x + 1, y - 1 + q * 6, '#8ac8ff'); P(x + 4, y + 3 + ((q + .5) % 1) * 6, '#8ac8ff', 2); });
+}
+// 黒板
+function board(x, y, w, h, a = 1) { A(a, () => { R(x - 2, y - 2, w + 4, h + 4, '#7a5a3a'); R(x, y, w, h, '#1c3a2a'); R(x, y + h - 3, w, 1, '#2a4a3a'); }); }
+// 丸じるし（○）
+function ring(cx, cy, r, c = '#6fe0a0', a = 1) { A(a, () => { for (let i = 0; i < 48; i++) { const an = i * Math.PI / 24; R(cx + Math.cos(an) * r - 1, cy + Math.sin(an) * r - 1, 3, 3, c); } }); }
+// 名札（人の上に、名前の小さな札）
+function nameTag(s, cx, cy, c, a = 1) {
+  if (a <= 0) return;
+  const w = s.length * 7 + 4;
+  A(a, () => { R(cx - w / 2, cy - 5, w, 10, '#1c1930'); R(cx - w / 2, cy - 5, w, 1, c); });
+  T(s, cx, cy, 6.5, c, 'center', a);
+}
+// 外国の人・ちがう人々の線の色
+const PC = ['#ffd84a', '#8ab0ff', '#ff9a8a', '#a8e8a0', '#e0b0ff', '#8ae0e0'];
+// 歯車（機械文明）
+function gear(cx, cy, r, t, c = '#a8b0c8', a = 1) {
+  A(a, () => {
+    for (let i = 0; i < 8; i++) { const an = i * Math.PI / 4 + t; R(cx + Math.cos(an) * (r + 1) - 2, cy + Math.sin(an) * (r + 1) - 2, 4, 4, c); }
+    disc(cx, cy, r, c); disc(cx, cy, Math.max(1, rd(r * .4)), '#1c1828');
+  });
+}
+// 地球（k：0 くもり → 1 明るく）
+function globe(cx, cy, r, t, k = 1, a = 1) {
+  A(a, () => {
+    disc(cx, cy, r + 1, '#1a2a4a'); disc(cx, cy, r, mix('#2a3a5a', '#2a6ad0', k));
+    const g = mix('#3a4a3a', '#4ab04a', k);
+    [[-.4, -.3, .32], [.3, -.1, .26], [-.1, .45, .22], [.55, .45, .14]].forEach(([dx, dy, s], i) => {
+      const x = cx + rd(((dx + t * .05 + 1) % 2 - 1) * r), y = cy + rd(dy * r);
+      if (Math.hypot(x - cx, y - cy) < r - s * r * .6) disc(x, y, rd(s * r * .7), g);
+    });
+    disc(cx - r * .4, cy - r * .4, Math.max(1, rd(r * .15)), '#ffffff40');
+  });
+}
+
+// ---------- 前の動画（プラグマチズム）からの道具 ----------
+// 開いた本（神書・哲学の本）
+function book(cx, cy, a = 1) {
+  A(a, () => {
+    R(cx - 17, cy - 9, 34, 20, '#7a2a2a');
+    R(cx - 15, cy - 10, 14, 19, '#f8f0dc'); R(cx + 1, cy - 10, 14, 19, '#f8f0dc');
+    R(cx - 1, cy - 10, 2, 20, '#c8b890');
+    for (let i = 0; i < 5; i++) { R(cx - 13, cy - 7 + i * 3, 10, 1, '#a89878'); R(cx + 3, cy - 7 + i * 3, 10, 1, '#a89878'); }
+  });
+}
+// 小さなともしび
+function candle(cx, by, t, a = 1) {
+  A(a, () => {
+    R(cx - 2, by - 10, 4, 10, '#f0e8d0');
+    const f = Math.sin(t * 12) > 0 ? 1 : 0;
+    R(cx - 1, by - 14 - f, 2, 4 + f, '#ffb02e'); P(cx, by - 13, '#fff6c0');
+  });
+  A(a * .25, () => disc(cx, by - 12, 6, '#ffd84a'));
+}
+// 階段（x0：左はし、by：下、n：段の数、sw：段の幅、sh：段の高さ）
+function stairs(x0, by, n, sw, sh, a = 1) {
+  A(a, () => { for (let i = 0; i < n; i++) { R(x0 + i * sw, by - (i + 1) * sh, sw, (i + 1) * sh, '#7a6a4a'); R(x0 + i * sw, by - (i + 1) * sh, sw, 2, '#c0a878'); } });
+}
+// 紙（理論の書きもの）
+function paper(cx, cy, a = 1) {
+  A(a, () => { R(cx - 9, cy - 12, 18, 24, '#f8f0dc'); R(cx - 9, cy - 12, 18, 2, '#c8b890'); for (let i = 0; i < 6; i++) R(cx - 6, cy - 7 + i * 3, i % 3 === 2 ? 8 : 12, 1, '#a89878'); });
+}
+// 小さな旗（アメリカ：しまと星）。x：さおの位置、by：さおの下
+function flagUS(x, by, t, a = 1) {
+  A(a, () => {
+    R(x, by - 44, 2, 44, '#c8c0a8');
+    for (let i = 0; i < 7; i++) for (let j = 0; j < 26; j += 2) R(x + 2 + j, by - 44 + i * 2 + rd(Math.sin(t * 4 + j * .3)), 2, 2, i % 2 ? '#f4f0f0' : '#d04040');
+    R(x + 2, by - 44 + rd(Math.sin(t * 4)), 11, 8, '#2a3a8a');
+    for (let i = 0; i < 6; i++) P(x + 4 + (i % 3) * 3, by - 42 + (i / 3 | 0) * 3 + rd(Math.sin(t * 4)), '#ffffff');
+  });
+}
+// 白いひげ（哲学者）。(x, y)：人の足もと、k：大きさ
+function beard(x, y, k = 1, a = 1) { A(a, () => { R(x - 3 * k, y - 21 * k, 7 * k, 3 * k, '#e8e4dc'); R(x - 2 * k, y - 18 * k, 5 * k, 3 * k, '#e8e4dc'); }); }
+// 積み木（行為：手を動かして作る）。n：いくつ積んだか（6 まで）
+const BL = [[0, 0], [10, 0], [20, 0], [5, 1], [15, 1], [10, 2]];
+function blocks(x, by, n) {
+  const cs = ['#d97757', '#6fa8e0', '#9fe0a0', '#ffd84a', '#e0b0ff', '#ff9a8a'];
+  BL.slice(0, n).forEach(([dx, r], i) => { R(x + dx, by - (r + 1) * 9, 9, 9, cs[i]); R(x + dx, by - (r + 1) * 9, 9, 1, '#fff6e0'); });
+}
+// 波の輪（共鳴：まんなかから広がる）
+function ripple(cx, cy, t, c = '#ffd84a', a = 1) {
+  for (let i = 0; i < 3; i++) { const q = (t * .6 + i / 3) % 1; ring(cx, cy, rd(10 + q * 20), c, a * (1 - q) * .7); }
+}
+// 机（仕事）
+function desk(cx, by, a = 1) { A(a, () => { R(cx - 16, by - 18, 32, 3, '#a07a4a'); R(cx - 14, by - 15, 2, 15, '#7a5a3a'); R(cx + 12, by - 15, 2, 15, '#7a5a3a'); R(cx - 6, by - 22, 12, 4, '#f8f0dc'); R(cx - 4, by - 21, 8, 1, '#a89878'); }); }
+// 演台（政治家）
+function podium(cx, by, a = 1) { A(a, () => { R(cx - 7, by - 18, 14, 18, '#7a5a3a'); R(cx - 9, by - 20, 18, 3, '#a07a4a'); R(cx - 3, by - 12, 6, 6, '#ffd84a'); R(cx - 1, by - 26, 1, 6, '#c8c0a8'); P(cx - 2, by - 28, '#3a3a3a', 3); }); }
+// かばん（実業家）
+function briefcase(cx, by, a = 1) { A(a, () => { R(cx - 6, by - 10, 12, 9, '#6a4a2a'); R(cx - 3, by - 12, 6, 2, '#4a3a2a'); R(cx - 6, by - 7, 12, 1, '#c8a060'); P(cx, by - 7, '#ffd84a'); }); }
+// 黒板（教育家・字が書いてある）
+function chalkBoard(x, y, w, h, a = 1) { A(a, () => { R(x - 2, y - 2, w + 4, h + 4, '#7a5a3a'); R(x, y, w, h, '#1c3a2a'); R(x + 3, y + 3, w - 8, 1, '#e8e8e0'); R(x + 3, y + 7, w - 12, 1, '#e8e8e0'); }); }
+// 画架と絵（芸術家）
+function easel(cx, by, a = 1) { A(a, () => { R(cx - 7, by - 28, 2, 28, '#a07a4a'); R(cx + 5, by - 28, 2, 28, '#a07a4a'); R(cx - 9, by - 32, 18, 15, '#f8f0dc'); disc(cx - 3, by - 26, 2, '#ff8ab0'); R(cx + 1, by - 25, 5, 3, '#6fa8e0'); R(cx - 7, by - 20, 14, 1, '#6fc070'); }); }
+// 家（light：窓の明かり 0〜1、dark：暗い家 0〜1）
+function house(cx, by, light = 1, dark = 0, a = 1) {
+  A(a, () => {
+    for (let y = 0; y < 12; y++) R(cx - y - 2, by - 34 + y, (y + 2) * 2 + 1, 1, mix('#c05040', '#4a3040', dark));
+    R(cx - 12, by - 22, 25, 22, mix('#e8d8b8', '#4a4458', dark));
+    R(cx - 3, by - 12, 6, 12, mix('#8a5a3a', '#2a2030', dark));
+    R(cx - 10, by - 18, 5, 5, mix('#3a3a5a', '#ffd84a', light)); R(cx + 6, by - 18, 5, 5, mix('#3a3a5a', '#ffd84a', light));
+  });
+}
+// におい（もやもやと立ちのぼる線）。(cx, by)：いちばん下
+function stink(cx, by, t, c = '#b080e0', a = 1) {
+  if (a <= 0) return;
+  for (let i = 0; i < 3; i++) for (let y = 0; y < 20; y += 2) {
+    const q = (t * .8 + i / 3) % 1;
+    A(a * (1 - y / 20), () => P(cx - 9 + i * 9 + rd(Math.sin(y * .5 + t * 4 + i) * 2), by - y - rd(q * 4), c, 2));
+  }
+}
+// 泥のしみ
+function mud(x, y, a = 1) { A(a, () => { disc(x, y, 3, '#5a3a20'); P(x + 4, y + 1, '#5a3a20', 2); P(x - 5, y + 2, '#5a3a20'); }); }
+// 鍋（アク抜け：q 0 アクが浮く → 1 すみきる）。(cx, by)：鍋の底
+function pot(cx, by, t, q) {
+  R(cx - 22, by - 20, 44, 20, '#5a5a6a'); R(cx - 24, by - 22, 48, 3, '#8a8a9a'); R(cx - 28, by - 18, 4, 3, '#5a5a6a'); R(cx + 24, by - 18, 4, 3, '#5a5a6a');
+  R(cx - 21, by - 21, 42, 2, mix('#8a6a3a', '#8ad0f0', q));
+  const n = rd(8 * (1 - q));
+  for (let i = 0; i < n; i++) P(cx - 18 + i * 5, by - 23 - (i % 2), '#a07a4a', 3);
+  if (q > .6) for (let i = 0; i < 3; i++) spark(cx - 12 + i * 12, by - 30 - (Math.floor(t * 3 + i) % 2) * 2, '#ffffff', 1);
+  // 湯気
+  for (let i = 0; i < 3; i++) { const s = (t * .7 + i / 3) % 1; A(.5 * (1 - s), () => P(cx - 10 + i * 10 + rd(Math.sin(s * 6 + i) * 2), by - 28 - s * 18, '#e8f0ff', 2)); }
+}
+// おたま
+function ladle(x, y, a = 1) { A(a, () => { R(x, y - 24, 2, 24, '#c8c8d0'); disc(x - 2, y + 1, 3, '#c8c8d0'); }); }
+
+// ---------- 前の動画（頑張り）からの道具 ----------
+// 大きな岩。(cx, by)：下のまんなか、r：大きさ
+function rock(cx, by, r, a = 1) {
+  A(a, () => { disc(cx, by - r, r, '#6a6470'); disc(cx - rd(r * .3), by - rd(r * 1.3), rd(r * .45), '#8a8490'); R(cx - r + 2, by - 2, r * 2 - 3, 2, '#4a4450'); });
+}
+// れんがの壁（行き詰まり）
+function wall(x, by, w, h, a = 1) {
+  A(a, () => {
+    R(x, by - h, w, h, '#8a4a3a');
+    for (let y = 0; y < h; y += 6) { R(x, by - h + y, w, 1, '#5a2a20'); for (let xx = (y / 6) % 2 ? 4 : 0; xx < w; xx += 8) R(x + xx, by - h + y, 1, 6, '#5a2a20'); }
+  });
+}
+// 邪神（黒いかげ・赤い目・つの）
+function jashin(cx, cy, t, a = 1) {
+  A(a, () => {
+    const w = rd(Math.sin(t * 3) * 2);
+    disc(cx, cy, 14, '#2a1a3a'); R(cx - 14, cy, 29, 16 + w, '#2a1a3a');
+    for (let i = 0; i < 5; i++) R(cx - 14 + i * 6, cy + 16 + w, 4, 3 + (i % 2) * 2, '#2a1a3a');
+    R(cx - 10, cy - 17, 3, 6, '#2a1a3a'); R(cx + 8, cy - 17, 3, 6, '#2a1a3a');
+    const e = Math.floor(t * 2) % 5 ? '#ff3a3a' : '#2a1a3a';
+    R(cx - 6, cy - 3, 3, 2, e); R(cx + 4, cy - 3, 3, 2, e);
+    R(cx - 4, cy + 4, 9, 1, '#6a2a4a');
+  });
+}
+// あやつり糸（(x1, y1) から (x2, y2) へ点線）
+function puppetLine(x1, y1, x2, y2, a = 1) {
+  A(a, () => { const n = Math.ceil(Math.abs(y2 - y1)); for (let i = 0; i <= n; i += 2) P(lerp(x1, x2, i / n), lerp(y1, y2, i / n), '#c0a0e0'); });
+}
+// 木（s：0 春 1 夏 2 秋 3 冬）
+function tree(cx, by, s, t, a = 1) {
+  A(a, () => {
+    R(cx - 1, by - 16, 3, 16, '#6a4a2c');
+    disc(cx, by - 22, 9, ['#ffb0c8', '#3f9f3a', '#e08a30', '#f4f8ff'][s]);
+    if (s === 0) [[-4, -24], [3, -19], [0, -28], [5, -26]].forEach(([dx, dy]) => P(cx + dx, by + dy, '#ffffff'));
+    if (s === 2) [0, 1].forEach(i => { const q = (t * .6 + i / 2) % 1; P(cx - 6 + i * 12 + rd(Math.sin(q * 9) * 2), by - 14 + q * 14, '#e08a30', 2); });
+    if (s === 3) R(cx - 9, by - 31, 19, 2, '#ffffff');
+  });
+}
+// 種と芽（g：0 種 → 1 芽が出る）
+function sprout(cx, by, g, a = 1) {
+  A(a, () => {
+    if (g < .3) { P(cx, by - 2, '#a07a3a', 2); return; }
+    const h = rd(lerp(2, 14, clamp((g - .3) / .7)));
+    R(cx, by - h, 1, h, '#5fc05a'); R(cx - 3, by - h, 3, 2, '#7fe07a'); R(cx + 1, by - h - 1, 3, 2, '#7fe07a');
+    if (g >= 1) { disc(cx, by - h - 3, 2, '#ff8ab0'); P(cx, by - h - 3, '#ffd84a'); }
+  });
+}
+// 雪（x0 から 幅 w に、上から 降る）
+function snow(x0, w, t, a = 1) { for (let i = 0; i < 9; i++) { const q = (t * .4 + i / 9) % 1; A(a, () => P(x0 + 3 + (i * 13) % (w - 6) + rd(Math.sin(q * 8 + i) * 2), 20 + q * 170, '#ffffff')); } }
+// 美術館（q：0 骨組み → 1 できあがり）。(cx, by)：下のまんなか
+function museum(cx, by, q = 1, a = 1) {
+  A(a, () => {
+    if (q < 1) {
+      for (let i = 0; i < 4; i++) R(cx - 18 + i * 12, by - 26, 2, 26, '#c08a50');
+      R(cx - 20, by - 27, 40, 2, '#c08a50'); R(cx - 20, by - 14, 40, 1, '#c08a50');
+      return;
+    }
+    for (let y = 0; y < 9; y++) R(cx - y * 2.5 - 2, by - 35 + y, y * 5 + 5, 1, '#e8e0d0');
+    R(cx - 22, by - 26, 44, 3, '#d8d0c0');
+    for (let i = 0; i < 5; i++) R(cx - 19 + i * 9, by - 23, 3, 20, '#f4f0e4');
+    R(cx - 23, by - 3, 46, 3, '#c8c0b0');
+  });
+}
+// 山（丘）。(cx, by)：下のまんなか、w：はば、h：高さ
+function hill(cx, by, w, h, c = '#5a7a3a') { for (let y = 0; y < h; y++) { const ww = rd(w * Math.sqrt((y + 1) / h)); R(cx - ww / 2, by - h + y, ww, 1, c); } R(cx - w / 2, by, w, 1, c); }
+// 強い風の線
+function wind(t, a = 1, y0 = 60, y1 = 190) {
+  for (let i = 0; i < 8; i++) { const q = (t * 1.5 + i / 8) % 1, y = y0 + (i * 37) % (y1 - y0); A(a * (1 - q * .6), () => R(rd(q * W * 1.3) - 20, y, 16, 1, '#c8d8f0')); }
+}
+// こわれた建物・火・けむり（戦争）
+function ruin(cx, by, h, a = 1) { A(a, () => { R(cx - 8, by - h, 16, h, '#3a3440'); R(cx - 8, by - h, 5, 4, '#2a1418'); R(cx + 3, by - h + 6, 5, 3, '#2a1418'); R(cx - 4, by - h + 12, 3, 3, '#ff8a3a'); R(cx + 2, by - h + 20, 3, 3, '#ff8a3a'); }); }
+function fire(cx, by, t, a = 1) { A(a, () => { const f = Math.floor(t * 8 + cx) % 2; disc(cx, by - 4, 4 + f, '#ff6a2a'); disc(cx, by - 6 - f, 2, '#ffd84a'); }); }
+function smoke(cx, by, t, a = 1) { for (let i = 0; i < 4; i++) { const q = (t * .5 + i / 4) % 1; A(a * .55 * (1 - q), () => disc(cx + rd(Math.sin(q * 6 + i) * 3), by - q * 44, 3 + rd(q * 4), '#5a5460')); } }
+
+// ---------- 前の動画（御神体様御奉斎）からの道具 ----------
+// 縁取りのない小さな文字（紙や札の上に書く）
+function L(s, x, y, size, c, a = 1) {
+  A(a, () => { ctx.font = `${size * S}px "DotGothic16", monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = c; ctx.fillText(s, x * S, y * S); });
+}
+// 巻物（札）。label：書いてある字
+function scroll(cx, cy, label, c = '#5a2a1a', a = 1) {
+  A(a, () => {
+    R(cx - 15, cy - 8, 30, 16, '#f0e4c0'); R(cx - 15, cy - 8, 30, 1, '#fff6dc');
+    R(cx - 18, cy - 10, 4, 20, '#a07a4a'); R(cx + 14, cy - 10, 4, 20, '#a07a4a');
+  });
+  L(label, cx, cy + .5, 8, c, a);
+}
+// のぼっていくハート（喜び）
+function floatHearts(x0, w, t, a = 1, c = '#ff6a7a') {
+  for (let i = 0; i < 4; i++) { const q = (t * .5 + i / 4) % 1; A(a * (1 - q), () => smallHeart(x0 + (i * 23) % w, rd(180 - q * 90), c)); }
+}
+// 手を合わせる人（祈り）
+function praying(x, y, line, k = 1, a = 1) { person(x, y, '#2c2f52', line, 'down', k, a); A(a, () => R(x - 1 * k, y - 15 * k, 3 * k, 4 * k, line)); }
+// 掛軸（御神体）。(cx, top)：上のまんなか、h：高さ、s：書いてある字（たて書き）、glow：光 0〜1
+function kakejiku(cx, top, h, s, t, glow = 1, a = 1) {
+  const w = rd(h * .42);
+  if (glow > 0) A(a * glow * (.22 + .08 * Math.sin(t * 4)), () => disc(cx, rd(top + h / 2), rd(h * .72), '#ffd84a'));
+  A(a, () => {
+    R(cx - 1, top - 6, 2, 4, '#c8b890');
+    R(cx - w / 2 - 2, top - 2, w + 4, 3, '#7a5a3a');
+    R(cx - w / 2, top + 1, w, h - 2, '#8a6a3a');
+    R(cx - w / 2 + 2, top + 4, w - 4, h - 9, '#f8f0dc');
+    R(cx - w / 2 - 3, top + h - 2, w + 6, 3, '#5a3a20');
+  });
+  if (s) { const n = [...s].length, fs = Math.min(rd(w * .72), rd((h - 12) / n)); [...s].forEach((ch, i) => A(a, () => B(ch, cx, top + 4 + (h - 9) * (i + .5) / n, fs, '#1a1410'))); }
+  if (glow > 0) for (let i = 0; i < 6; i++) { const an = i * Math.PI / 3 + t * .8; A(a * glow, () => spark(rd(cx + Math.cos(an) * (w * .95)), rd(top + h / 2 + Math.sin(an) * h * .55), '#fff1b0', 1)); }
+}
+// 祭壇（花と御饌）。(cx, by)：下のまんなか
+function altar(cx, by, a = 1) {
+  A(a, () => {
+    R(cx - 26, by - 14, 52, 3, '#c8a060'); R(cx - 24, by - 11, 48, 11, '#a07a4a'); R(cx - 24, by - 11, 48, 1, '#d8b070');
+    [-18, 18].forEach(dx => { R(cx + dx - 2, by - 21, 4, 7, '#e8e0d0'); disc(cx + dx, by - 24, 3, '#5fb05a'); P(cx + dx, by - 26, '#ffffff'); });
+    R(cx - 7, by - 18, 14, 4, '#e0c890'); disc(cx, by - 21, 3, '#fff6e0');
+  });
+}
+// 霊（光の玉に しっぽ）
+function spirit(cx, cy, t, c = '#bfe8ff', a = 1) {
+  if (a <= 0) return;
+  A(a * .3, () => disc(cx, cy, 6, c));
+  A(a, () => { disc(cx, cy, 3, c); P(cx - 1, cy - 1, '#ffffff', 2); for (let i = 1; i < 5; i++) P(cx + rd(Math.sin(t * 6 + i) * 2), cy - 3 - i * 2, c, i < 3 ? 2 : 1); });
+}
+// 十字架。(cx, by)：下のまんなか
+function crossObj(cx, by, a = 1) { A(a, () => { R(cx - 2, by - 34, 4, 34, '#a07a4a'); R(cx - 10, by - 27, 20, 4, '#a07a4a'); R(cx - 2, by - 34, 1, 34, '#c8a070'); }); }
+// 御鏡（台つき）。(cx, cy)：鏡のまんなか（台は cy+24 まで）
+function mirror(cx, cy, t, a = 1) {
+  A(a, () => {
+    R(cx - 2, cy + 10, 4, 10, '#7a5a3a'); R(cx - 9, cy + 20, 18, 4, '#a07a4a');
+    disc(cx, cy, 10, '#c8a060'); disc(cx, cy, 8, '#d8e8f0'); P(cx - 4, cy - 4, '#ffffff', 2);
+    if (Math.floor(t * 2) % 3 === 0) P(cx + 3, cy - 2, '#ffffff', 2);
+  });
+}
+// 筆。(x, y)：穂先
+function brush(x, y, a = 1) { A(a, () => { for (let i = 2; i < 16; i++) P(x + i, y - i, '#8a5a3a', 2); disc(x, y, 2, '#1a1410'); P(x + 16, y - 16, '#d04030', 2); }); }
+// 鳥居（信仰の門）。(cx, by)：下のまんなか
+function torii(cx, by, w = 64, h = 70, a = 1) {
+  A(a, () => {
+    R(cx - w / 2 + 6, by - h, 5, h, '#d04030'); R(cx + w / 2 - 11, by - h, 5, h, '#d04030');
+    R(cx - w / 2, by - h - 6, w, 5, '#d04030'); R(cx - w / 2 - 3, by - h - 9, w + 6, 3, '#2a1a1a');
+    R(cx - w / 2 + 4, by - h + 8, w - 8, 3, '#d04030');
+  });
+}
+// 色のついた雲（紫雲・金雲）
+function tintCloud(cx, cy, c, a = 1) { A(a, () => { disc(cx - 6, cy, 5, c); disc(cx + 4, cy - 2, 7, c); disc(cx + 12, cy + 1, 4, c); R(cx - 10, cy, 26, 5, c); P(cx + 2, cy - 6, '#ffffff', 2); }); }
+// 大きな家（sc：大きさ）
+function houseBig(cx, by, sc, light, dark, a = 1) {
+  ctx.save(); ctx.translate(cx * S, by * S); ctx.scale(sc, sc); ctx.translate(-cx * S, -by * S);
+  house(cx, by, light, dark, a); ctx.restore();
+}
+// 砂時計（時を 待つ）
+function hourglass(cx, cy, t, a = 1) {
+  const q = (t * .25) % 1, top = rd(8 * (1 - q)), bot = rd(8 * q), gw = d => rd(1 + d * .55);
+  A(a, () => {
+    R(cx - 8, cy - 13, 16, 2, '#a07a4a'); R(cx - 8, cy + 11, 16, 2, '#a07a4a');
+    for (let d = 0; d < 10; d++) { R(cx - gw(d), cy - 1 - d, gw(d) * 2 + 1, 1, '#3a4a5a'); R(cx - gw(d), cy + d, gw(d) * 2 + 1, 1, '#3a4a5a'); }
+    for (let d = 0; d < top; d++) R(cx - gw(d) + 1, cy - 1 - d, gw(d) * 2 - 1, 1, '#e8c070');
+    for (let d = 9; d > 9 - bot; d--) R(cx - gw(d) + 1, cy + d, gw(d) * 2 - 1, 1, '#e8c070');
+    if (q < .97) P(cx, cy, '#e8c070');
+  });
+}
+// 観音さま（白い すがた・光の輪・蓮）。(cx, by)：蓮の上
+function kannon(cx, by, t, k = 1.4, a = 1) {
+  if (a <= 0) return;
+  halo(cx, rd(by - 22 * k), rd(8 * k), t, '#ffd84a', a);
+  person(cx, by, '#f8f0dc', '#ffd84a', 'down', k, a);
+  A(a, () => { R(cx - 1 * k, by - 15 * k, 3 * k, 4 * k, '#ffd84a'); for (let i = 0; i < 5; i++) disc(rd(cx - 8 * k + i * 4 * k), by + 2, rd(2.5 * k), i % 2 ? '#ffb0c8' : '#ff8ab0'); });
+}
+
+// ---------- 神人合一・メシヤ降誕の道具 ----------
+// 図の箱（神様の名前）
+function node(s, x, y, c, a = 1) {
+  if (a <= 0) return;
+  const w = [...s].length * 8 + 8;
+  A(a, () => { R(x - w / 2, y - 7, w, 14, '#1c1930'); R(x - w / 2, y - 7, w, 1, c); R(x - w / 2, y + 6, w, 1, c); });
+  T(s, x, y + .5, 7.5, c, 'center', a);
+}
+// 線（図のつなぎ）
+function line(x1, y1, x2, y2, c, a = 1) {
+  if (a <= 0) return;
+  A(a, () => { const n = Math.max(1, Math.abs(x2 - x1), Math.abs(y2 - y1)); for (let i = 0; i <= n; i++) R(lerp(x1, x2, i / n), lerp(y1, y2, i / n), 1, 1, c); });
+}
+// 光の玉（お腹の中の 光の玉）
+function orb(cx, cy, r, t, a = 1) {
+  if (a <= 0) return;
+  A(a * (.25 + .1 * Math.sin(t * 5)), () => disc(cx, cy, r + 4, '#fff1b0'));
+  A(a, () => { disc(cx, cy, r, '#ffd84a'); disc(cx - 1, cy - 1, Math.max(1, r - 2), '#fff6c0'); });
+}
+// 如意宝珠（先のとがった 玉）
+function hoju(cx, cy, r, t, a = 1) {
+  if (a <= 0) return;
+  A(a * (.22 + .1 * Math.sin(t * 4)), () => disc(cx, cy - 3, r + 8, '#fff1b0'));
+  A(a, () => {
+    disc(cx, cy, r, '#ffe08a');
+    const tip = rd(r * .7), tot = tip + rd(r * .6);
+    for (let i = 0; i <= tot; i++) { const w = rd(Math.min(1, i / tot) * r * .72); R(cx - w, cy - r - tip + i, w * 2 + 1, 1, '#ffe08a'); }
+    disc(cx - rd(r * .3), cy - rd(r * .3), Math.max(1, rd(r * .3)), '#fff8d8');
+    R(cx - r, cy + r - 1, r * 2 + 1, 3, '#c8a060');
+  });
+  for (let i = 0; i < 4; i++) { const an = i * Math.PI / 2 + t; A(a, () => spark(rd(cx + Math.cos(an) * (r + 12)), rd(cy - 3 + Math.sin(an) * (r + 12)), '#fff1b0', 1)); }
+}
+// 龍（c：からだ、c2：たてがみ・つの、dir：1 右を向く、-1 左を向く）
+function dragon(cx, cy, t, c, c2, a = 1, dir = 1, k = 1) {
+  if (a <= 0) return;
+  A(a, () => {
+    for (let i = 14; i >= 1; i--) {
+      const x = cx - dir * i * 4 * k, y = cy + Math.sin(t * 4 - i * .55) * 5 * k;
+      disc(rd(x), rd(y), Math.max(1, rd((5 - i * .22) * k)), c);
+      if (i % 2 === 0) P(rd(x), rd(y - (4 - i * .2) * k), c2);
+    }
+    disc(cx, cy, rd(5 * k), c);
+    R(cx + dir * 3 * k - (dir < 0 ? 6 * k : 0), cy - 1 * k, 6 * k, 4 * k, c);
+    R(cx - dir * 1 * k, cy - 8 * k, Math.max(1, k), 4 * k, c2); R(cx - dir * 4 * k, cy - 8 * k, Math.max(1, k), 4 * k, c2);
+    P(cx + dir * 2 * k, cy - 2 * k, '#ff3a3a', Math.max(1, rd(k)));
+    for (let i = 0; i < 6; i++) P(cx + dir * (9 + i) * k, cy + 2 * k + rd(Math.sin(t * 6 + i) * 1.5), c2);
+  });
+}
+// 千手観音（たくさんの 手）
+function senju(cx, by, t, k = 1.2, a = 1) {
+  if (a <= 0) return;
+  const sy = by - 17 * k;
+  for (let i = 0; i < 14; i++) {
+    const an = Math.PI * (1.05 + i * .9 / 13), L = 13 * k;
+    A(a, () => { for (let r = 4 * k; r < L; r++) P(rd(cx + Math.cos(an) * r), rd(sy + Math.sin(an) * r * .9), '#f0e0b0'); P(rd(cx + Math.cos(an) * L), rd(sy + Math.sin(an) * L * .9), '#ffd84a', 2); });
+  }
+  kannon(cx, by, t, k, a);
+}
+// 鉄格子（留置場）
+function bars(x, y, w, h, a = 1) {
+  A(a, () => {
+    for (let xx = 0; xx <= w - 3; xx += 16) { R(x + xx, y, 3, h, '#6a6a7a'); R(x + xx, y, 1, h, '#9a9aaa'); }
+    R(x, y, w, 3, '#5a5a6a'); R(x, y + h - 3, w, 3, '#5a5a6a');
+  });
+}
+// 天秤（最後の審判）
+function scales(cx, by, t, a = 1) {
+  const tl = rd(Math.sin(t * 2) * 2);
+  A(a, () => {
+    R(cx - 1, by - 30, 2, 30, '#c8a060'); R(cx - 8, by - 2, 16, 2, '#a07a4a');
+    R(cx - 14, by - 30, 28, 2, '#c8a060');
+    R(cx - 13, by - 28, 1, 10 + tl, '#c8a060'); R(cx + 12, by - 28, 1, 10 - tl, '#c8a060');
+    R(cx - 18, by - 18 + tl, 10, 2, '#c8a060'); R(cx + 8, by - 18 - tl, 10, 2, '#c8a060');
+  });
+}
+// 冠（王の王）
+function crown(cx, y, a = 1) {
+  A(a, () => { R(cx - 6, y, 13, 3, '#ffd84a'); [-6, 0, 6].forEach(dx => R(cx + dx, y - 3, 1, 3, '#ffd84a')); P(cx, y + 1, '#ff4a4a'); P(cx - 3, y + 1, '#8ad0ff'); P(cx + 3, y + 1, '#8ad0ff'); });
+}
+// いなずま
+function bolt(x, y, a = 1) { A(a, () => { let xx = x; for (let i = 0; i < 8; i++) { R(xx, y + i * 6, 2, 6, '#ffe070'); xx += i % 2 ? -3 : 3; } }); }
+// 富士山
+function fuji(cx, by, a = 1) { A(a, () => { hill(cx, by, 46, 30, '#4a6aa0'); hill(cx, by - 20, 18, 10, '#f4f8ff'); }); }
+// 湖の水面
+function lake(y0, t, c = '#1e3e6a') { R(0, y0, W, SH - y0, c); for (let i = 0; i < 8; i++) R((i * 29 + rd(t * 20)) % (W + 10) - 10, y0 + 6 + (i % 3) * 10, 10, 1, '#4a7aaa'); }
+
+// ---------- 場面1：神人合一・メシヤ降誕 ----------
+function scene1(lt, t) {
+  const k = lt;
+  room(t, .5);
+  rays(90, .35 * fadeIn(k, .1), t);
+  kannon(90, 148, t, 1.2, fadeIn(k, .3, .4) * .55);
+  person(90, 198, '#2c2f52', '#ffd84a', 'down', 1.5, fadeIn(k, .05));
+  orb(90, 178, 3, t, fadeIn(k, .3));
+  BA('神人合一', 90, 34, 26, KIN, fadeIn(k, .05, .3));
+  BA('メシヤ降誕', 90, 64, 22, KAMI, fadeIn(k, .15, .3));
+  tag('明主様と 神様が 一つに', 90, 90, HO, fadeIn(k, .4), 8);
+}
+
+// ---------- 場面2：御主神 ----------
+function scene2(lt, t) {
+  room(t, .45);
+  if (lt < 1) {
+    // 御主神の 御働きは 二つ
+    const k = lt, g = ease(fadeIn(k, .2, .35));
+    rays(90, .3, t, 120);
+    halo(90, 112, 16, t, '#ffd84a', fadeIn(k, .05));
+    node('御主神', 90, 112, KIN, fadeIn(k, .05));
+    if (g > 0) { line(90, 119, rd(lerp(90, 46, g)), rd(lerp(119, 151, g)), '#ffd84a'); line(90, 119, rd(lerp(90, 134, g)), rd(lerp(119, 151, g)), '#ffd84a'); }
+    node('国常立尊', 46, 158, AKA, fadeIn(k, .55)); node('伊都能売大神', 134, 158, KAMI, fadeIn(k, .65));
+    person(46, 200, '#2c2f52', '#ff7a5a', 'down', 1, fadeIn(k, .6)); person(134, 200, '#f8f0dc', '#ffd84a', 'down', 1, fadeIn(k, .7));
+    BA('御主神', 90, 44, 30, KIN, fadeIn(k, .05, .3));
+    tag('二つの 御働き', 90, 74, HO, fadeIn(k, .4), 8);
+  } else if (lt < 2) {
+    // 国常立尊は 艮の金神・閻魔大王として 最後の審判
+    const k = lt - 1;
+    ['国常立尊', '艮の金神', '閻魔大王', '最後の審判'].forEach((s, i) => {
+      const y = 98 + i * 28, a = fadeIn(k, .05 + i * .18, .15);
+      if (i) vArrow(90, y - 20, -6, '#ff9a8a', a);
+      node(s, 90, y, i === 3 ? AKA : HO, a);
+    });
+    person(32, 200, '#2c2f52', '#ff7a5a', 'down', 1.2, fadeIn(k, .1));
+    scales(148, 200, t, fadeIn(k, .7));
+    BA('国常立尊', 90, 44, 26, AKA, fadeIn(k, .05, .3));
+    tag('艮の金神・閻魔大王', 90, 74, HO, fadeIn(k, .3), 8);
+  } else {
+    // 伊都能売大神は 観世音菩薩・兄の花姫尊・伊都能売金龍
+    const k = lt - 2;
+    node('伊都能売大神', 90, 96, KAMI, fadeIn(k, .05));
+    [['観世音菩薩', 'インド', 32], ['兄の花姫尊', '富士山', 90], ['伊都能売金龍', '琵琶湖', 148]].forEach(([s, p, x], i) => {
+      const a = fadeIn(k, .15 + i * .15, .15);
+      line(90, 103, x, 113, '#fff1b0', a);
+      node(s, x, 120, HO, a);
+      tag(p, x, 134, AO, a, 7);
+    });
+    kannon(32, 188, t, 1, fadeIn(k, .15, .15));
+    fuji(90, 196, fadeIn(k, .3, .15));
+    A(fadeIn(k, .45, .15), () => R(124, 186, 56, 16, '#2a5a8a'));
+    dragon(134, 170, t, '#ffd84a', '#fff1b0', fadeIn(k, .45, .15), -1, .7);
+    BA('伊都能売大神', 90, 44, 22, KAMI, fadeIn(k, .05, .3));
+    tag('3000年ぶりの 機関が メシヤ教', 90, 74, KIN, fadeIn(k, .65), 8);
+  }
+}
+
+// ---------- 場面3：神人合一 ----------
+function scene3(lt, t) {
+  if (lt < 1) {
+    // 最初は 神憑り、やがて お腹に 神様が 入った
+    const k = lt, g1 = ease(fadeIn(k, .05, .35)), g2 = ease(fadeIn(k, .5, .35));
+    room(t, .5);
+    person(90, 196, '#2c2f52', mix('#8a84a8', '#ffd84a', g1), 'down', 1.6);
+    if (g1 < 1) spirit(90, rd(lerp(80, 150, g1)), t, '#fff1b0', 1);
+    else if (g2 < 1) { halo(90, 161, 11, t, '#ffd84a', 1 - g2); if (g2 > 0) spirit(90, rd(lerp(158, 176, g2)), t, '#fff1b0', 1); }
+    else orb(90, 176, 4, t, 1);
+    nameTag('神憑り', 36, 140, HO, fadeIn(k, .3) * (1 - g2 * .6)); nameTag('お腹に 神様', 144, 140, KIN, fadeIn(k, .7));
+    BA('神様が 入った', 90, 44, 22, KAMI, fadeIn(k, .05, .3));
+    tag('神と 人とが 一致する', 90, 74, HO, fadeIn(k, .4), 8);
+  } else if (lt < 2) {
+    // 釈迦・キリスト・マホメットも 実は 神の 取次者
+    const k = lt - 1;
+    room(t, .4);
+    rays(90, .25, t, 120);
+    [[34, '#ffb02e', '釈迦'], [90, '#f3ead6', 'キリスト'], [146, '#8ae0a0', 'マホメット']].forEach(([x, c, s], i) => {
+      const a = fadeIn(k, .05 + i * .12);
+      praying(x, 196, c, 1.3, a);
+      nameTag(s, x, 146, c, a);
+      const q = (AT * .7 + i / 3) % 1;
+      spirit(x, rd(98 + q * 32), t, '#fff1b0', a * (1 - q) * fadeIn(k, .4));
+    });
+    BA('三大聖者', 90, 44, 28, HO, fadeIn(k, .05, .3));
+    tag('実は 神の 取次者', 90, 74, HO, fadeIn(k, .5), 8);
+  } else if (lt < 3) {
+    // 神に 祈らず 指示も 仰がない。思うが ままに 行えば いい
+    const k = lt - 2, g = fadeIn(k, .35, .2);
+    dayRoom(t, .9);
+    praying(40, 196, '#8a84a8', 1.2, 1 - g * .6);
+    say(40, 136, '指示を', '#5a2a5a', 1 - g);
+    bigX(40, 162, 14, fadeIn(k, .15, .15) * (1 - g * .5));
+    const px = rd(122 + Math.sin(AT * 2) * 18);
+    person(px, 196 - (Math.floor(AT * 4) % 2), '#2c2f52', '#ffd84a', 'up', 1.3, fadeIn(k, .3));
+    orb(px, 179, 3, t, fadeIn(k, .3));
+    BA('思うがままに', 90, 44, 22, MIDO, fadeIn(k, .05, .3));
+    tag('甚だ 簡単である', 90, 74, HO, fadeIn(k, .5), 8);
+  } else {
+    // 腹には 光の玉。神と 人の 区別が ない 真の 神人合一
+    const k = lt - 3, g = fadeIn(k, .15, .4);
+    room(t, .5);
+    rays(90, .4 * g, t);
+    ripple(90, 168, t, '#ffd84a', g);
+    person(90, 198, '#2c2f52', '#ffd84a', 'down', 1.8);
+    orb(90, 175, rd(3 + 3 * g), t, 1);
+    for (let i = 0; i < 6; i++) { const an = i * Math.PI / 3 + t; A(g, () => spark(rd(90 + Math.cos(an) * 24), rd(170 + Math.sin(an) * 18), '#fff1b0', 1)); }
+    BA('光の玉', 90, 44, 30, KIN, fadeIn(k, .05, .3));
+    tag('最高の 神様の 魂', 90, 74, HO, fadeIn(k, .3), 8);
+    tag('真の 神人合一', 90, 90, KIN, fadeIn(k, .6), 8);
+  }
+}
+
+// ---------- 場面4：麻邇の玉 ----------
+function scene4(lt, t) {
+  if (lt < 1) {
+    // 肉体のまま 天から 降るのではない。神霊が 選ばれた 肉体に 宿る
+    const k = lt, g = ease(fadeIn(k, .4, .4));
+    dayRoom(t, 1);
+    const fy = rd(lerp(90, 150, (AT * .4) % 1));
+    person(40, fy + 30, '#2c2f52', '#8a84a8', 'up', 1, .8);
+    bigX(40, 144, 16, fadeIn(k, .2, .15));
+    rays(134, .35 * g, t);
+    person(134, 196, '#2c2f52', mix('#8a84a8', '#ffd84a', g), 'down', 1.4);
+    if (g < 1) spirit(134, rd(lerp(90, 176, g)), t, '#fff1b0', fadeIn(k, .4)); else orb(134, 178, 3, t, 1);
+    BA('メシヤの 降臨', 90, 44, 22, KAMI, fadeIn(k, .05, .3));
+    tag('神霊が 肉体に 宿る', 90, 74, HO, fadeIn(k, .5), 8);
+  } else if (lt < 2) {
+    // 麻邇の玉は 仏教で 如意宝珠。観音様の 身魂
+    const k = lt - 1, g = fadeIn(k, .1, .4);
+    room(t, .5);
+    hoju(90, 158, 16, t, g);
+    nameTag('神道', 32, 112, AO, fadeIn(k, .3)); tag('麻邇の玉', 32, 128, HO, fadeIn(k, .3), 8);
+    nameTag('仏教', 148, 112, MOMO, fadeIn(k, .45)); tag('如意宝珠', 148, 128, HO, fadeIn(k, .45), 8);
+    tag('玉とは 魂・絶対力', 90, 194, KIN, fadeIn(k, .65), 8);
+    BA('麻邇の玉', 90, 44, 28, KIN, fadeIn(k, .05, .3));
+    tag('観音様の 身魂', 90, 74, HO, fadeIn(k, .4), 8);
+  } else {
+    // 一厘の 御魂こそ ポチ、五六七の 御代が 生まれる
+    const k = lt - 2, g = fadeIn(k, .3, .6);
+    dayRoom(t, .3 + .7 * g);
+    person(40, 196, '#2c2f52', '#ffd84a', 'down', 1.4);
+    orb(40, 178, 2, t, 1);
+    nameTag('ポチ', 40, 150, KIN, fadeIn(k, .1));
+    arrow(62, 160, rd(18 * fadeIn(k, .2, .2)), '#ffd84a');
+    globe(130, 148, 26, t, g, 1);
+    [[110, '#ff8ab0'], [150, '#ffd84a'], [168, '#8ab0ff']].forEach(([x, c], i) => { if (g > .4 + i * .15) flower(x, 202, 0, c); });
+    BA('一厘の 御魂', 90, 44, 24, KIN, fadeIn(k, .05, .3));
+    tag('五六七の 御代が 生まれる', 90, 74, HO, fadeIn(k, .4), 8);
+  }
+}
+
+// ---------- 場面5：観音様と 私 ----------
+function scene5(lt, t) {
+  if (lt < 1) {
+    // 大正13年 右に 等身大の 観音様が 見える
+    const k = lt;
+    room(t, .4);
+    person(76, 196, '#2c2f52', '#d97757', 'down', 1.3);
+    kannon(118, 192, t, 1.3, fadeIn(k, .2, .4) * .8);
+    person(24, 196, '#2c2f52', '#8ab0ff', 'reachR', 1.1, fadeIn(k, .1));
+    bubble(36, 150, '！', fadeIn(k, .45));
+    BA('等身大の 観音様', 90, 44, 18, KAMI, fadeIn(k, .05, .3));
+    tag('大正13年', 90, 74, HO, fadeIn(k, .3), 8);
+  } else if (lt < 2) {
+    // 伊都能売の 神様が 憑られ 使命を 知らされた
+    const k = lt - 1, g = ease(fadeIn(k, .15, .4));
+    room(t, .5);
+    rays(124, .35 * g, t);
+    hill(40, 202, 64, 44, '#3a4a6a');
+    kannon(40, 158, t, .8, fadeIn(k, .5));
+    nameTag('補陀落山', 40, 112, AO, fadeIn(k, .5));
+    person(124, 196, '#2c2f52', mix('#8a84a8', '#ffd84a', g), 'down', 1.5);
+    if (g < 1) spirit(124, rd(lerp(86, 160, g)), t, '#fff1b0', 1); else halo(124, 163, 12, t, '#ffd84a', 1);
+    BA('使命を 知る', 90, 44, 26, KAMI, fadeIn(k, .05, .3));
+    tag('二千六百年前の 因縁', 90, 74, HO, fadeIn(k, .5), 8);
+  } else if (lt < 3) {
+    // 昭和元年から 肉体を 使われる。機関として 一切衆生を 救う
+    const k = lt - 2, g = fadeIn(k, .3, .4);
+    dayRoom(t, .6 + .4 * g);
+    rays(90, .35, t);
+    kannon(90, 196, t, 2.4, .5);
+    person(90, 196, '#2c2f52', '#ffd84a', 'down', 1.5);
+    [[18, '#8ab0ff'], [40, '#ff9ab0'], [140, '#9fe0a0'], [162, '#e0b0ff']].forEach(([x, c], i) => {
+      const on = fadeIn(k, .3 + i * .1, .1);
+      person(x, 196 - (on >= 1 && Math.floor(AT * 3 + i) % 2 ? 2 : 0), '#2c2f52', mix('#6a6488', c, on), on >= 1 ? 'up' : 'down', .9);
+    });
+    floatHearts(14, 160, t, g);
+    BA('機関として', 90, 44, 26, KIN, fadeIn(k, .05, .3));
+    tag('一切衆生を 救わせ給う', 90, 74, KIN, fadeIn(k, .4), 8);
+  } else {
+    // 昭和元年12月 或る夜「紙と筆を 用意しろ」
+    const k = lt - 3, g = fadeIn(k, .1, .3);
+    R(0, 0, W, SH, '#0a0a1e'); drawStars(t, .6); ground('#3a2a1c');
+    halo(50, 166, 16, t, '#ffd84a', g);
+    person(50, 196, '#2c2f52', '#ffd84a', 'reachR', 1.4);
+    R(76, 180, 44, 3, '#a07a4a'); R(78, 183, 2, 19, '#7a5a3a'); R(116, 183, 2, 19, '#7a5a3a');
+    A(fadeIn(k, .45), () => { R(84, 160, 28, 20, '#f8f0dc'); for (let i = 0; i < 4; i++) R(87, 164 + i * 4, rd(22 * clamp((k - .5) * 3 - i * .4)), 1, '#3a3a3a'); });
+    if (k > .45) brush(rd(96 + Math.sin(AT * 6) * 6), 166 + (Math.floor(AT * 2) % 3) * 4, 1);
+    candle(150, 196, t, 1);
+    say(90, 118, '紙と筆を 用意しろ', '#5a2a1a', fadeIn(k, .2));
+    BA('昭和元年12月', 90, 44, 20, HO, fadeIn(k, .05, .3));
+    tag('不思議な 感じが 起こった', 90, 74, HO, fadeIn(k, .3), 8);
+  }
+}
+
+// ---------- 場面6：金龍神 ----------
+function scene6(lt, t) {
+  if (lt < 1) {
+    // 昭和4年4月 琵琶湖で 金龍神と 赤龍の 大争闘
+    const k = lt, lose = ease(fadeIn(k, .7, .25));
+    R(0, 0, W, SH, '#141428'); drawStars(t, .2);
+    darkCloud(30, 94, t, .8); darkCloud(140, 100, t, .8);
+    wind(t, .6, 90, 160);
+    lake(160, AT);
+    const gy = rd(lerp(192, 132, ease(fadeIn(k, .05, .35))));
+    dragon(100, gy, t, '#ffd84a', '#fff1b0', 1, -1, 1);
+    const rx = lose > 0 ? rd(lerp(58, -50, lose)) : rd(lerp(-40, 58, ease(fadeIn(k, .2, .25))));
+    dragon(rx, rd(lerp(130, 70, lose)), t, '#d04030', '#ff9a8a', 1, 1, .9);
+    clash(80, 130, t, fadeIn(k, .4, .1) * (1 - lose));
+    BA('琵琶湖の 大争闘', 90, 44, 20, HO, fadeIn(k, .05, .3));
+    tag('昭和4年4月', 90, 74, HO, fadeIn(k, .3), 8);
+  } else {
+    // 金龍神は 私の 守護神に
+    const k = lt - 1, g = fadeIn(k, .35, .3);
+    dayRoom(t, g);
+    darkCloud(80, 96, t, 1 - g);
+    if (g < 1 && Math.floor(AT * 5) % 4 === 0) bolt(84, 106, 1 - g);
+    house(52, 202, 1, 0, 1);
+    person(128, 196, '#2c2f52', '#ffd84a', 'down', 1.4);
+    halo(128, 165, 12, t, '#ffd84a', g);
+    const an = AT * 1.5;
+    dragon(rd(128 + Math.cos(an) * 34), rd(126 + Math.sin(an) * 10), t, '#ffd84a', '#fff1b0', g, Math.sin(an) > 0 ? -1 : 1, .8);
+    BA('守護神', 90, 44, 30, KIN, fadeIn(k, .05, .3));
+    tag('伊都能売金龍', 90, 74, HO, fadeIn(k, .4), 8);
+  }
+}
+
+// ---------- 場面7：千手観音 ----------
+function scene7(lt, t) {
+  if (lt < 1) {
+    // 昭和9年 不思議な 写真。頭上に 千手観音の 姿
+    const k = lt, g = fadeIn(k, .2, .4), g2 = fadeIn(k, .55, .3);
+    room(t, .4);
+    R(36, 90, 108, 110, '#f4f0e4'); R(42, 96, 96, 92, '#2a2838');
+    person(90, 186, '#4a4660', '#c8c0b0', 'down', 1.1);
+    for (let i = 0; i < 10; i++) { const q = i / 10; if (q < g) A(.7, () => disc(rd(97 + Math.sin(q * 6 + AT) * 3), rd(172 - q * 60), 2 + rd(q * 3), '#e8e8f0')); }
+    senju(90, 132, t, .8, g2);
+    BA('不思議な 写真', 90, 44, 24, KAMI, fadeIn(k, .05, .3));
+    tag('頭上に 千手観音', 90, 74, HO, fadeIn(k, .5), 8);
+  } else {
+    // 画は 切り刻まれた。円光が 大きく、お年が 若く、地上で 救う
+    const k = lt - 1, g = ease(fadeIn(k, .4, .4));
+    dayRoom(t, .4 + .6 * g);
+    A(1 - g * .7, () => easel(36, 202, 1));
+    for (let i = 0; i < 3; i++) line(26 + i * 5, 171, 38 + i * 5, 186, '#d04030', fadeIn(k, .05 + i * .08, .05) * (1 - g * .7));
+    const by = rd(lerp(142, 196, g));
+    tintCloud(118, by + 6, '#f4f8ff', 1 - g);
+    halo(124, rd(by - 28), 20, t, '#ffd84a', fadeIn(k, .2));
+    senju(124, by, t, 1.3, 1);
+    if (g >= 1) { person(80, 196, '#2c2f52', '#9fe0a0', 'up', .8); person(166, 196, '#2c2f52', '#ff9ab0', 'up', .8); }
+    BA('地上で 救う', 90, 44, 26, KIN, fadeIn(k, .05, .3));
+    tag('円光は 大きく お年は 若く', 90, 74, HO, fadeIn(k, .3), 8);
+  }
+}
+
+// ---------- 場面8：メシヤ降誕 ----------
+function scene8(lt, t) {
+  if (lt < 1) {
+    // 昭和25年 留置場で 18日間。6月15日 光の玉に 魂が 宿る
+    const k = lt, g = ease(fadeIn(k, .7, .25));
+    R(0, 0, W, SH, '#121220'); ground('#3a3440');
+    R(30, 98, 120, 104, '#1c1a2c');
+    rays(88, .45 * g, t);
+    person(88, 196, '#2c2f52', mix('#8a84a8', '#ffd84a', g), 'down', 1.4);
+    if (g > 0 && g < 1) spirit(88, rd(lerp(104, 178, g)), t, '#fff1b0', 1);
+    orb(88, 178, rd(2 + 3 * g), t, .5 + .5 * g);
+    bars(30, 98, 120, 104);
+    const n = Math.min(17, Math.floor(clamp(k / .7) * 17.99)), d = 29 + n;
+    nameTag(d > 31 ? `6月${d - 31}日` : `5月${d}日`, 90, 89, n >= 17 ? KIN : HO, fadeIn(k, .05));
+    BA('昭和25年', 90, 44, 26, HO, fadeIn(k, .05, .3));
+    tag('留置場で 18日間', 90, 72, HO, fadeIn(k, .2), 8);
+  } else if (lt < 2) {
+    // 花が 散って 実を 結ぶ、その 実の 種の 中心の ポチ。神と 人との 隔てが 撤去
+    const k = lt - 1, p1 = fadeIn(k, .05, .15), p2 = fadeIn(k, .2, .15), p3 = fadeIn(k, .35, .15), g = ease(fadeIn(k, .7, .25));
+    dayRoom(t, 1);
+    A(p1, () => { R(28, 146, 2, 20, '#3f8f3a'); disc(29, 140, 7, '#ff8ab0'); disc(29, 140, 2, '#ffd84a'); });
+    arrow(42, 142, rd(14 * p2), '#fff1b0');
+    A(p2, () => { disc(78, 142, 9, '#d04040'); R(77, 130, 2, 4, '#3f8f3a'); P(74, 138, '#ff9a8a', 2); });
+    arrow(92, 142, rd(14 * p3), '#fff1b0');
+    A(p3, () => { disc(128, 142, 12, '#a07a4a'); disc(128, 142, 9, '#c8a070'); });
+    orb(128, 142, 3, t, p3);
+    nameTag('ポチ', 128, 120, KIN, fadeIn(k, .45));
+    wall(84, 202, 12, 34, 1 - fadeIn(k, .55, .15));
+    spirit(rd(lerp(44, 136, g)), rd(lerp(180, 176, g)), t, '#fff1b0', fadeIn(k, .5) * (1 - (g >= 1 ? 1 : 0)));
+    person(136, 196, '#2c2f52', mix('#8a84a8', '#ffd84a', g), g >= 1 ? 'up' : 'down', 1.2);
+    orb(136, 181, 2, t, g);
+    nameTag('神', 44, 196, KAMI, fadeIn(k, .5) * (1 - g));
+    BA('実の 種の ポチ', 90, 44, 22, KIN, fadeIn(k, .05, .3));
+    tag('神と 人との 隔てが 撤去', 90, 74, HO, fadeIn(k, .6), 8);
+  } else {
+    // メシヤ降誕。キング・オブ・キングス、人類は 救われる
+    const k = lt - 2, g = fadeIn(k, .1, .3);
+    dayRoom(t, 1);
+    rays(90, .5, t);
+    halo(90, 163, 22, t, '#ffd84a', g);
+    person(90, 198, '#2c2f52', '#ffd84a', 'up', 1.6);
+    crown(90, 155, fadeIn(k, .3));
+    orb(90, 177, 4, t, 1);
+    [[22, '#8ab0ff'], [46, '#ff9ab0'], [134, '#9fe0a0'], [158, '#e0b0ff']].forEach(([x, c], i) => {
+      const on = fadeIn(k, .4 + i * .05);
+      person(x, 196 - (on >= 1 && Math.floor(AT * 3 + i) % 2 ? 2 : 0), '#2c2f52', c, on >= 1 ? 'up' : 'down', .9, fadeIn(k, .3 + i * .05));
+    });
+    if (k > .5) { firework(36, 112, (AT * .7) % 1, '#ffd84a'); firework(144, 104, (AT * .7 + .5) % 1, '#ff9ab0'); }
+    BA('メシヤ降誕', 90, 44, 28, KIN, fadeIn(k, .05, .3));
+    tag('キング・オブ・キングス', 90, 74, HO, fadeIn(k, .3), 8);
+    tag('人類は 救われる', 90, 90, KIN, fadeIn(k, .6), 8);
+  }
+}
+
+// ---------- 進行 ----------
+const SCENES = [
+  [0, 1, scene1, '序 神人合一・メシヤ降誕'],
+  [1, 4, scene2, '一 御主神'],
+  [4, 8, scene3, '二 神人合一'],
+  [8, 11, scene4, '三 麻邇の玉'],
+  [11, 15, scene5, '四 観音様と 私'],
+  [15, 17, scene6, '五 金龍神'],
+  [17, 19, scene7, '六 千手観音'],
+  [19, 22, scene8, '結 メシヤ降誕'],
+];
+
+
+
+function frame(t) {
+  lastVT = t;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  const sc = SCENES.find(s => t >= s[0] && t < s[1]) || SCENES[SCENES.length - 1];
+  const lt = t - sc[0];
+  sc[2](lt, AT);
+  // 場面の見出し
+  T(sc[3], 4, 6, 6.5, '#f3ead6', 'left', clamp(1.6 - lt) * .9 + .25);
+  // 場面の切りかわり（黒くフェード）
+  const d = Math.min(t - sc[0] + (sc[0] === 0 ? 9 : 0), sc[1] - t + (sc[1] === DUR ? 9 : 0));
+  if (d < .05) A(1 - d / .05, () => R(0, 0, W, SH, '#000'));
+  // 終わり：ゆっくり暗くして「ご視聴ありがとうございました」
+  if (t > DUR) {
+    const e = t - DUR;
+    A(clamp(e / 1.2) * .93, () => R(0, 0, W, SH, "#000"));
+    T("ご視聴", 90, 80, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
+    T("ありがとう", 90, 104, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
+    T("ございました", 90, 128, 16, "#ffe8b0", "center", clamp((e - .5) / .8));
+  }
+  captions(t);
+  // 字幕の左：いま読んでいる人（めたん・つむぎ・はう・小夜）がしゃべる。オレンジのキャラクターはタイトルの左
+  const ci = CAPS.findIndex(c => t >= c[0] && t < c[1]), si = ci < 0 ? CAPS.length - 1 : ci;
+  speakerDot(voiceOf(si), 9, 227, AT, playing && speaking && si === seg);
+}
+
+// ---------- 進み方：字幕1つずつ、読み上げが終わってから次へ ----------
+let AT = 0; // AT：鼓動や粒の動き用の時計（字幕の進みとは別に、いつも同じ速さで進む）
+let running = false, playing = false, muted = false, seg = 0, pos = 0, lastNow = 0, waitT = 0, speaking = false;
+const STARTS = []; let TOTAL = 0;
+CAPS.forEach(c => { STARTS.push(TOTAL); TOTAL += c.dur; });
+const segAt = p => { let i = 0; while (i < CAPS.length - 1 && p >= STARTS[i + 1]) i++; return i; };
+function loop(now) {
+  const dt = Math.min(.1, (now - lastNow) / 1000); lastNow = now;
+  if (playing) {
+    AT += dt / 1.4;
+    const end = STARTS[seg] + CAPS[seg].dur;
+    let np = pos + dt;
+    if (np >= end) {
+      // 読み上げがまだ続いていたら、終わるまで待つ（声が出ない端末のため 8 秒で打ち切る）
+      if (speaking && !muted && waitT < 8) { np = end - .001; waitT += dt; }
+      else if (seg < CAPS.length - 1) { np = end; enterSeg(seg + 1, true); }
+      else { np = TOTAL; finish(); }
+    }
+    pos = np;
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+function draw() {
+  const i = segAt(Math.min(pos, TOTAL - .001)), c = CAPS[i];
+  const k = pos >= TOTAL ? 1 : clamp((pos - STARTS[i]) / c.dur);
+  frame(lerp(c[0], c[1] - .001, k));
+  if (!seeking) seekBar.value = pos;
+  curT.textContent = mmss(pos);
+}
+// その字幕に入る：声を読み、効果音を鳴らす
+function enterSeg(i, sfx) {
+  seg = i; waitT = 0;
+  if (muted || !playing) { stopSpeak(); return; }
+  speak(i);
+  if (sfx && SFX[i]) try { wakeAudio(); SFX[i](); } catch (e) {}
+}
+function finish() {
+  playing = false; stopSpeak(); bgmOn(false);
+  ppBtn.textContent = '▶ もう一度';
+}
+function stopSpeak() {
+  speaking = false; cur = null;
+  if (koeSrc) { try { koeSrc.onended = null; koeSrc.stop(); } catch (e) {} koeSrc = null; }
+  try { if (ttsOK) speechSynthesis.cancel(); } catch (e) {}
+}
+
+// ---------- 操作パネル ----------
+const seekBar = document.getElementById('seekBar'), curT = document.getElementById('curT');
+const ppBtn = document.getElementById('ppBtn'), rsBtn = document.getElementById('rsBtn'), sndBtn = document.getElementById('sndBtn');
+const mmss = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+seekBar.max = TOTAL.toFixed(1);
+document.getElementById('totT').textContent = mmss(TOTAL);
+let seeking = false;
+// ---------- 女性の声で読み上げ（御神書索引と同じしくみ） ----------
+let cur = null;
+const ttsOK = 'speechSynthesis' in window;
+const MALE = ['otoya', 'ichiro', 'keita', 'hattori', 'daichi', 'naoki', 'male'];
+const FEMALE = ['kyoko', 'o-ren', 'oren', 'nanami', 'haruka', 'ayumi', 'sayaka', 'mizuki', 'female', 'google'];
+function voiceQuality(v) {
+  const s = ((v.voiceURI || '') + ' ' + (v.name || '')).toLowerCase();
+  if (s.includes('eloquence')) return -1;
+  if (s.includes('premium')) return 3;
+  if (s.includes('enhanced') || s.includes('natural') || s.includes('neural')) return 2;
+  if (s.includes('compact')) return 0;
+  return 1;
+}
+function pickVoice() {
+  let vs = []; try { vs = speechSynthesis.getVoices() || []; } catch (e) {}
+  const name = v => ((v.voiceURI || '') + ' ' + (v.name || '')).toLowerCase();
+  const ja = vs.filter(v => v.lang && v.lang.toLowerCase().replace('_', '-').startsWith('ja') && !MALE.some(m => name(v).includes(m)));
+  const rank = v => { const i = FEMALE.findIndex(f => name(v).includes(f)); return i < 0 ? FEMALE.length : i; };
+  ja.sort((a, b) => (voiceQuality(b) - voiceQuality(a)) || (rank(a) - rank(b)));
+  return ja[0] || null;
+}
+let voice = null;
+if (ttsOK) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => { voice = pickVoice(); }; } catch (e) {} }
+let lastUtter = null;
+function speakTTS(text, token) {
+  if (!ttsOK) { speaking = false; return; }
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ja-JP'; u.rate = 0.9; u.pitch = 1.1; u.volume = 1;
+    voice = voice || pickVoice(); if (voice) u.voice = voice;
+    u.onend = u.onerror = () => { if (cur === token) speaking = false; };
+    lastUtter = u; // 読み上げ中に消えないよう持っておく（消えると「読み終わり」が届かない）
+    speechSynthesis.speak(u);
+  } catch (e) { speaking = false; }
+}
+
+// ---------- ナレーション：VOICEVOX の4人（めたん・つむぎ・はう・小夜）と COEIROINK の5人（つくよみちゃん・MANA・KANA・アメノちゃん 熊本弁・リリンちゃん）で作った声（各フォルダに 00.wav〜23.wav）を流す ----------
+// 「順番」のときは、字幕1つごとに グループの人を順番に読む（VOICEVOX：めたん→つむぎ→はう→小夜→ひまり→ナースロボ、COEIROINK：つくよみ→MANA→KANA→熊本弁→リリン）（ランダムではない）。
+// iPhone でも声・音楽・効果音がいっしょに鳴る（iPhone の読み上げ機能を使うと、読む間ほかの音が止まってしまうため）。
+// 録音が読めないときだけ、端末の声で読み上げる。字幕の文を変えたら作り直すこと
+const KOE_V = 1; // 声のファイルを作り直したら 1 つ増やす（端末に残った前の声を使わないように）
+// [フォルダ, クレジットの名前, ボタンの名前, 録音の形式]。0〜3：VOICEVOX の4人、4〜8：COEIROINK の5人（アメノちゃんは熊本弁）
+const VOICES = [['koe', '四国めたん', 'めたん', 'mp3'], ['koe-tsumugi', '春日部つむぎ', 'つむぎ', 'mp3'], ['koe-hau', '雨晴はう', 'はう', 'mp3'], ['koe-sayo', '小夜/SAYO', '小夜', 'mp3'],
+  ['koe-tsukuyomi', 'つくよみちゃん', 'つくよみ', 'mp3'], ['koe-mana', 'MANA', 'MANA', 'mp3'], ['koe-kana', 'KANA', 'KANA', 'mp3'], ['koe-lilin', 'リリンちゃん', 'リリン', 'mp3'],
+  ['koe-ameno-kuma', 'アメノちゃん', '熊本弁', 'mp3'],
+  ['koe-mao', 'まお', 'まお', 'mp3'], ['koe-mai', 'まい', 'まい', 'mp3'], ['koe-kohaku', 'コハク', 'コハク', 'mp3'],
+  ['koe-runa', 'るな', 'るな', 'mp3'], ['koe-sakurane', '桜音', '桜音', 'mp3'], ['koe-chuni', '中2', '中2', 'mp3'],
+  ['koe-kanon', '花音', '花音', 'mp3'],
+  ['koe-himari', '冥鳴ひまり', 'ひまり', 'mp3'], ['koe-nurserobo', 'ナースロボ＿タイプＴ', 'ナースロボ', 'mp3']];
+// 「声」のグループ：VOICEVOX・COEIROINK・AivisSpeech（ボタンで切り替える）。ランダムは全員から選ぶ
+// COEIROINK の並び：つくよみ→MANA→KANA→熊本弁→リリン（リリンをいちばん最後に）
+const ENGINES = [['VOICEVOX', [0, 1, 2, 3, 16, 17]], ['COEIROINK', [4, 5, 6, 8, 7]], ['AivisSpeech', [9, 10, 11, 14, 12, 15, 13]]]; // AivisSpeech の並び：まお→まい→コハク→中2→るな→花音→桜音
+const RAND = ENGINES.length; // 「ランダム」のボタンの番号
+const ALL = VOICES.map((v, i) => i);
+const MIX = -1; // 「順番」
+const koeOK = VOICES.map(() => []), koeRaw = VOICES.map(() => []), koeBuf = VOICES.map(() => []); // koeOK[v][i] が false：その録音がない（押した瞬間に端末の声で読むため、先に分かるようにしておく）
+// 声の録音は、いま読む字幕とその少し先の分だけ読みこむ（全部の声を一度に用意すると、iPhone などでメモリが足りなくなってページが落ちるため）
+function koeFetch(v, i) {
+  if (!koeRaw[v][i]) koeRaw[v][i] = fetch(VOICES[v][0] + '/' + String(i).padStart(2, '0') + '.' + (VOICES[v][3] || 'wav') + '?v=' + KOE_V).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null).then(ab => { koeOK[v][i] = !!ab; return ab; });
+  return koeRaw[v][i];
+}
+// 字幕 i の前1つ〜先3つの読み手の声だけを用意して、それ以外は捨てる（捨てた分は、また要るときに読み直す）
+const KOE_BACK = 1, KOE_AHEAD = 3;
+function koePrepare(i) {
+  const keep = VOICES.map(() => []);
+  for (let k = Math.max(0, i - KOE_BACK); k <= Math.min(CAPS.length - 1, i + KOE_AHEAD); k++) {
+    const v = voiceOf(k); keep[v][k] = true;
+    koeFetch(v, k);
+    if (ac && k >= i) koeDecode(v, k);
+  }
+  VOICES.forEach((x, v) => CAPS.forEach((c, k) => { if (!keep[v][k]) { koeRaw[v][k] = null; koeBuf[v][k] = null; } }));
+}
+let voiceNo = MIX;
+let vset = 0; // 0：VOICEVOX、1：COEIROINK、2：AivisSpeech、3：ランダム（全員から字幕ごとに選ぶ）
+try { const n = parseInt(localStorage.getItem('meshiyaVoice4')); if (n >= MIX && n < 7) voiceNo = n; } catch (e) {}
+try { const n = parseInt(localStorage.getItem('meshiyaEngine')); if (n >= 0 && n <= RAND) vset = n; } catch (e) {}
+// 字幕ごとの読み手（「順番」のとき）
+let segVoice = [], randVoice = [];
+function shuffleVoices() {
+  segVoice = []; randVoice = [];
+  CAPS.forEach((c, i) => segVoice.push(i)); // 「順番」：グループの人を、字幕ごとに順番にくり返す（ランダムではない）
+  // 「ランダム」のとき：VOICEVOX・COEIROINK・AivisSpeech の全員を まぜた順に 1人ずつ。全員が話し終わったら（1周したら）まぜ直して次の周へ。
+  // 周の切れ目でも、前の周の最後の人が 次の周の最初にならないようにする
+  while (randVoice.length < CAPS.length) {
+    const bag = ALL.slice();
+    for (let k = bag.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [bag[k], bag[j]] = [bag[j], bag[k]]; }
+    if (randVoice.length && bag[0] === randVoice[randVoice.length - 1]) bag.push(bag.shift());
+    randVoice.push(...bag);
+  }
+  randVoice.length = CAPS.length;
+}
+shuffleVoices();
+const group = () => ENGINES[vset][1];
+const voiceOf = i => vset === RAND ? randVoice[i] : voiceNo === MIX ? group()[segVoice[i] % group().length] : group()[voiceNo];
+function koeDecode(v, i) {
+  if (!koeBuf[v][i]) koeBuf[v][i] = koeFetch(v, i).then(ab => ab && new Promise(res => {
+    try { ac.decodeAudioData(ab.slice(0), b => res(b), () => res(null)); } catch (e) { res(null); }
+  }));
+  return koeBuf[v][i];
+}
+let koeSrc = null;
+function speak(i) {
+  stopSpeak();
+  speaking = true;
+  const token = {}; cur = token;
+  const v = voiceOf(i);
+  koePrepare(i);
+  if (!ac || koeOK[v][i] === false) { speakTTS(CAPS[i][4], token); return; }
+  koeDecode(v, i).then(b => {
+    if (cur !== token) return; // もう別の字幕に進んだ・止めた
+    if (!b) { speakTTS(CAPS[i][4], token); return; }
+    const s = ac.createBufferSource(); s.buffer = b;
+    s.connect(ac.destination);
+    s.onended = () => { if (cur === token) speaking = false; };
+    koeSrc = s; s.start();
+  });
+}
+
+// ---------- 音楽と効果音（Web Audio で作る） ----------
+let ac = null, bgm = null;
+function tone(f, at, len, type, vol, f2, dest) {
+  const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + at;
+  o.type = type; o.frequency.setValueAtTime(f, t0);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + len);
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .01);
+  g.gain.exponentialRampToValueAtTime(.0001, t0 + len);
+  o.connect(g).connect(dest || ac.destination); o.start(t0); o.stop(t0 + len + .05);
+}
+// ざわざわした音（ゴォー・シュワー・息など）。type と freq で音色、up で「だんだん大きく」
+function noise(at, len, vol, freq = 900, type = 'bandpass', up = 0, q = 1) {
+  const b = ac.createBuffer(1, ac.sampleRate * len, ac.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const s = ac.createBufferSource(), g = ac.createGain(), fl = ac.createBiquadFilter(), t0 = ac.currentTime + at;
+  fl.type = type; fl.frequency.value = freq; fl.Q.value = q;
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .02 + up * len);
+  g.gain.linearRampToValueAtTime(0, t0 + len);
+  s.buffer = b; s.connect(fl).connect(g).connect(ac.destination); s.start(t0);
+}
+const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
+// 背景の音楽：声が聞こえるように小さく、ゆっくり（1拍 = 0.5秒）
+const MEL = [67,69,72,74,72,69,67,64, 67,72,74,76,74,72,69,67], BASS = [48,48,43,43,45,45,43,43];
+let beat = 0, nextBeat = 0;
+function bgmTick() {
+  if (!ac) return;
+  while (nextBeat < ac.currentTime + .6) {
+    const at = nextBeat - ac.currentTime;
+    tone(NOTE(MEL[beat % 16]), at, .45, 'triangle', .05, 0, bgm);
+    if (beat % 2 === 0) tone(NOTE(BASS[(beat >> 1) % 8]), at, .9, 'triangle', .1, 0, bgm);
+    beat++; nextBeat += .5;
+  }
+  setTimeout(bgmTick, 200);
+}
+const chime = () => { tone(1320, 0, .25, 'sine', .1); tone(1760, .08, .3, 'sine', .08); };
+// 雷の音（ゴロッ・ピシャッ）：前の版の発熱の音。いきなり大きく鳴って、だんだん消える
+function thunder(at, len, vol) {
+  const b = ac.createBuffer(1, ac.sampleRate * len, ac.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+  const s = ac.createBufferSource(), g = ac.createGain(), fl = ac.createBiquadFilter();
+  fl.type = "bandpass"; fl.frequency.value = 900; g.gain.value = vol;
+  s.buffer = b; s.connect(fl).connect(g).connect(ac.destination); s.start(ac.currentTime + at);
+}
+// 心臓の音（ドクン）：低い音を2つ続ける
+// iPhone のスピーカーは低い音が出にくいので、少し高めの音を重ねる
+const thump = at => { tone(170, at, .16, "triangle", .4, 70); tone(80, at, .18, "sine", .4, 40); tone(140, at + .2, .14, "triangle", .3, 60); };
+// 字幕の番号ごとの効果音（場面に合わせて1回ずつ）
+const rise = (ns, at, gap, len, type = 'sine', vol = .04) => ns.forEach((n, i) => tone(NOTE(n), at + i * gap, len, type, vol));
+const SFX = {
+  0: () => { tone(220, .2, 2.4, 'sine', .08); rise([60, 64, 67, 72, 76], .7, .28, .8, 'triangle', .045); chime(); },        // はじまり
+  1: () => { tone(220, .2, 2.0, 'sine', .05); [0, .5].forEach((d, i) => tone(NOTE(67 + i * 5), .8 + d, .5, 'sine', .04)); }, // 御主神から 二つに 分かれる
+  2: () => { [0, .35, .7, 1.05].forEach((d, i) => tone(NOTE(55 - i * 2), .4 + d, .3, 'triangle', .05)); },                // 国常立尊 → 最後の審判
+  3: () => { [0, .4, .8].forEach((d, i) => tone(NOTE(72 + i * 4), .5 + d, .4, 'sine', .04)); chime(); },                   // 三つの 御姿
+  4: () => { rise([84, 79, 76, 72], .4, .18, .4, 'sine', .035); tone(300, 1.6, .6, 'sine', .04, 900); },                  // 神様が 入る
+  5: () => { [0, .5, 1.0].forEach((d, i) => tone(NOTE(67 + i * 3), .5 + d, .35, 'sine', .04)); },                          // 三大聖者
+  6: () => { [0, .3, .6].forEach((d, i) => tone(NOTE(72 + i * 5), .8 + d, .2, 'square', .025)); },                         // 思うがまま
+  7: () => { tone(220, .2, 2.0, 'sine', .06); rise([64, 67, 71, 76, 79], .5, .3, .9, 'sine', .04); chime(); },            // 光の玉
+  8: () => { rise([84, 79, 76, 72, 67], .5, .2, .5, 'sine', .035); },                                                     // 神霊が 降りる
+  9: () => { tone(500, .3, .8, 'triangle', .02, 300); rise([84, 88, 91, 96], 1.1, .12, .4, 'sine', .03); chime(); },      // 如意宝珠
+  10: () => { tone(220, .2, 2.0, 'sine', .05); rise([60, 64, 67, 72, 76], .5, .28, .9, 'sine', .04); },                   // 五六七の 御代
+  11: () => { tone(NOTE(76), .4, .3, 'sine', .04); tone(NOTE(79), .7, .5, 'sine', .04); },                                // 観音様が 見える
+  12: () => { rise([79, 76, 72], .4, .25, .5, 'sine', .035); chime(); },                                                   // 使命を 知る
+  13: () => { [0, .3, .6, .9, 1.2, 1.5].forEach((d, i) => tone(NOTE(67 + i * 2), .4 + d, .15, 'sine', .04)); },          // 一切衆生を 救う
+  14: () => { tone(NOTE(60), .4, 1.4, 'sine', .04); [0, .25, .5, .75].forEach(d => tone(900, 1.4 + d, .05, 'triangle', .03, 700)); }, // 紙と筆（さらさら）
+  15: () => { thunder(.3, 1.6, .25); noise(.2, 2.5, .05, 600, 'bandpass', .3); thunder(1.6, 1.2, .2); },                  // 大暴風雨・大争闘
+  16: () => { thunder(.2, 1.2, .15); rise([60, 64, 67, 72, 76, 79], 1.2, .15, .8, 'triangle', .05); chime(); },           // 守護神
+  17: () => { tone(1500, .4, .08, 'square', .03, 1200); tone(220, .8, 2.0, 'sine', .05); rise([67, 71, 74, 79], 1.0, .3, .9, 'sine', .04); }, // 写真（カシャ）→ 千手観音
+  18: () => { [0, .25, .5].forEach(d => noise(.4 + d, .12, .06, 2500, 'highpass')); rise([60, 64, 67, 72, 76], 1.4, .2, .8, 'sine', .04); }, // 切り刻む → 地上で 救う
+  19: () => { [0, .5, 1.0, 1.5].forEach(d => tone(1200, .4 + d, .04, 'square', .015, 900)); rise([72, 76, 79, 84], 2.2, .2, .7, 'sine', .04); chime(); }, // 日を 数える → 魂が 宿る
+  20: () => { rise([60, 64, 67], .4, .45, .5, 'triangle', .04); tone(220, 1.8, 1.6, 'sine', .05); },                        // 花 → 実 → 種
+  21: () => { tone(220, .2, 2.2, 'sine', .06); rise([60, 64, 67, 72, 76, 79, 84], .5, .2, 1.0, 'sine', .045); chime(); }, // メシヤ降誕
+  22: () => { bgm.gain.setTargetAtTime(0, ac.currentTime, 1.2); [60, 64, 67, 72].forEach((n, i) => tone(NOTE(n), i * .25, 3.5 - i * .25, "triangle", .07)); }, // 終わりの和音と音楽のフェードアウト
+};
+function startSound() {
+  try {
+    // iPhone の消音スイッチが入っていても声と音が出るようにする（声も音もすべて Web Audio で鳴らすので使える）
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+    if (!ac) {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      ac.onstatechange = () => { if (playing && !muted) wakeAudio(); };
+      bgm = ac.createGain(); bgm.gain.value = 0; bgm.connect(ac.destination);
+      nextBeat = ac.currentTime + .1; bgmTick();
+      koePrepare(seg); // いまの字幕の少し先までの声を先に準備しておく
+    }
+    ac.resume();
+  } catch (e) {}
+}
+// iPhone で声の読み上げなどのあと音が止まっていたら、また鳴るようにする
+function wakeAudio() { try { if (ac && ac.state !== "running") ac.resume(); } catch (e) {} }
+// 背景の音楽を出す・止める（音量を上げ下げする）
+function bgmOn(on) { if (bgm) bgm.gain.setTargetAtTime(on && !muted ? .7 : 0, ac.currentTime, .15); }
+
+// 最初から再生（ボタンを押したその場で声を出す：iPhone は押した瞬間でないと声が出ないため）
+function playFromStart() {
+  startSound();
+  document.getElementById('startBox').classList.add('hide');
+  pos = 0; AT = 0; playing = true; bgmOn(true);
+  ppBtn.textContent = '⏸ 一時停止';
+  shuffleVoices();
+  enterSeg(0, true);
+  if (!running) { running = true; lastNow = performance.now(); requestAnimationFrame(loop); }
+}
+document.getElementById('startBtn').onclick = playFromStart;
+rsBtn.onclick = playFromStart;
+ppBtn.onclick = () => {
+  if (!running || pos >= TOTAL) { playFromStart(); return; }
+  playing = !playing;
+  if (playing) {
+    startSound(); bgmOn(true); ppBtn.textContent = '⏸ 一時停止';
+    enterSeg(segAt(pos), false); // 止めたところの字幕を、もう一度読む
+  } else {
+    stopSpeak(); bgmOn(false); ppBtn.textContent = '▶ 再生';
+  }
+};
+// 再生位置のバー：動かすと好きな場面へ
+seekBar.addEventListener('input', () => {
+  seeking = true; stopSpeak();
+  pos = Math.min(parseFloat(seekBar.value), TOTAL - .01); seg = segAt(pos);
+  if (!running) draw();
+});
+seekBar.addEventListener('change', () => {
+  seeking = false;
+  if (!running) { playFromStart(); pos = parseFloat(seekBar.value); seg = segAt(pos); enterSeg(seg, false); return; }
+  if (pos < TOTAL && !playing && ppBtn.textContent === '▶ もう一度') { playing = true; bgmOn(true); ppBtn.textContent = '⏸ 一時停止'; }
+  if (playing) enterSeg(seg, false);
+});
+// 声・音のオン・オフ
+sndBtn.onclick = () => {
+  muted = !muted;
+  sndBtn.textContent = muted ? '🔇 声・音 OFF' : '🔊 声・音 ON';
+  sndBtn.classList.toggle('off', muted);
+  if (muted) { stopSpeak(); bgmOn(false); }
+  else if (playing) { startSound(); bgmOn(true); enterSeg(seg, false); }
+};
+
+// 声を選ぶ：選んだ声で、いまの字幕から読み直す
+const eBtns = document.querySelectorAll('.voices button[data-e]'), nameRow = document.getElementById('nameRow');
+const useVoices = () => vset === RAND ? ALL : voiceNo === MIX ? group() : [group()[voiceNo]];
+// 1人を選ぶ段：いまのグループの人数ぶん、ボタンを作り直す
+function makeNameBtns() {
+  nameRow.querySelectorAll('button').forEach(b => b.remove());
+  if (vset === RAND) return;
+  [MIX, ...group().map((v, k) => k)].forEach(k => {
+    const b = document.createElement('button');
+    b.dataset.v = k; b.textContent = k === MIX ? '順番' : VOICES[group()[k]][2];
+    b.onclick = () => {
+      voiceNo = k;
+      try { localStorage.setItem('meshiyaVoice4', voiceNo); } catch (e) {}
+      pickChanged();
+    };
+    nameRow.appendChild(b);
+  });
+  nameRow.classList.toggle('many', group().length > 4);
+}
+function showVoice() {
+  if (vset < RAND && voiceNo >= group().length) voiceNo = MIX;
+  eBtns.forEach(b => b.classList.toggle('on', +b.dataset.e === vset));
+  // ランダムのときは 1人を選ぶ段をかくす
+  nameRow.classList.toggle('hide', vset === RAND);
+  nameRow.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.v === voiceNo));
+  const cr = e => ENGINES[e][0] + ':' + [...new Set(ENGINES[e][1].filter(v => useVoices().includes(v)).map(v => VOICES[v][1]))].join('・');
+  document.getElementById('credit').textContent = '声：' + (vset === RAND ? ENGINES.map((e, k) => cr(k)).join('／') : cr(vset));
+}
+function pickChanged() {
+  showVoice(); stopSpeak(); koePrepare(seg);
+  if (playing && !muted) { startSound(); enterSeg(seg, false); }
+}
+// VOICEVOX・COEIROINK・AivisSpeech・ランダム の切り替え：選んだ方の声で、いまの字幕から読み直す
+eBtns.forEach(b => b.onclick = () => {
+  vset = +b.dataset.e;
+  if (vset === RAND) shuffleVoices(); // ランダムを押すたびに、くじを引き直す
+  try { localStorage.setItem('meshiyaEngine', vset); } catch (e) {}
+  makeNameBtns(); pickChanged();
+});
+makeNameBtns(); showVoice(); koePrepare(0);
+
+// ---------- タイトルの左のオレンジのキャラクター（前に字幕の左にいたときと同じ動き） ----------
+// 再生中：しゃべる（手をふる）→ 最後の場面でジャンプ → 終わったら歩く。止まっているときは歩く
+let lastVT = 0;
+(function titleMascot() {
+  const c = document.getElementById('ccTitle'); if (!c) return;
+  const g = c.getContext('2d'), q = 4, oy = 5; // 1ドット4画素。上にジャンプの分をあける
+  function draw(now) {
+    const t = now / 1000 / 1.4;
+    const mode = !playing ? 'walk' : lastVT >= DUR ? 'walk' : lastVT >= DUR - 1 ? 'jump' : 'talk';
+    const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x * q), Math.round(y * q), Math.round(w * q), Math.round(h * q)); };
+    g.clearRect(0, 0, c.width, c.height);
+    const col = '#d97757', f = Math.floor(t * 6) % 4;
+    const hop = mode === 'jump' ? -Math.abs(Math.sin(t * 7)) * 4 : (f % 2 ? -1 : 0);
+    const up = [f === 1, f === 3, f === 3, f === 1];
+    [2, 4, 7, 9].forEach((x, i) => R(x, oy + 6, 1, up[i] && mode === 'walk' ? 1 : 2, col));
+    const y0 = oy + hop;
+    R(2, y0, 8, 6, col);
+    const wave = mode === 'talk' && Math.sin(t * 10) > 0 ? -1 : 0;
+    R(0, y0 + 2 + wave, 2, 2, col); R(10, y0 + 2 - wave, 2, 2, col);
+    const blink = (t % 3) > 2.85;
+    R(3, y0 + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612'); R(8, y0 + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612');
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+
+// 最初の一枚（文字の準備ができてから）
+Promise.race([Promise.all([document.fonts.ready, document.fonts.load('20px "Yuji Syuku"', '125うがしたってでとなにのまるをシチポメヤ一三上不主争人伊使元光入写厘合命和国地売大守実尊常年御思救昭月様機湖玉琵琶真知神種立等者聖能臨観誕議護身邇都関闘降音魂麻')]), new Promise(r => setTimeout(r, 1500))]).then(() => { if (!running) frame(0.95); });
+</script>
+<!-- 更新した日時（GitHub に反映した日時が自動で出る）。画面のいちばん下（操作パネルの下）に小さく出す -->
+<script>(function(){var d=new Date(document.lastModified);if(isNaN(d)||Math.abs(Date.now()-d)<5000)return;function p(n){return('0'+n).slice(-2);}
+var e=document.createElement('div');e.id='appVer';e.textContent='更新 '+d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+e.style.cssText='display:block;width:100%;text-align:center;font:11px/1.4 sans-serif;color:inherit;opacity:.6;margin-top:10px;pointer-events:none;';
+document.body.appendChild(e);})();</script>
+</body>
+</html>
