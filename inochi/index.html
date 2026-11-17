@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="いのちの花">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05040d">
+<title>いのちの花</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; --gold:#f0c070; --line:#2e2750; --pink:#ffb0d0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { font-family: "DotGothic16", sans-serif; display: flex; flex-direction: column; align-items: center;
+         padding: calc(8px + env(safe-area-inset-top)) 16px calc(12px + env(safe-area-inset-bottom));
+         min-height: 100vh; min-height: 100svh; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  h1 { font-size: 18px; font-weight: 400; margin: 0 0 6px; letter-spacing: .12em; position: relative; width: 100%; max-width: 400px; text-align: center; }
+  h1 small { font-size: 11px; opacity: .6; margin-left: 6px; letter-spacing: .05em; }
+  #ccTitle { position: absolute; left: 4px; top: 50%; transform: translateY(-58%); width: 24px; height: 26px; image-rendering: pixelated; }
+  .wrap { width: 100%; max-width: 400px; width: min(100%, 400px, calc((100vh - 270px) * 160 / 216)); width: min(100%, 400px, calc((100svh - 270px) * 160 / 216)); min-width: 240px; }
+  .hud { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px; gap: 6px; }
+  .hud button { font: inherit; font-size: 12px; background: none; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; }
+  .stage { position: relative; width: 100%; aspect-ratio: 160 / 216; }
+  canvas#game { width: 100%; height: 100%; display: block; image-rendering: pixelated; border: 1px solid var(--line); background: #05040d; touch-action: none; }
+  #cap { margin-top: 8px; height: 70px; text-align: center; border: 1px solid var(--line);
+         border-radius: 8px; padding: 6px 8px; pointer-events: none; transition: opacity .5s; opacity: .15; overflow: hidden; }
+  #cap.on { opacity: 1; }
+  #cap .c1 { font-size: 16px; line-height: 1.4; }
+  #cap .c2 { font-size: 13px; line-height: 1.4; opacity: .85; }
+  #cap .cw { font-size: 10px; opacity: .55; margin-top: 2px; }
+  .ov { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-align: center; background: rgba(5, 4, 13, .84); padding: 16px; gap: 10px; }
+  .ov[hidden] { display: none; }
+  .ov .big { font-size: 28px; letter-spacing: .15em; color: var(--pink); }
+  .ov .sub { font-size: 12px; opacity: .7; letter-spacing: .2em; margin-top: -6px; }
+  .ov .l1 { font-size: 19px; line-height: 1.5; }
+  .ov .l2 { font-size: 15px; line-height: 1.5; opacity: .9; }
+  .ov .who { font-size: 11px; opacity: .6; }
+  .ov .how { font-size: 12px; line-height: 1.85; text-align: left; }
+  .ov .how b { font-weight: 400; }
+  .f { color: #ff8a5a; } .w { color: #7ac0ff; } .e { color: #d8b070; } .p { color: var(--pink); } .st { color: #a8a0b8; }
+  .ov select { font: inherit; font-size: 14px; background: #1a1530; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  .ov button.go { font: inherit; font-size: 18px; background: var(--accent); color: #1a1612; border: none; border-radius: 10px; padding: 10px 28px; margin-top: 4px; letter-spacing: .1em; }
+  .ov .score { font-size: 14px; line-height: 1.8; }
+  .pad { display: flex; gap: 8px; margin-top: 10px; width: 100%; }
+  .pad button { flex: 1; height: 62px; font: inherit; font-size: 20px; background: #1a1530; color: var(--fg);
+                border: 2px solid #3a3260; border-radius: 12px; touch-action: none; -webkit-tap-highlight-color: transparent; }
+  .pad button.on { background: #3a2a50; border-color: var(--accent); }
+  #bRot { color: #ffd9a0; }
+  .foot { font-size: 11px; opacity: .55; margin-top: 10px; text-align: center; line-height: 1.7; }
+  .foot a { color: inherit; }
+</style>
+</head>
+<body>
+<h1><canvas id="ccTitle" width="48" height="52"></canvas>いのちの花<small>三大元素パズル</small></h1>
+<div class="wrap">
+  <div class="hud">
+    <div>花 <span id="hFlower">0</span>　点 <span id="hScore">0</span></div>
+    <div>レベル <span id="hLevel">1</span></div>
+    <div><button id="pauseBtn">休む</button> <button id="muteBtn">音 あり</button></div>
+  </div>
+  <div class="stage">
+    <canvas id="game"></canvas>
+
+    <div class="ov" id="ovTitle">
+      <div class="big">いのちの花</div>
+      <div class="sub">三大元素パズル</div>
+      <div class="how">
+        <b class="f">火</b>・<b class="w">水</b>・<b class="e">土</b> を ひとつずつ<br>
+        3つ 並べると <b class="p">いのちの花</b> が咲いて 消える<br>
+        （たて・よこ・ななめ）<br>
+        同じものが 4つ以上 くっつくと<br>
+        かたよって <b class="st">石</b> になる<br>
+        花が咲くと となりの <b class="st">石</b> も 消える
+      </div>
+      <div class="how" style="text-align:center">読み手　<select id="voiceSel"></select></div>
+      <button class="go" id="startBtn">はじめる</button>
+    </div>
+
+    <div class="ov" id="ovPause" hidden>
+      <div class="big" style="color:var(--gold)">ひとやすみ</div>
+      <button class="go" id="resumeBtn">つづける</button>
+    </div>
+
+    <div class="ov" id="ovOver" hidden>
+      <div class="big" style="color:var(--gold)">おしまい</div>
+      <div class="l1" id="oL1"></div>
+      <div class="l2" id="oL2"></div>
+      <div class="who" id="oWho"></div>
+      <div class="score" id="oScore"></div>
+      <button class="go" id="againBtn">もういちど</button>
+    </div>
+  </div>
+  <div id="cap"><div class="c1" id="c1"></div><div class="c2" id="c2"></div><div class="cw" id="cw"></div></div>
+  <div class="pad">
+    <button id="bLeft" aria-label="左">◀</button>
+    <button id="bRot" aria-label="回す">回す</button>
+    <button id="bDown" aria-label="下">▼</button>
+    <button id="bRight" aria-label="右">▶</button>
+  </div>
+  <div class="foot">キーボード：← → 動かす　↑ 回す　↓ はやく　スペース 落とす<br>試作版　<a href="../">トップへ</a></div>
+</div>
+
+<script>
+// ---------- 基本 ----------
+const $ = id => document.getElementById(id);
+const S = 3, W = 160, H = 216;
+const COLS = 6, ROWS = 12, CS = 16, BX = 6, BY = 14;   // 盤：6列×12段、1マス16ドット
+const cv = $('game'); cv.width = W * S; cv.height = H * S;
+const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x * S), Math.round(y * S), Math.round(w * S), Math.round(h * S)); };
+const TXT = (s, x, y, px, c, al = 'center') => { g.font = `${px * S}px "DotGothic16", sans-serif`; g.textAlign = al; g.textBaseline = 'middle'; g.fillStyle = c; g.fillText(s, x * S, y * S); };
+
+// ---------- 読み手18人と、教えの字幕 ----------
+const VOICES = [['koe', 'めたん'], ['koe-tsumugi', 'つむぎ'], ['koe-hau', 'はう'], ['koe-sayo', '小夜'],
+  ['koe-tsukuyomi', 'つくよみ'], ['koe-mana', 'MANA'], ['koe-kana', 'KANA'], ['koe-lilin', 'リリン'], ['koe-ameno-kuma', '熊本弁'],
+  ['koe-mao', 'まお'], ['koe-mai', 'まい'], ['koe-kohaku', 'コハク'], ['koe-runa', 'るな'], ['koe-sakurane', '桜音'],
+  ['koe-chuni', '中2'], ['koe-kanon', '花音'], ['koe-himari', 'ひまり'], ['koe-nurserobo', 'ナースロボ']];
+// dir：'' はトップの「三大元素といのち」（めたんだけフォルダ名が koe-metan）
+const L = {
+  start:  { dir: '', n: 0,  l1: '宇宙は 三つの元素で', l2: 'できている' },
+  flower: { dir: '', n: 14, l1: '見えるものと 見えないもの', l2: '結びついて いのちとなる' },
+  stone:  { dir: 'hodo', n: 6, l1: '片寄りが', l2: '失敗を 招く' },
+  over:   { dir: '', n: 11, l1: '死ぬと 三つの元素が', l2: 'それぞれへ 還る' },
+  lv: [
+    { dir: '', n: 1, l1: '火素（霊気）', l2: '太陽から タテ（経）に働く' },
+    { dir: '', n: 2, l1: '水素（空気）', l2: '月から ヨコ（緯）に流れる' },
+    { dir: '', n: 3, l1: '土素（物質）', l2: '地球そのもの・見える物質' },
+    { dir: 'hodo', n: 7, l1: '中庸・程々・分相応', l2: 'ちょうどよい所に 収める' },
+    { dir: '', n: 4, l1: '人間は 小宇宙', l2: '三つを吸収する機関がある' },
+    { dir: 'hodo', n: 8, l1: '程を 守れば', l2: 'すべては うまくいく' },
+  ],
+};
+
+// ---------- 音 ----------
+let ac = null, muted = false, curSrc = null;
+const bufs = {};
+function initAudio() {
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+  if (ac && ac.state === 'suspended') ac.resume();
+}
+function tone(f, t0, d, type = 'square', vol = .05, f2) {
+  if (!ac || muted) return;
+  const o = ac.createOscillator(), gn = ac.createGain(), t = ac.currentTime + t0;
+  o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+  gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(.0001, t + d);
+  o.connect(gn).connect(ac.destination); o.start(t); o.stop(t + d + .02);
+}
+function voiceUrl(x, v) {
+  const folder = (x.dir === '' && v === 0) ? 'koe-metan' : VOICES[v][0];
+  return `../${x.dir ? x.dir + '/' : ''}${folder}/${String(x.n).padStart(2, '0')}.mp3?v=2`;
+}
+function loadVoice(x, v) {
+  const url = voiceUrl(x, v);
+  if (!bufs[url]) bufs[url] = fetch(url).then(r => r.ok ? r.arrayBuffer() : null)
+    .then(ab => ab && ac ? new Promise(res => ac.decodeAudioData(ab, res, () => res(null))) : null).catch(() => null);
+  return bufs[url];
+}
+function stopVoice() { if (curSrc) { try { curSrc.stop(); } catch (e) {} curSrc = null; } }
+const vs = $('voiceSel');
+vs.innerHTML = '<option value="mix">おまかせ（毎回ちがう人）</option>' + VOICES.map((v, i) => `<option value="${i}">${v[1]}</option>`).join('');
+try { const sv = localStorage.getItem('inochi-voice'); if (sv && [...vs.options].some(o => o.value === sv)) vs.value = sv; } catch (e) {}
+vs.addEventListener('change', () => { try { localStorage.setItem('inochi-voice', vs.value); } catch (e) {} });
+const pickVoice = () => vs.value === 'mix' ? Math.floor(Math.random() * VOICES.length) : +vs.value;
+
+// 字幕を盤の上に出して読む（ゲームは止めない）
+let capTimer = 0, capRun = 0;
+function say(x) {
+  const v = pickVoice(), run = ++capRun;
+  $('c1').textContent = x.l1; $('c2').textContent = x.l2; $('cw').textContent = '読み：' + VOICES[v][1];
+  $('cap').classList.add('on'); capTimer = 4.5;
+  stopVoice();
+  if (!ac) return v;
+  loadVoice(x, v).then(b => {
+    if (!b || muted || run !== capRun) return;
+    const s = ac.createBufferSource(); s.buffer = b; s.connect(ac.destination); s.start(); curSrc = s;
+    capTimer = Math.max(capTimer, b.duration + 1.2);
+  });
+  return v;
+}
+
+// ---------- 盤 ----------
+// 0：空き　1 火・2 水・3 土　11/12/13：かたよって石になったもの（枯・腐・固）
+let grid, piece, next, state = 'title', anim = null, chain = 0, score = 0, flowers = 0, stones = 0, level = 1, best = 0;
+let fallT = 0, lockT = 0, firstStone = false, firstFlower = false, overTimer = 0;
+const OFF = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+const rnd = () => 1 + Math.floor(Math.random() * 3);
+const newPair = () => ({ a: rnd(), b: rnd() });
+try { best = +localStorage.getItem('inochi-best') || 0; } catch (e) {}
+
+function cellsOf(p, dx = 0, dy = 0, r = p.r) {
+  const o = OFF[r];
+  return [[p.x + dx, p.y + dy, p.a], [p.x + dx + o[0], p.y + dy + o[1], p.b]];
+}
+function free(x, y) { return x >= 0 && x < COLS && y < ROWS && (y < 0 || grid[y][x] === 0); }
+function valid(p, dx = 0, dy = 0, r = p.r) { return cellsOf(p, dx, dy, r).every(([x, y]) => free(x, y)); }
+
+function reset() {
+  grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+  piece = null; next = newPair(); anim = null; chain = 0; score = 0; flowers = 0; stones = 0; level = 1;
+  fallT = 0; lockT = 0; firstStone = false; firstFlower = false; blooms = []; pops = [];
+  spawn();
+}
+function spawn() {
+  const p = Object.assign({ x: 2, y: 0, r: 0 }, next);
+  next = newPair();
+  if (!valid(p)) { gameOver(); return; }
+  piece = p; fallT = 0; lockT = 0;
+}
+const fallIv = () => Math.max(.12, .8 * Math.pow(.86, level - 1));
+
+function move(dx) { if (piece && valid(piece, dx, 0)) { piece.x += dx; lockT = Math.min(lockT, .2); tone(300, 0, .03, 'square', .02); } }
+function rotate() {
+  if (!piece) return;
+  const r = (piece.r + 1) % 4;
+  for (const [dx, dy] of [[0, 0], [-1, 0], [1, 0], [0, -1]]) {
+    if (valid(piece, dx, dy, r)) { piece.x += dx; piece.y += dy; piece.r = r; tone(520, 0, .05, 'triangle', .04, 700); return; }
+  }
+  // 狭いところでは 上下を入れかえる
+  [piece.a, piece.b] = [piece.b, piece.a]; tone(520, 0, .05, 'triangle', .04, 700);
+}
+function hardDrop() { if (!piece) return; let n = 0; while (valid(piece, 0, 1)) { piece.y++; n++; } score += n * 2; lock(); }
+
+function lock() {
+  const cs = cellsOf(piece).sort((p, q) => q[1] - p[1]);   // 下のマスから順に落とす（ばらばらに落ちる）
+  piece = null;
+  for (const [x, y0, v] of cs) {
+    let y = y0; while (y + 1 < ROWS && grid[y + 1][x] === 0) y++;
+    if (y < 0) { gameOver(); return; }
+    grid[y][x] = v;
+  }
+  tone(140, 0, .07, 'square', .04);
+  chain = 0; resolve();
+}
+function gravity() {
+  for (let x = 0; x < COLS; x++) {
+    const col = []; for (let y = ROWS - 1; y >= 0; y--) if (grid[y][x]) col.push(grid[y][x]);
+    for (let y = ROWS - 1, i = 0; y >= 0; y--, i++) grid[y][x] = col[i] || 0;
+  }
+}
+const isEl = v => v >= 1 && v <= 3;
+function findFlowers() {
+  const lines = [];
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    for (const [dx, dy] of [[1, 0], [0, 1], [1, 1], [1, -1]]) {
+      const c = [0, 1, 2].map(i => [x + dx * i, y + dy * i]);
+      if (!c.every(([cx, cy]) => cx >= 0 && cx < COLS && cy >= 0 && cy < ROWS)) continue;
+      const v = c.map(([cx, cy]) => grid[cy][cx]);
+      if (v.every(isEl) && new Set(v).size === 3) lines.push(c);
+    }
+  }
+  return lines;
+}
+function findGroups() {
+  const seen = grid.map(r => r.map(() => false)), out = [];
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const v = grid[y][x]; if (!isEl(v) || seen[y][x]) continue;
+    const grp = [], st = [[x, y]]; seen[y][x] = true;
+    while (st.length) {
+      const [cx, cy] = st.pop(); grp.push([cx, cy]);
+      for (const [dx, dy] of OFF) {
+        const nx = cx + dx, ny = cy + dy;
+        if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && !seen[ny][nx] && grid[ny][nx] === v) { seen[ny][nx] = true; st.push([nx, ny]); }
+      }
+    }
+    if (grp.length >= 4) out.push(grp);
+  }
+  return out;
+}
+let blooms = [], pops = [];
+function resolve() {
+  const lines = findFlowers();
+  if (lines.length) {
+    chain++;
+    const set = new Map();
+    lines.forEach(c => c.forEach(([x, y]) => set.set(x + ',' + y, [x, y])));
+    const freed = new Map();
+    set.forEach(([x, y]) => OFF.forEach(([dx, dy]) => {
+      const nx = x + dx, ny = y + dy;
+      if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && grid[ny][nx] > 10) freed.set(nx + ',' + ny, [nx, ny]);
+    }));
+    const pts = lines.length * 100 * chain + freed.size * 30;
+    score += pts; flowers += lines.length;
+    const cx = [...set.values()].reduce((s, c) => s + c[0], 0) / set.size, cy = [...set.values()].reduce((s, c) => s + c[1], 0) / set.size;
+    pops.push({ x: BX + cx * CS + 8, y: BY + cy * CS + 8, t: 1.2, s: (chain > 1 ? chain + '連鎖 ' : '') + '+' + pts });
+    anim = { type: 'bloom', cells: [...set.values()], freed: [...freed.values()], t: .55, d: .55 };
+    const base = 523 * Math.pow(1.122, Math.min(chain - 1, 6));
+    [1, 1.26, 1.5, 2].forEach((m, i) => tone(base * m, i * .06, .22, 'triangle', .06));
+    if (!firstFlower) { firstFlower = true; say(L.flower); }
+    return;
+  }
+  const groups = findGroups();
+  if (groups.length) {
+    anim = { type: 'stone', cells: groups.flat(), t: .45, d: .45 };
+    stones += groups.length;
+    tone(200, 0, .3, 'sawtooth', .045, 70);
+    if (!firstStone) { firstStone = true; say(L.stone); }
+    return;
+  }
+  const lv = 1 + Math.floor(flowers / 8);
+  if (lv > level) { level = lv; [659, 784, 988, 1319].forEach((f, i) => tone(f, i * .09, .25, 'square', .03)); say(L.lv[(level - 2) % L.lv.length]); }
+  spawn();
+}
+function finishAnim() {
+  const a = anim; anim = null;
+  if (a.type === 'bloom') {
+    a.cells.concat(a.freed).forEach(([x, y]) => grid[y][x] = 0);
+    a.cells.forEach(([x, y]) => blooms.push({ x, y, t: .5 }));
+    gravity();
+  } else {
+    a.cells.forEach(([x, y]) => grid[y][x] += 10);
+  }
+  resolve();
+}
+function gameOver() {
+  piece = null; state = 'over'; overTimer = 1.0;
+  if (score > best) { best = score; try { localStorage.setItem('inochi-best', best); } catch (e) {} }
+  tone(392, 0, .3, 'triangle', .06); tone(330, .25, .3, 'triangle', .06); tone(262, .5, .6, 'triangle', .06);
+}
+function showOver() {
+  const v = say(L.over);
+  $('cap').classList.remove('on');
+  $('oL1').textContent = L.over.l1; $('oL2').textContent = L.over.l2; $('oWho').textContent = '読み：' + VOICES[v][1];
+  $('oScore').innerHTML = `咲いた いのちの花　${flowers}こ<br>点　${score}　（いちばん ${best}）<br>石になった かたより　${stones}こ`;
+  $('ovOver').hidden = false;
+}
+
+// ---------- 動き ----------
+const keys = { l: false, r: false, d: false };
+const rep = { l: 0, r: 0 };
+function update(dt) {
+  if (capTimer > 0) { capTimer -= dt; if (capTimer <= 0) $('cap').classList.remove('on'); }
+  blooms = blooms.filter(b => (b.t -= dt) > 0);
+  pops = pops.filter(p => (p.t -= dt) > 0);
+  if (state === 'over' && overTimer > 0) { overTimer -= dt; if (overTimer <= 0) showOver(); }
+  if (state !== 'play') return;
+  if (anim) { anim.t -= dt; if (anim.t <= 0) finishAnim(); return; }
+  if (!piece) return;
+  for (const [k, dx] of [['l', -1], ['r', 1]]) if (keys[k]) { rep[k] -= dt; if (rep[k] <= 0) { move(dx); rep[k] = .07; } }
+  if (valid(piece, 0, 1)) {
+    lockT = 0; fallT += dt;
+    const iv = keys.d ? .035 : fallIv();
+    if (fallT >= iv) { fallT = 0; piece.y++; if (keys.d) score += 1; }
+  } else {
+    lockT += dt;
+    if (lockT >= (keys.d ? .08 : .45)) lock();
+  }
+}
+
+// ---------- 絵 ----------
+const COL = {
+  1: ['#c8432f', '#ff9a5a', '#7a2018', '火', '#fff4e0'],
+  2: ['#2f6fc8', '#7ac0ff', '#1a3a7a', '水', '#f0f8ff'],
+  3: ['#8a6a36', '#c8a060', '#4a3818', '土', '#fff4e0'],
+  11: ['#55505e', '#6e6878', '#2e2a36', '枯', '#a8a0b8'],
+  12: ['#4e5560', '#687080', '#262c36', '腐', '#a0a8b8'],
+  13: ['#5a554e', '#76705f', '#322e28', '固', '#b0a898'],
+};
+function block(px, py, v, alpha = 1) {
+  const c = COL[v]; if (!c) return;
+  g.globalAlpha = alpha;
+  R(px + 1, py + 1, 14, 14, c[0]); R(px + 1, py + 1, 14, 2, c[1]); R(px + 1, py + 1, 2, 14, c[1]);
+  R(px + 1, py + 13, 14, 2, c[2]); R(px + 13, py + 1, 2, 14, c[2]);
+  TXT(c[3], px + 8, py + 8.5, 10, c[4]);
+  g.globalAlpha = 1;
+}
+function flower(cx, cy, k, t) {   // k：0〜1 の開きぐあい
+  const r = 1 + Math.round(k * 4);
+  const pet = '#ffb0d0', pet2 = '#ff7fae';
+  for (let i = 0; i < 5; i++) {
+    const a = i / 5 * Math.PI * 2 + t * 2, px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
+    R(px - 2, py - 2, 4, 4, i % 2 ? pet : pet2);
+  }
+  R(cx - 1.5, cy - 1.5, 3, 3, '#ffe066');
+}
+const stars = Array.from({ length: 50 }, (_, i) => ({ x: (i * 53.7) % W, y: (i * 37.3) % H, p: i * 1.3 }));
+function draw(now) {
+  const t = now / 1000;
+  // 空
+  for (let y = 0; y < H; y += 4) { const k = y / H; R(0, y, W, 4, `rgb(${5 + k * 30 | 0},${4 + k * 14 | 0},${13 + k * 40 | 0})`); }
+  for (const s of stars) { g.globalAlpha = .3 + .5 * Math.abs(Math.sin(t + s.p)); R(s.x, s.y, 1, 1, '#f3ead6'); } g.globalAlpha = 1;
+  // 盤
+  R(BX - 2, BY - 2, COLS * CS + 4, ROWS * CS + 4, '#3a3260');
+  R(BX, BY, COLS * CS, ROWS * CS, '#0d0a1c');
+  for (let x = 1; x < COLS; x++) R(BX + x * CS, BY, .34, ROWS * CS, '#1a1630');
+  for (let y = 1; y < ROWS; y++) R(BX, BY + y * CS, COLS * CS, .34, '#1a1630');
+  R(BX + 2 * CS, BY, CS, CS, 'rgba(217,119,87,.12)');   // 出てくる所
+  if (grid) {
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      const v = grid[y][x]; if (!v) continue;
+      let al = 1;
+      if (anim && anim.cells.some(([cx, cy]) => cx === x && cy === y)) {
+        if (anim.type === 'bloom') { const k = 1 - anim.t / anim.d; block(BX + x * CS, BY + y * CS, v, 1 - k); flower(BX + x * CS + 8, BY + y * CS + 8, k, t); continue; }
+        else { block(BX + x * CS, BY + y * CS, (Math.floor(anim.t * 14) % 2) ? v + 10 : v); continue; }
+      }
+      if (anim && anim.type === 'bloom' && anim.freed.some(([cx, cy]) => cx === x && cy === y)) al = anim.t / anim.d;
+      block(BX + x * CS, BY + y * CS, v, al);
+    }
+    for (const b of blooms) { g.globalAlpha = Math.max(0, b.t / .5); flower(BX + b.x * CS + 8, BY + b.y * CS + 8 - (.5 - b.t) * 16, 1, t); } g.globalAlpha = 1;
+    if (piece) {
+      // 落ちる先のかげ
+      const cs = cellsOf(piece).sort((p, q) => q[1] - p[1]), land = {};
+      for (const [x, y0, v] of cs) {
+        let y = y0; while (y + 1 < ROWS && grid[y + 1][x] === 0 && !(land[x] !== undefined && y + 1 >= land[x])) y++;
+        land[x] = y; if (y >= 0) block(BX + x * CS, BY + y * CS, v, .22);
+      }
+      for (const [x, y, v] of cellsOf(piece)) if (y >= 0) block(BX + x * CS, BY + y * CS, v);
+    }
+  }
+  // 右の欄
+  const PX = BX + COLS * CS + 6;
+  TXT('つぎ', PX + 22, BY + 4, 7, '#f3ead6');
+  R(PX + 6, BY + 10, 32, 38, '#0d0a1c');
+  if (next) { block(PX + 14, BY + 13, next.b); block(PX + 14, BY + 29, next.a); }
+  // 盤の上の 火・水・土 の数（かたよりの目安）
+  if (grid) {
+    const cnt = [0, 0, 0, 0]; grid.forEach(r => r.forEach(v => { if (isEl(v)) cnt[v]++; }));
+    const tot = cnt[1] + cnt[2] + cnt[3];
+    TXT('かたより', PX + 22, BY + 62, 7, '#f3ead6');
+    [1, 2, 3].forEach((v, i) => {
+      const y = BY + 72 + i * 14, k = tot ? cnt[v] / tot : 0;
+      TXT(COL[v][3], PX + 4, y + 3, 8, COL[v][1]);
+      R(PX + 10, y, 32, 6, '#1a1630'); R(PX + 10, y, Math.round(32 * k), 6, COL[v][0]);
+      if (tot >= 6 && k > .5) TXT('多い', PX + 26, y + 10, 6, '#ff8a8a');
+    });
+    TXT('花', PX + 22, BY + 124, 7, '#ffb0d0');
+    TXT(String(flowers), PX + 22, BY + 136, 10, '#ffb0d0');
+    flower(PX + 22, BY + 156, 1, t * .5);
+    if (chain > 1 && anim) TXT(chain + '連鎖', PX + 22, BY + 176, 8, '#ffe066');
+  }
+  for (const p of pops) { g.globalAlpha = Math.min(1, p.t * 2); TXT(p.s, p.x, p.y - (1.2 - p.t) * 14, 7, '#ffe066'); } g.globalAlpha = 1;
+}
+
+// ---------- 画面の上の表示 ----------
+let hudKey = '';
+function hud() {
+  const k = flowers + '/' + score + '/' + level; if (k === hudKey) return; hudKey = k;
+  $('hFlower').textContent = flowers; $('hScore').textContent = score; $('hLevel').textContent = level;
+}
+
+// ---------- 場面の切りかえ ----------
+function start() {
+  initAudio(); reset();
+  if (vs.value !== 'mix') [L.start, L.flower, L.stone, L.over, ...L.lv].forEach(x => loadVoice(x, +vs.value));
+  $('ovTitle').hidden = true; $('ovOver').hidden = true; $('ovPause').hidden = true;
+  state = 'play'; say(L.start);
+}
+function pause(on) {
+  if (on && state === 'play') { state = 'pause'; $('ovPause').hidden = false; stopVoice(); }
+  else if (!on && state === 'pause') { state = 'play'; $('ovPause').hidden = true; }
+}
+$('startBtn').addEventListener('click', start);
+$('againBtn').addEventListener('click', start);
+$('pauseBtn').addEventListener('click', () => pause(state === 'play'));
+$('resumeBtn').addEventListener('click', () => pause(false));
+$('muteBtn').addEventListener('click', () => { muted = !muted; $('muteBtn').textContent = muted ? '音 なし' : '音 あり'; if (muted) stopVoice(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) pause(true); });
+
+// ---------- 操作 ----------
+function press(k) {
+  initAudio();
+  if (state !== 'play' || anim) { if (k === 'l' || k === 'r') { keys[k] = true; rep[k] = .17; } if (k === 'd') keys.d = true; return; }
+  if (k === 'l' || k === 'r') { keys[k] = true; move(k === 'l' ? -1 : 1); rep[k] = .17; }
+  else if (k === 'd') keys.d = true;
+  else if (k === 'rot') rotate();
+  else if (k === 'drop') hardDrop();
+}
+function release(k) { if (k in keys) keys[k] = false; }
+const KEYMAP = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowDown: 'd', KeyS: 'd', ArrowUp: 'rot', KeyX: 'rot', KeyZ: 'rot', KeyW: 'rot', Space: 'drop' };
+addEventListener('keydown', e => {
+  if (e.code === 'Enter' || (e.code === 'Space' && state !== 'play')) {
+    e.preventDefault(); if (e.repeat) return;
+    if (state === 'title' || (state === 'over' && !$('ovOver').hidden)) start(); else if (state === 'pause') pause(false);
+    return;
+  }
+  if (e.code === 'KeyP' || e.code === 'Escape') { pause(state === 'play'); return; }
+  const k = KEYMAP[e.code]; if (!k) return;
+  e.preventDefault(); if (e.repeat) return;
+  press(k);
+});
+addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) release(k); });
+addEventListener('blur', () => { keys.l = keys.r = keys.d = false; });
+function hold(el, k) {
+  const on = e => { e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (_) {} el.classList.add('on'); press(k); };
+  const off = () => { el.classList.remove('on'); release(k); };
+  el.addEventListener('pointerdown', on);
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => el.addEventListener(n, off));
+  el.addEventListener('contextmenu', e => e.preventDefault());
+}
+hold($('bLeft'), 'l'); hold($('bRight'), 'r'); hold($('bDown'), 'd'); hold($('bRot'), 'rot');
+
+// ---------- ループ ----------
+grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+next = newPair();
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(.1, (now - last) / 1000); last = now;
+  update(dt); draw(now); hud();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// タイトルの左の小さなキャラクター
+(function () {
+  const c = $('ccTitle'), x = c.getContext('2d'), q = 4;
+  function d(now) {
+    const t = now / 1000 / 1.4, f = Math.floor(t * 6) % 4, up = [f === 1, f === 3, f === 3, f === 1], col = '#d97757';
+    const r = (a, b, w, h, cc) => { x.fillStyle = cc; x.fillRect(Math.round(a * q), Math.round(b * q), Math.round(w * q), Math.round(h * q)); };
+    x.clearRect(0, 0, c.width, c.height);
+    const y0 = 3 + (f % 2 ? -1 : 0);
+    [2, 4, 7, 9].forEach((a, i) => r(a, 9, 1, up[i] ? 1 : 2, col));
+    r(2, y0, 8, 6, col); r(0, y0 + 2, 2, 2, col); r(10, y0 + 2, 2, 2, col);
+    const bl = (t % 3) > 2.85;
+    r(3, y0 + 1 + (bl ? .6 : 0), 1, bl ? .4 : 1, '#1a1612'); r(8, y0 + 1 + (bl ? .6 : 0), 1, bl ? .4 : 1, '#1a1612');
+    requestAnimationFrame(d);
+  }
+  requestAnimationFrame(d);
+})();
+</script>
+</body>
+</html>
