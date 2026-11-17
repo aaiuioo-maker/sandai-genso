@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="みたまのぼり">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05040d">
+<title>みたまのぼり</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --fg:#f3ead6; --accent:#d97757; --gold:#f0c070; --line:#2e2750; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { font-family: "DotGothic16", sans-serif; display: flex; flex-direction: column; align-items: center;
+         padding: calc(8px + env(safe-area-inset-top)) 16px calc(12px + env(safe-area-inset-bottom));
+         min-height: 100vh; min-height: 100svh; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  h1 { font-size: 18px; font-weight: 400; margin: 0 0 6px; letter-spacing: .12em; position: relative; width: 100%; max-width: 400px; text-align: center; }
+  #ccTitle { position: absolute; left: 20px; top: 50%; transform: translateY(-58%); width: 24px; height: 26px; image-rendering: pixelated; }
+  .wrap { width: 100%; max-width: 400px; width: min(100%, 400px, calc((100vh - 200px) * 2 / 3)); width: min(100%, 400px, calc((100svh - 200px) * 2 / 3)); min-width: 240px; }
+  .hud { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px; gap: 6px; }
+  .meter { display: flex; align-items: center; gap: 2px; }
+  .meter span { margin: 0 3px; opacity: .75; }
+  .meter i { width: 9px; height: 11px; background: #221d38; display: inline-block; }
+  .meter i.mid { background: #3a3358; }
+  .meter i.hv { background: #7a6aa8; }
+  .meter i.lt { background: var(--gold); }
+  #muteBtn { font: inherit; font-size: 12px; background: none; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; }
+  .stage { position: relative; width: 100%; aspect-ratio: 2 / 3; }
+  canvas#game { width: 100%; height: 100%; display: block; image-rendering: pixelated; border: 1px solid var(--line); background: #05040d; touch-action: none; }
+  .ov { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-align: center; background: rgba(5, 4, 13, .8); padding: 18px; gap: 10px; }
+  .ov[hidden] { display: none; }
+  .ov .big { font-size: 30px; letter-spacing: .15em; color: var(--gold); }
+  .ov .dan { font-size: 14px; color: var(--accent); letter-spacing: .2em; }
+  .ov .l1 { font-size: 21px; line-height: 1.5; }
+  .ov .l2 { font-size: 17px; line-height: 1.5; opacity: .9; }
+  .ov .who { font-size: 11px; opacity: .6; }
+  .ov .hint { font-size: 13px; line-height: 1.7; color: #ffd9a0; border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 4px; }
+  .ov .how { font-size: 12px; line-height: 1.9; opacity: .9; }
+  .ov .how b { color: var(--gold); font-weight: 400; }
+  .ov .how em { color: #b9a6ff; font-style: normal; }
+  .ov select { font: inherit; font-size: 14px; background: #1a1530; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  .ov button.go { font: inherit; font-size: 18px; background: var(--accent); color: #1a1612; border: none; border-radius: 10px; padding: 10px 28px; margin-top: 6px; letter-spacing: .1em; }
+  .ov .score { font-size: 13px; line-height: 1.8; }
+  .pad { display: flex; gap: 10px; margin-top: 10px; width: 100%; }
+  .pad button { flex: 1; height: 64px; font: inherit; font-size: 20px; background: #1a1530; color: var(--fg);
+                border: 2px solid #3a3260; border-radius: 12px; touch-action: none; -webkit-tap-highlight-color: transparent; }
+  .pad button.on { background: #3a2a50; border-color: var(--accent); }
+  #bJump { flex: 1.7; color: #ffd9a0; font-size: 18px; }
+  .foot { font-size: 11px; opacity: .55; margin-top: 10px; text-align: center; line-height: 1.7; }
+  .foot a { color: inherit; }
+</style>
+</head>
+<body>
+<h1><canvas id="ccTitle" width="48" height="52"></canvas>みたまのぼり</h1>
+<div class="wrap">
+  <div class="hud">
+    <div id="danName">想念の段</div>
+    <div class="meter" id="meter"><span>重</span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span>軽</span></div>
+    <div><span id="timeEl">0:00</span> <button id="muteBtn">音 あり</button></div>
+  </div>
+  <div class="stage">
+    <canvas id="game"></canvas>
+
+    <div class="ov" id="ovTitle">
+      <div class="big">みたまのぼり</div>
+      <div class="l2">心を 軽くして<br>光の門まで のぼろう</div>
+      <div class="how">
+        <b>◀ ▶</b> で歩く　<b>ジャンプ</b> で跳ぶ<br>
+        長く押すほど 高く跳ぶ<br>
+        <b>光の玉</b> → 体が軽くなる<br>
+        <em>黒い玉</em> → 体が重くなる<br>
+        <span style="opacity:.7">キーボード：← → と スペース</span>
+      </div>
+      <div class="how">読み手　<select id="voiceSel"></select></div>
+      <button class="go" id="startBtn">はじめる</button>
+    </div>
+
+    <div class="ov" id="ovLesson" hidden>
+      <div class="dan" id="lDan"></div>
+      <div class="l1" id="lL1"></div>
+      <div class="l2" id="lL2"></div>
+      <div class="who" id="lWho"></div>
+      <div class="hint" id="lHint"></div>
+      <button class="go" id="lessonBtn">のぼる ▶</button>
+    </div>
+
+    <div class="ov" id="ovClear" hidden>
+      <div class="big">のぼりきった！</div>
+      <div class="l1" id="cL1"></div>
+      <div class="l2" id="cL2"></div>
+      <div class="who" id="cWho"></div>
+      <div class="score" id="cScore"></div>
+      <button class="go" id="againBtn">もういちど</button>
+    </div>
+  </div>
+  <div class="pad">
+    <button id="bLeft" aria-label="左">◀</button>
+    <button id="bRight" aria-label="右">▶</button>
+    <button id="bJump">ジャンプ</button>
+  </div>
+  <div class="foot">試作版（1面）　<a href="../">トップへ</a></div>
+</div>
+
+<script>
+// ---------- 基本 ----------
+const $ = id => document.getElementById(id);
+const S = 3, W = 160, H = 240, TOP = 1200;          // 画面は 160×240 ドット（1ドット3画素）。光の門は高さ 1200
+const cv = $('game'); cv.width = W * S; cv.height = H * S;
+const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x * S), Math.round(y * S), Math.round(w * S), Math.round(h * S)); };
+const disc = (cx, cy, r, c) => { for (let dy = -r; dy <= r; dy++) { const w = Math.floor(Math.sqrt(r * r - dy * dy + .5)); R(cx - w, cy + dy, 2 * w + 1, 1, c); } };
+
+// ---------- 読み手18人（動画と同じ。声は今までの動画のものを使う） ----------
+const VOICES = [['koe', 'めたん'], ['koe-tsumugi', 'つむぎ'], ['koe-hau', 'はう'], ['koe-sayo', '小夜'],
+  ['koe-tsukuyomi', 'つくよみ'], ['koe-mana', 'MANA'], ['koe-kana', 'KANA'], ['koe-lilin', 'リリン'], ['koe-ameno-kuma', '熊本弁'],
+  ['koe-mao', 'まお'], ['koe-mai', 'まい'], ['koe-kohaku', 'コハク'], ['koe-runa', 'るな'], ['koe-sakurane', '桜音'],
+  ['koe-chuni', '中2'], ['koe-kanon', '花音'], ['koe-himari', 'ひまり'], ['koe-nurserobo', 'ナースロボ']];
+
+// 段ごとの教え（dir の動画の n 番目の字幕と声）
+const LESSONS = [
+  { dir: 'sonen',    n: 3,  dan: '第一の段　想念', l1: '「喜べば 喜び事が来る」', l2: '心がけが 現実を作る',
+    hint: '光の玉（喜・感・笑）を取ると<br>体が軽くなって 高く跳べる' },
+  { dir: 'shuchaku', n: 6,  dan: '第二の段　執着', l1: '重い荷物を おろすように', l2: '心は 軽く のぼっていく',
+    hint: '黒い玉（執・我・欲）に当たると 重くなる<br>重いままだと 上の床に とどかない' },
+  { dir: 'hodo',     n: 11, dan: '第三の段　程',   l1: 'やりすぎず 足らなすぎず', l2: '偏らない',
+    hint: 'ボタンを押す長さで 跳ぶ高さが変わる<br>跳びすぎると「慢」「過」に 当たる<br>「程」の玉で ちょうどよい重さに もどる' },
+  { dir: 'jiki',     n: 9,  dan: '第四の段　時期', l1: '待てば海路の日和あり', l2: '果報は寝て待て',
+    hint: '動く雲が 近づくのを<br>あせらず 待ってから 跳ぼう' },
+  { dir: 'jiki',     n: 18, dan: '光の門', l1: '焦らず 執着せず', l2: '時を待てば 実を結ぶ', hint: '' },
+];
+const DAN = ['想念の段', '執着の段', '程の段', '時期の段'];
+
+// ---------- 面（足場と玉） ----------
+// 足場：x（左はし）, h（上の面の高さ）, w（はば）, k：s 石 / f 段の床（鳥居つき）/ c 動く雲 / g 光の門
+let plats = [], orbs = [];
+function P(x, h, w, k = 's', m = {}) { plats.push(Object.assign({ x, h, w, k, x0: x, h0: h, px: x, ph: h }, m)); }
+function O(x, h, ch, dark = false, m = {}) { orbs.push(Object.assign({ x0: x, h0: h, x, h, ch, dark, amp: 0, sp: 0, bob: 0, ph: 0, gone: 0 }, m)); }
+const ZIG = [10, 65, 120, 65, 10, 65, 120, 65];
+function build() {
+  plats = []; orbs = [];
+  // 第一の段 想念：ゆるやか。光の玉で軽くなることを覚える
+  P(0, 0, 160, 'f');
+  [[20, 36, 44], [90, 72, 44], [30, 108, 40], [100, 146, 40], [40, 184, 44], [96, 222, 40], [30, 260, 40]].forEach(a => P(...a));
+  O(70, 52, '喜'); O(120, 126, '感'); O(66, 236, '笑');
+  O(80, 165, '不', true, { amp: 60, sp: .9 });
+  // 第二の段 執着：床と床が遠い。黒い玉をよけて、軽いまま上がる
+  P(0, 300, 160, 'f');
+  [[15, 342, 40], [85, 384, 40], [20, 426, 40], [90, 468, 40], [15, 510, 40], [85, 552, 44]].forEach(a => P(...a));
+  O(130, 322, '軽'); O(72, 450, '捨'); O(36, 528, '喜');
+  O(80, 404, '執', true, { amp: 62, sp: 1.0 }); O(80, 490, '我', true, { amp: 62, sp: 1.3, ph: 2 }); O(80, 577, '欲', true, { amp: 66, sp: 1.6, ph: 4 });
+  // 第三の段 程：ジグザグ。跳びすぎると上の「慢」「過」に当たる
+  P(0, 600, 160, 'f');
+  ZIG.forEach((x, i) => P(x, 634 + 34 * i, 30));
+  for (let i = 0; i < ZIG.length - 1; i++) O((ZIG[i] + ZIG[i + 1]) / 2 + 15, 634 + 34 * i + 56, i % 2 ? '過' : '慢', true, { bob: 2, ph: i });
+  O(88, 674, '程', false, { ho: true }); O(72, 810, '程', false, { ho: true });
+  // 第四の段 時期：動く雲。来るのを待ってから跳ぶ
+  P(0, 900, 160, 'f');
+  P(10, 936, 36);
+  P(62, 995, 34, 'c', { mh: 55, per: 5 });
+  P(118, 1060, 36);
+  P(60, 1100, 34, 'c', { mx: 50, per: 6 });
+  P(8, 1140, 34);
+  P(50, 1160, 34, 'c', { mh: 20, per: 3.5 });
+  O(136, 1068, '待');
+  O(80, 1080, '焦', true, { amp: 60, sp: 1.1 });
+  // 光の門
+  P(0, TOP, 160, 'g');
+}
+
+// ---------- 動き ----------
+const G = .17, J0 = 4.0, JK = .22, VX = 1.4;      // 重力・跳ぶ力・軽さ1つぶんの増え・歩く速さ
+let pl, kar, cam, T, state = 'title', check, playTime, lights, hits, pops, jumpBuf = 0, runId = 0;
+const keys = { l: false, r: false, j: false };
+function reset() {
+  build(); runId++;
+  pl = { x: 74, h: 0, vh: 0, vx: 0, on: plats[0], coyote: 0, jumping: false, inv: 0, moving: false };
+  kar = 0; cam = 0; T = 0; check = 0; playTime = 0; lights = 0; hits = 0; pops = [];
+}
+function step() {
+  T += 1 / 60; playTime += 1 / 60;
+  for (const p of plats) {
+    p.px = p.x; p.ph = p.h;
+    if (p.per) { const s = Math.sin(T * 2 * Math.PI / p.per); if (p.mx) p.x = p.x0 + p.mx * s; if (p.mh) p.h = p.h0 + p.mh * s; }
+  }
+  if (pl.on && pl.on.per) { pl.x += pl.on.x - pl.on.px; pl.h = pl.on.h; }
+
+  const dir = (keys.r ? 1 : 0) - (keys.l ? 1 : 0);
+  pl.vx = dir * VX; pl.moving = !!dir;
+  if (pl.on) pl.coyote = 6; else if (pl.coyote > 0) pl.coyote--;
+  if (jumpBuf > 0) jumpBuf--;
+  if (jumpBuf > 0 && pl.coyote > 0) {
+    pl.vh = J0 + JK * kar; pl.on = null; pl.coyote = 0; jumpBuf = 0; pl.jumping = true;
+    tone(420 + kar * 40, 0, .12, 'square', .035, 840 + kar * 80);
+  }
+  if (pl.jumping && !keys.j && pl.vh > 0) { pl.vh *= .45; pl.jumping = false; }   // 早くはなすと 低い跳び
+  if (pl.vh <= 0) pl.jumping = false;
+
+  const prevH = pl.h;
+  if (!pl.on) { pl.vh = Math.max(pl.vh - G, -5); pl.h += pl.vh; }
+  pl.x = Math.max(0, Math.min(W - 12, pl.x + pl.vx));
+  if (pl.on) { const p = pl.on; if (pl.x + 10 <= p.x || pl.x + 2 >= p.x + p.w) { pl.on = null; pl.vh = 0; } }
+  if (!pl.on && pl.vh <= 0) {
+    for (const p of plats) {
+      if (pl.x + 10 > p.x && pl.x + 2 < p.x + p.w && prevH >= p.ph - .01 && pl.h <= p.h) { pl.h = p.h; pl.vh = 0; pl.on = p; landed(p); break; }
+    }
+  }
+  if (pl.h < 0) { pl.h = 0; pl.vh = 0; pl.on = plats[0]; }
+
+  if (pl.inv > 0) pl.inv--;
+  for (const o of orbs) {
+    if (o.gone > 0) { o.gone--; continue; }
+    o.x = o.x0 + (o.amp ? o.amp * Math.sin(T * o.sp + o.ph) : 0);
+    o.h = o.h0 + (o.bob ? o.bob * Math.sin(T * 2 + o.ph) : 0);
+    const dx = pl.x + 6 - o.x, dy = pl.h + 4 - o.h;
+    if (dx * dx + dy * dy > 72) continue;
+    if (o.dark) {
+      if (pl.inv > 0) continue;
+      kar = Math.max(-3, kar - 1); pl.inv = 90; hits++;
+      if (!pl.on) pl.vh = Math.min(pl.vh, 0);
+      tone(240, 0, .32, 'sawtooth', .05, 80);
+      pop(o.x, o.h, '重く', '#b9a6ff');
+    } else {
+      if (o.ho) { kar = 0; pop(o.x, o.h, 'ちょうどよい', '#ffd98a'); }
+      else { kar = Math.min(3, kar + 1); pop(o.x, o.h, '軽く', '#ffd98a'); }
+      o.gone = 60 * 8; lights++;
+      [784, 988, 1319].forEach((f, i) => tone(f, i * .06, .16, 'triangle', .06));
+    }
+  }
+  pops = pops.filter(p => (p.t -= 1 / 60) > 0);
+
+  const target = Math.max(0, Math.min(TOP - 150, pl.h - 90));
+  cam += (target - cam) * .1;
+}
+function pop(x, h, txt, col) { pops.push({ x, h, txt, col, t: 1.1 }); }
+function landed(p) {
+  if (p.k === 'g') { clearGame(); return; }
+  tone(150, 0, .05, 'square', .02);
+  if (p.k === 'f') { const s = Math.round(p.h / 300); if (s > check) { check = s; [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .08, .25, 'triangle', .06)); const run = runId; setTimeout(() => { if (state === 'play' && run === runId) showLesson(s); }, 350); } }
+}
+
+// ---------- 絵 ----------
+const SKY = [[0, '#05040d'], [300, '#120e30'], [600, '#251a4e'], [900, '#4d2a5c'], [1150, '#b8705a'], [1400, '#f0c27a']];
+const hx = c => [1, 3, 5].map(i => parseInt(c.substr(i, 2), 16));
+const SKYC = SKY.map(([h, c]) => [h, hx(c)]);
+function skyCol(h) {
+  let i = 0; while (i < SKYC.length - 2 && h > SKYC[i + 1][0]) i++;
+  const [h0, a] = SKYC[i], [h1, b] = SKYC[i + 1], t = Math.max(0, Math.min(1, (h - h0) / (h1 - h0)));
+  return 'rgb(' + a.map((v, k) => Math.round(v + (b[k] - v) * t)).join(',') + ')';
+}
+const stars = Array.from({ length: 70 }, (_, i) => ({ x: (i * 53.7) % W, y: (i * 97.3) % H, p: i * 1.7 }));
+const sy = h => H - (h - cam);   // 高さ → 画面の y
+
+function torii(cx, y, col = '#d8443a', big = 1) {
+  const s = big;
+  R(cx - 11 * s, y - 22 * s, 2 * s, 22 * s, col); R(cx + 9 * s, y - 22 * s, 2 * s, 22 * s, col);
+  R(cx - 16 * s, y - 25 * s, 32 * s, 1 * s, '#2a1a1a'); R(cx - 15 * s, y - 24 * s, 30 * s, 2 * s, col);
+  R(cx - 12 * s, y - 19 * s, 24 * s, 1.5 * s, col);
+}
+function mascot(ox, oy, col, mode, t) {
+  const f = Math.floor(t * 8) % 4, up = [f === 1, f === 3, f === 3, f === 1];
+  [2, 4, 7, 9].forEach((x, i) => R(ox + x, oy + 6, 1, (mode === 'walk' && up[i]) ? 1 : 2, col));
+  R(ox + 2, oy, 8, 6, col);
+  const arm = mode === 'air' ? -1 : 0;
+  R(ox, oy + 2 + arm, 2, 2, col); R(ox + 10, oy + 2 + arm, 2, 2, col);
+  const blink = (t % 3) > 2.85;
+  R(ox + 3, oy + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612'); R(ox + 8, oy + 1 + (blink ? .6 : 0), 1, blink ? .4 : 1, '#1a1612');
+}
+const KARC = ['#6e4a44', '#8e5646', '#b2664e', '#d97757', '#e8875f', '#f39a6a', '#ffb27a'];
+
+function draw(now) {
+  const t = now / 1000;
+  for (let y = 0; y < H; y += 3) R(0, y, W, 3, skyCol(cam + (H - y)));
+  const sa = Math.max(0, 1 - cam / 1000);
+  if (sa > 0) for (const s of stars) {
+    const yy = (s.y + cam * .25) % H, a = sa * (.4 + .6 * Math.abs(Math.sin(t * 1.3 + s.p)));
+    g.globalAlpha = a; R(s.x, yy, 1, 1, '#f3ead6');
+  }
+  g.globalAlpha = 1;
+  // 光の門の光
+  const gy = sy(TOP + 30);
+  if (gy > -80) {
+    const gr = g.createRadialGradient(80 * S, gy * S, 4 * S, 80 * S, gy * S, 90 * S);
+    gr.addColorStop(0, 'rgba(255,236,170,.55)'); gr.addColorStop(1, 'rgba(255,236,170,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, W * S, H * S);
+  }
+  // 足場
+  for (const p of plats) {
+    const y = sy(p.h); if (y < -40 || y > H + 10) continue;
+    if (p.k === 's') { R(p.x, y, p.w, 1, '#e6d3a8'); R(p.x, y + 1, p.w, 3, '#8a7458'); R(p.x + 1, y + 4, p.w - 2, 1, '#5a4a3a'); }
+    else if (p.k === 'c') {
+      R(p.x + 5, y - 3, 9, 2, '#ffffff'); R(p.x + 17, y - 2, 11, 2, '#ffffff');
+      R(p.x + 1, y - 1, p.w - 2, 2, '#ffffff'); R(p.x, y + 1, p.w, 3, '#e9e2f2'); R(p.x + 2, y + 4, p.w - 4, 1, '#b8afd0');
+    } else if (p.k === 'f') {
+      torii(80, y);
+      R(0, y, W, 1, '#f0c070'); R(0, y + 1, W, 4, '#5a4a6a'); R(0, y + 5, W, 1, '#3a3050');
+    } else if (p.k === 'g') {
+      torii(80, y, '#f0c070', 1.6);
+      R(0, y, W, 1, '#fff1c8'); R(0, y + 1, W, 5, '#e0a860');
+    }
+  }
+  // 玉
+  g.font = `${7 * S}px "DotGothic16", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (const o of orbs) {
+    if (o.gone > 0) continue;
+    const y = sy(o.h); if (y < -10 || y > H + 10) continue;
+    if (o.dark) { disc(o.x, y, 7, '#5a2a6a'); disc(o.x, y, 6, '#140a1c'); g.fillStyle = (Math.sin(t * 6 + o.ph) > 0) ? '#ff8a8a' : '#d05a6a'; }
+    else {
+      g.globalAlpha = .35 + .2 * Math.sin(t * 4 + o.x); disc(o.x, y, 8, o.ho ? '#a0e0ff' : '#ffe08a'); g.globalAlpha = 1;
+      disc(o.x, y, 6, o.ho ? '#d8f2ff' : '#ffe9a8'); g.fillStyle = '#6a3a10';
+    }
+    g.fillText(o.ch, o.x * S, (y + .5) * S);
+  }
+  // キャラクター
+  if (pl) {
+    const x = pl.x, y = sy(pl.h + 8);
+    if (!(pl.inv > 0 && Math.floor(pl.inv / 4) % 2)) {
+      const mode = !pl.on ? 'air' : pl.moving ? 'walk' : 'idle';
+      mascot(x, y, KARC[kar + 3], mode, t);
+    }
+    for (let i = 0; i < kar; i++) { if (Math.sin(t * 5 + i * 2) > -.2) R(x + 2 + i * 4, y - 3 - (i % 2) * 2, 1, 1, '#fff1c8'); }
+    for (let i = 0; i < -kar; i++) R(x + 1 + i * 4, y + 9, 2, 2, '#4a3a6a');
+    g.font = `${6 * S}px "DotGothic16", sans-serif`;
+    for (const p of pops) { g.globalAlpha = Math.min(1, p.t * 2); g.fillStyle = p.col; g.fillText(p.txt, p.x * S, (sy(p.h) - 8 - (1.1 - p.t) * 10) * S); }
+    g.globalAlpha = 1;
+  }
+}
+
+// ---------- 画面の上の表示 ----------
+const cells = [...$('meter').querySelectorAll('i')];
+let hudKey = '';
+function hud() {
+  const dan = Math.min(3, Math.floor((pl ? pl.h : 0) / 300)), sec = Math.floor(playTime || 0);
+  const key = dan + '/' + kar + '/' + sec; if (key === hudKey) return; hudKey = key;
+  $('danName').textContent = DAN[dan];
+  cells.forEach((c, i) => { const v = i - 3; c.className = v === 0 ? 'mid' : (kar < 0 && v < 0 && v >= kar) ? 'hv' : (kar > 0 && v > 0 && v <= kar) ? 'lt' : ''; });
+  $('timeEl').textContent = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+}
+
+// ---------- 音 ----------
+let ac = null, muted = false, curSrc = null;
+const bufs = {};
+function initAudio() {
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+  if (ac && ac.state === 'suspended') ac.resume();
+}
+function tone(f, t0, d, type = 'square', vol = .05, f2) {
+  if (!ac || muted) return;
+  const o = ac.createOscillator(), gn = ac.createGain(), t = ac.currentTime + t0;
+  o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+  gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(.0001, t + d);
+  o.connect(gn).connect(ac.destination); o.start(t); o.stop(t + d + .02);
+}
+function loadVoice(i, v) {
+  const L = LESSONS[i], url = `../${L.dir}/${VOICES[v][0]}/${String(L.n).padStart(2, '0')}.mp3?v=2`;
+  if (!bufs[url]) bufs[url] = fetch(url).then(r => r.ok ? r.arrayBuffer() : null)
+    .then(ab => ab && ac ? new Promise(res => ac.decodeAudioData(ab, res, () => res(null))) : null).catch(() => null);
+  return bufs[url];
+}
+function stopVoice() { if (curSrc) { try { curSrc.stop(); } catch (e) {} curSrc = null; } }
+function playVoice(i, v) {
+  stopVoice(); if (!ac) return;
+  loadVoice(i, v).then(b => {
+    if (!b || muted || (state !== 'lesson' && state !== 'clear')) return;
+    const s = ac.createBufferSource(); s.buffer = b; s.connect(ac.destination); s.start(); curSrc = s;
+  });
+}
+const vs = $('voiceSel');
+vs.innerHTML = '<option value="mix">おまかせ（毎回ちがう人）</option>' + VOICES.map((v, i) => `<option value="${i}">${v[1]}</option>`).join('');
+try { const sv = localStorage.getItem('mitama-voice'); if (sv && [...vs.options].some(o => o.value === sv)) vs.value = sv; } catch (e) {}
+vs.addEventListener('change', () => { try { localStorage.setItem('mitama-voice', vs.value); } catch (e) {} });
+const pickVoice = () => vs.value === 'mix' ? Math.floor(Math.random() * VOICES.length) : +vs.value;
+$('muteBtn').addEventListener('click', () => { muted = !muted; $('muteBtn').textContent = muted ? '音 なし' : '音 あり'; if (muted) stopVoice(); });
+
+// ---------- 場面の切りかえ ----------
+function showLesson(i) {
+  const L = LESSONS[i], v = pickVoice();
+  $('lDan').textContent = L.dan; $('lL1').textContent = L.l1; $('lL2').textContent = L.l2;
+  $('lWho').textContent = '読み：' + VOICES[v][1]; $('lHint').innerHTML = L.hint;
+  $('ovLesson').hidden = false; state = 'lesson';
+  playVoice(i, v);
+}
+function closeLesson() { if (state !== 'lesson') return; stopVoice(); $('ovLesson').hidden = true; state = 'play'; jumpBuf = 0; }
+function clearGame() {
+  state = 'clear';
+  const L = LESSONS[4], v = pickVoice(), sec = Math.floor(playTime);
+  [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i * .1, .4, 'triangle', .07));
+  $('cL1').textContent = L.l1; $('cL2').textContent = L.l2; $('cWho').textContent = '読み：' + VOICES[v][1];
+  $('cScore').innerHTML = `かかった時間　${Math.floor(sec / 60)}分${String(sec % 60).padStart(2, '0')}秒<br>取った光の玉　${lights}こ<br>当たった黒い玉　${hits}こ`;
+  const run = runId;
+  setTimeout(() => { if (state !== 'clear' || run !== runId) return; $('ovClear').hidden = false; playVoice(4, v); }, 600);
+}
+function start() {
+  initAudio(); reset();
+  if (vs.value !== 'mix') LESSONS.forEach((_, i) => loadVoice(i, +vs.value));
+  $('ovTitle').hidden = true; $('ovClear').hidden = true;
+  showLesson(0);
+}
+$('startBtn').addEventListener('click', start);
+$('againBtn').addEventListener('click', start);
+$('lessonBtn').addEventListener('click', closeLesson);
+
+// ---------- 操作 ----------
+const KEYMAP = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', Space: 'j', ArrowUp: 'j', KeyZ: 'j', KeyW: 'j' };
+addEventListener('keydown', e => {
+  const k = KEYMAP[e.code];
+  if (e.code === 'Enter' || (e.code === 'Space' && state !== 'play')) {
+    e.preventDefault(); if (e.repeat) return;
+    if (state === 'lesson') closeLesson(); else if (state === 'title') start(); else if (state === 'clear' && !$('ovClear').hidden) start();
+    return;
+  }
+  if (!k) return;
+  e.preventDefault(); initAudio();
+  if (k === 'j' && !e.repeat && !keys.j) jumpBuf = 8;
+  keys[k] = true;
+});
+addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
+addEventListener('blur', () => { keys.l = keys.r = keys.j = false; });
+function hold(el, k) {
+  const on = e => { e.preventDefault(); initAudio(); try { el.setPointerCapture(e.pointerId); } catch (_) {} el.classList.add('on'); if (k === 'j' && !keys.j) jumpBuf = 8; keys[k] = true; };
+  const off = () => { el.classList.remove('on'); keys[k] = false; };
+  el.addEventListener('pointerdown', on);
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => el.addEventListener(n, off));
+  el.addEventListener('contextmenu', e => e.preventDefault());
+}
+hold($('bLeft'), 'l'); hold($('bRight'), 'r'); hold($('bJump'), 'j');
+
+// ---------- ループ（1秒60回で動かす） ----------
+reset();
+let last = performance.now(), acc = 0;
+function loop(now) {
+  acc += Math.min(.1, (now - last) / 1000); last = now;
+  while (acc >= 1 / 60) { if (state === 'play') step(); acc -= 1 / 60; }
+  draw(now); hud();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// タイトルの左の小さなキャラクター
+(function () {
+  const c = $('ccTitle'), x = c.getContext('2d'), q = 4;
+  function d(now) {
+    const t = now / 1000 / 1.4, f = Math.floor(t * 6) % 4, up = [f === 1, f === 3, f === 3, f === 1], col = '#d97757';
+    const r = (a, b, w, h, cc) => { x.fillStyle = cc; x.fillRect(Math.round(a * q), Math.round(b * q), Math.round(w * q), Math.round(h * q)); };
+    x.clearRect(0, 0, c.width, c.height);
+    const y0 = 3 + (f % 2 ? -1 : 0);
+    [2, 4, 7, 9].forEach((a, i) => r(a, 9, 1, up[i] ? 1 : 2, col));
+    r(2, y0, 8, 6, col); r(0, y0 + 2, 2, 2, col); r(10, y0 + 2, 2, 2, col);
+    const bl = (t % 3) > 2.85;
+    r(3, y0 + 1 + (bl ? .6 : 0), 1, bl ? .4 : 1, '#1a1612'); r(8, y0 + 1 + (bl ? .6 : 0), 1, bl ? .4 : 1, '#1a1612');
+    requestAnimationFrame(d);
+  }
+  requestAnimationFrame(d);
+})();
+</script>
+</body>
+</html>

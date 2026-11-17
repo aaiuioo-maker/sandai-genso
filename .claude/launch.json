@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sandai-genso",
+      "runtimeExecutable": "C:/Program Files/DVDFab/StreamFab/PYthon37/python.exe",
+      "runtimeArgs": ["-m", "http.server", "8781"],
+      "port": 8781,
+      "autoPort": false
+    }
+  ]
+}
