@@ -48,6 +48,7 @@
   .ov .how b { font-weight: 400; }
   .f { color: #ff8a5a; } .w { color: #7ac0ff; } .e { color: #d8b070; } .p { color: var(--pink); } .st { color: #a8a0b8; }
   .ov select { font: inherit; font-size: 14px; background: #1a1530; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  .ov button.go2 { font: inherit; font-size: 15px; background: none; color: var(--fg); border: 1px solid var(--accent); border-radius: 10px; padding: 8px 20px; margin-top: 4px; }
   .ov button.go { font: inherit; font-size: 18px; background: var(--accent); color: #1a1612; border: none; border-radius: 10px; padding: 10px 28px; margin-top: 4px; letter-spacing: .1em; }
   .ov .score { font-size: 14px; line-height: 1.8; }
   .pad { display: flex; gap: 8px; margin-top: 10px; width: 100%; }
@@ -83,6 +84,16 @@
       </div>
       <div class="how" style="text-align:center">読み手　<select id="voiceSel"></select></div>
       <button class="go" id="startBtn">はじめる</button>
+      <button class="go2" id="setsumeiBtn">遊び方を聞く</button>
+    </div>
+
+    <div class="ov" id="ovSetsumei" hidden>
+      <div class="who" style="color:var(--accent);opacity:1;font-size:14px;letter-spacing:.2em">遊び方</div>
+      <div class="l1" id="s1"></div>
+      <div class="l2" id="s2"></div>
+      <div class="who" id="sWho"></div>
+      <div class="who" id="sNum"></div>
+      <div><button class="go2" id="sBack">もどる</button>　<button class="go" id="sStart">はじめる</button></div>
     </div>
 
     <div class="ov" id="ovPause" hidden>
@@ -457,6 +468,46 @@ function pause(on) {
   if (on && state === 'play') { state = 'pause'; $('ovPause').hidden = false; stopVoice(); }
   else if (!on && state === 'pause') { state = 'play'; $('ovPause').hidden = true; }
 }
+const SETSUMEI = [   // [上の行, 下の行, ひらがなの読み上げ文]（声は ./koe*/NN.mp3、koe_tsukuru.py で作る）
+  ['いのちの花 の', '遊び方', 'いのちのはなの、あそびかたを、せつめいします。'],
+  ['◀ ▶ で 動かし', '「回す」で 向きを変える', 'ひだりと、みぎのボタンで、うごかして、まわすのボタンで、むきをかえます。したのボタンで、はやく、おとせます。'],
+  ['火・水・土を ひとつずつ', '3つ 並べると 花が咲く', 'ひ、みず、つちを、ひとつずつ、みっつならべると、いのちのはなが、さいて、きえます。たて、よこ、ななめ、どれでも、だいじょうぶです。'],
+  ['同じものが 4つ以上', 'くっつくと 石になる', 'おなじものが、よっついじょう、くっつくと、かたよって、いしに、なってしまいます。'],
+  ['花が 咲くと', 'となりの石も 消える', 'はなが、さくと、となりのいしも、いっしょに、きえます。'],
+  ['かたよらず ほどほどに', 'たくさん 花を咲かせよう', 'かたよらず、ほどほどに、たくさんの、はなを、さかせましょう。'],
+];
+// 「遊び方を聞く」：おまかせのときは 1行ごとに読み手が順番に変わる（18人）。人を選んだときは その人だけで読む
+let setRun = 0;
+function playSetsumei(url, run) {
+  return new Promise(res => {
+    if (!ac || muted) { res(0); return; }
+    if (!bufs[url]) bufs[url] = fetch(url).then(r => r.ok ? r.arrayBuffer() : null)
+      .then(ab => ab ? new Promise(ok => ac.decodeAudioData(ab, ok, () => ok(null))) : null).catch(() => null);
+    bufs[url].then(b => {
+      if (run !== setRun) return;
+      if (!b) { res(0); return; }
+      const s = ac.createBufferSource(); s.buffer = b; s.connect(ac.destination); s.onended = () => res(1); s.start(); curSrc = s;
+    });
+  });
+}
+function openSetsumei() {
+  initAudio(); stopVoice();
+  $('ovTitle').hidden = true; $('ovSetsumei').hidden = false; state = 'setsumei';
+  const run = ++setRun, fixed = vs.value === 'mix' ? -1 : +vs.value, off = Math.floor(Math.random() * VOICES.length);
+  let i = 0;
+  const next = () => {
+    if (run !== setRun || i >= SETSUMEI.length) return;
+    const n = i++, v = fixed >= 0 ? fixed : (off + n) % VOICES.length;
+    $('s1').textContent = SETSUMEI[n][0]; $('s2').textContent = SETSUMEI[n][1];
+    $('sWho').textContent = '読み：' + VOICES[v][1]; $('sNum').textContent = (n + 1) + ' / ' + SETSUMEI.length;
+    playSetsumei(`${VOICES[v][0]}/${String(n).padStart(2, '0')}.mp3?v=1`, run).then(ok => { if (run === setRun) setTimeout(next, ok ? 450 : 3000); });
+  };
+  next();
+}
+function closeSetsumei() { setRun++; stopVoice(); $('ovSetsumei').hidden = true; $('ovTitle').hidden = false; state = 'title'; }
+$('setsumeiBtn').addEventListener('click', openSetsumei);
+$('sBack').addEventListener('click', closeSetsumei);
+$('sStart').addEventListener('click', () => { closeSetsumei(); start(); });
 $('startBtn').addEventListener('click', start);
 $('againBtn').addEventListener('click', start);
 $('pauseBtn').addEventListener('click', () => pause(state === 'play'));
@@ -478,7 +529,7 @@ const KEYMAP = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowDow
 addEventListener('keydown', e => {
   if (e.code === 'Enter' || (e.code === 'Space' && state !== 'play')) {
     e.preventDefault(); if (e.repeat) return;
-    if (state === 'title' || (state === 'over' && !$('ovOver').hidden)) start(); else if (state === 'pause') pause(false);
+    if (state === 'setsumei') { closeSetsumei(); start(); } else if (state === 'title' || (state === 'over' && !$('ovOver').hidden)) start(); else if (state === 'pause') pause(false);
     return;
   }
   if (e.code === 'KeyP' || e.code === 'Escape') { pause(state === 'play'); return; }
