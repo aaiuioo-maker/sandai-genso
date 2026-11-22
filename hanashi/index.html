@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="話し方道場">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05040d">
+<link rel="apple-touch-icon" href="icon-180.png?v=1">
+<link rel="icon" href="icon-180.png?v=1">
+<link rel="manifest" href="hanashi.webmanifest?v=1">
+<title>まいにち話し方道場</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#05040d; --panel:#141026; --fg:#f3ead6; --dim:#a9a3c2; --accent:#d97757; --gold:#f0c070; --line:#2e2750; --ok:#6fe0a0; --rec:#ff6b6b; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { font-family: "DotGothic16", sans-serif; line-height: 1.6; padding: calc(10px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom)); }
+  .wrap { width: 100%; max-width: 440px; margin: 0 auto; }
+  h1 { font-size: 19px; font-weight: 400; margin: 0 0 8px; letter-spacing: .08em; position: relative; text-align: center; padding: 2px 30px; }
+  #ccTitle { position: absolute; left: 0; top: 50%; transform: translateY(-58%); width: 24px; height: 26px; image-rendering: pixelated; }
+  h2 { font-size: 17px; font-weight: 400; color: var(--gold); margin: 0 0 6px; }
+  h3 { font-size: 14px; font-weight: 400; color: var(--dim); margin: 18px 0 6px; }
+  p { margin: 0 0 10px; }
+  section[hidden], [hidden] { display: none !important; }
+  button { font: inherit; color: var(--fg); background: #1c1930; border: 2px solid #3a3358; border-radius: 8px; padding: 10px 12px; min-height: 44px; cursor: pointer; touch-action: manipulation; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  button:disabled { opacity: .45; cursor: default; }
+  .main { display: block; width: 100%; background: var(--accent); border-color: #ffb08f; color: #1a0f0a; font-size: 17px; padding: 13px; margin-top: 10px; }
+  .sub { display: block; width: 100%; margin-top: 8px; }
+  .row { display: flex; gap: 8px; } .row > button { flex: 1; min-width: 0; }
+  .panel { background: var(--panel); border: 2px solid var(--line); border-radius: 10px; padding: 13px; margin-bottom: 10px; }
+  .small { font-size: 13px; color: var(--dim); }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 12px; font-size: 11px; text-align: center; color: var(--dim); }
+  .steps span { border-top: 4px solid var(--line); padding-top: 3px; white-space: nowrap; }
+  .steps span.on { border-color: var(--accent); color: var(--fg); } .steps span.done { border-color: var(--ok); }
+  .hero { display: flex; align-items: center; gap: 14px; }
+  #charCv { width: 96px; height: 96px; image-rendering: pixelated; flex-shrink: 0; }
+  .big { font-size: 28px; color: var(--gold); line-height: 1.15; }
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal b, .cal i { font-style: normal; font-weight: 400; text-align: center; font-size: 12px; }
+  .cal b { color: var(--dim); }
+  .cal i { background: #1c1930; border-radius: 4px; padding: 4px 0; color: #77718f; border: 1px solid transparent; }
+  .cal i.on { background: var(--accent); color: #1a0f0a; } .cal i.today { border-color: var(--gold); } .cal i.fut { opacity: .3; }
+  .line { font-size: 19px; line-height: 1.8; min-height: 104px; }
+  .topic { font-size: 20px; color: #ffe1b5; line-height: 1.5; }
+  .prep { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; font-size: 14px; margin: 8px 0 0; }
+  .prep b { font-weight: 400; color: var(--accent); }
+  .time { font-size: 50px; text-align: center; line-height: 1.1; color: var(--fg); font-variant-numeric: tabular-nums; }
+  .time.live { color: var(--rec); }
+  #meter { display: block; width: 100%; height: 14px; background: #1c1930; border-radius: 4px; margin: 8px 0 2px; image-rendering: pixelated; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat { background: #1c1930; border-radius: 6px; padding: 7px 9px; }
+  .stat small { display: block; font-size: 12px; color: var(--dim); } .stat span { font-size: 19px; color: var(--gold); }
+  .goals { display: grid; gap: 6px; }
+  .goals button { text-align: left; padding: 8px 11px; }
+  .goals button[aria-pressed="true"] { border-color: var(--ok); background: #123026; }
+  .goals small { display: block; color: var(--dim); font-size: 12px; }
+  .warn { color: #ffb4a0; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 5px 4px; border-bottom: 1px solid var(--line); font-weight: 400; text-align: right; }
+  th:first-child, td:first-child { text-align: left; color: var(--dim); }
+  .hist { border-top: 1px solid var(--line); padding: 8px 0; font-size: 14px; }
+  .hist .row button { padding: 5px 8px; min-height: 38px; font-size: 13px; }
+  label.opt { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+  label.opt input { width: 20px; height: 20px; margin: 2px 0 0; flex-shrink: 0; accent-color: var(--accent); }
+  select { font: inherit; color: var(--fg); background: #1c1930; border: 2px solid #3a3358; border-radius: 8px; padding: 8px; width: 100%; min-height: 44px; }
+  a { color: var(--gold); }
+  .foot { text-align: center; font-size: 13px; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><canvas id="ccTitle" width="48" height="52" aria-hidden="true"></canvas>まいにち話し方道場</h1>
+  <div class="steps" id="steps" hidden><span>① まねる</span><span>② 話す</span><span>③ 聞く</span><span>④ もう一度</span></div>
+
+  <section id="home">
+    <div class="panel hero">
+      <canvas id="charCv" width="96" height="96" aria-hidden="true"></canvas>
+      <div><div class="small" id="rank"></div><div class="big" id="streak"></div><div class="small" id="total"></div></div>
+    </div>
+    <div class="panel">
+      <h2>きょうのお題</h2>
+      <p class="topic" id="homeTopic"></p>
+      <p class="small" style="margin:0">まねる → 話す → 聞く → もう一度。5分くらいです。</p>
+      <button class="main" id="startBtn">きょうの練習をはじめる</button>
+    </div>
+    <div class="panel"><h2 id="calTitle">練習した日</h2><div class="cal" id="cal"></div></div>
+    <div class="panel">
+      <h2>設定</h2>
+      <label class="small" for="voiceSel">お手本の声</label>
+      <select id="voiceSel"></select>
+      <div id="srBox" hidden style="margin-top:10px">
+        <label class="opt"><input type="checkbox" id="srOn"><span>話す速さと「えーと」の回数も数える<br><span class="small">オンにすると、文字にするために声がブラウザの会社（Chrome なら Google）へ送られます。回数はだいたいの目安です。</span></span></label>
+      </div>
+      <p class="small" style="margin:10px 0 0">録音はこの端末の中だけに保存します（新しい30日ぶん）。</p>
+    </div>
+    <div class="panel" id="histPanel" hidden><h2>前の自分と聞きくらべ</h2><div id="hist"></div></div>
+    <p class="foot"><a href="../tana/">◀ 動画棚へ</a></p>
+  </section>
+
+  <section id="shadow" hidden>
+    <div class="panel">
+      <h2>① まねして読む <span class="small" id="lineNum"></span></h2>
+      <p class="small">声を聞いたら、同じ速さ・同じ間で、声に出して読みましょう。</p>
+      <p class="line" id="lineText"></p>
+      <p class="small" id="lineWho" style="margin:0"></p>
+    </div>
+    <div class="row"><button id="hearBtn">▶ お手本を聞く</button><button id="nextLine">つぎの文へ</button></div>
+    <button class="sub" id="skipShadow">とばして「話す」へ</button>
+    <button class="sub" data-home>やめる</button>
+  </section>
+
+  <section id="speak" hidden>
+    <div class="panel">
+      <h2 id="spTitle"></h2>
+      <p class="topic" id="spTopic"></p>
+      <div class="prep" id="prep"><b>1</b><span>言いたいこと（ひとことで）</span><b>2</b><span>そのわけ</span><b>3</b><span>たとえば（あった話）</span><b>4</b><span>もう一度、言いたいこと</span></div>
+      <p id="spGoal" style="margin:8px 0 0;color:var(--ok)" hidden></p>
+    </div>
+    <div class="panel">
+      <div class="time" id="time" role="timer">1:00</div>
+      <canvas id="meter" width="120" height="7" aria-hidden="true"></canvas>
+      <p class="warn" id="micMsg" hidden style="margin:6px 0 0"></p>
+      <button class="main" id="recBtn">● 録音をはじめる</button>
+      <button class="sub" id="noMicBtn" hidden>録音なしで話す（タイマーだけ）</button>
+    </div>
+    <button class="sub" id="newTopic">別のお題にする</button>
+    <button class="sub" data-home>やめる</button>
+  </section>
+
+  <section id="review" hidden>
+    <div class="panel">
+      <h2>③ 録音を聞く</h2>
+      <p class="warn" id="revWarn" hidden></p>
+      <button class="main" id="playA">▶ 自分の話を聞く</button>
+      <div class="stats" id="statsA" style="margin-top:10px"></div>
+    </div>
+    <div class="panel">
+      <h2>つぎに直すことを 1つだけ</h2>
+      <div class="goals" id="goals"></div>
+    </div>
+    <button class="main" id="toRetry">④ もう一度 話す</button>
+    <button class="sub" id="redoA">1回目を やり直す</button>
+    <button class="sub" data-home>やめる</button>
+  </section>
+
+  <section id="done" hidden>
+    <div class="panel" style="text-align:center">
+      <h2>きょうの練習、おしまい</h2>
+      <div class="big" id="doneStreak"></div>
+      <p class="small" id="doneRank" style="margin:4px 0 0"></p>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">聞きくらべ</h3>
+      <div class="row"><button id="playDoneA">▶ 1回目</button><button id="playDoneB">▶ 2回目</button></div>
+      <div id="cmp" style="margin-top:10px"></div>
+      <p class="small" id="doneGoal" style="margin:10px 0 0"></p>
+    </div>
+    <button class="main" data-home>ホームへ</button>
+  </section>
+</div>
+
+<script>
+// ---------- お手本の文（今までの動画の字幕と、その声）：[フォルダ, 動画の名前, [[字幕の番号, 読む文], ...]] ----------
+const LINES = [["shuchaku","我と執着",[[3,"それが、物事を、好転させる、鍵となるのです。"],[4,"れいかいでの、最大の目標は、しゅうちゃくを、なくすことです。"],[5,"しゅうちゃくを、手放すほど、霊的な地位が、上がります。"],[6,"重い荷物を、おろすように、心は、軽く、のぼっていきます。"],[7,"しゅぎょうとは、自分の心、つまり、がを、捨てることです。"],[8,"教えを伝えるときも、相手の、受け入れ態勢を、見極めることが、大切です。"]]],["hodo","程（ほど）",[[3,"失敗のもとは、足りないか、やりすぎるか。"],[5,"お金があって、いばる。お金がなくて、ひくつになる。"],[6,"こうした、かたよりが、失敗を招きます。"],[7,"ちゅうよう。ほどほど。ぶんそうおう。ちょうどよい所に、収めることです。"],[8,"ほどを守れば、すべての物事は、うまくいくように、決まっています。"],[9,"暑すぎず、寒すぎない、春や秋の、気候のように。"]]],["taiyo","太陽の救い",[[2,"おおごえのおきょうや、なりもの。きみょうな踊りで、近所に迷惑をかける。"],[3,"みずごりや、だんじき。せけんばなれした、苦行。"],[4,"きびしいかいりつに、しばられて、苦しむ、しょうじょう信仰。"],[5,"それは、しんこうじごく。低い信仰に、すぎません。"],[6,"きゅうせいきょうは、なによりも、じょうしきを、重んじます。"],[7,"しんじゃの暮らしも、世間の人と変わらず、円満を、むねとしています。"]]],["jiki","時期を待て",[[0,"いっさいの人事や、善悪を決めるのは、時の神様です。"],[6,"種まきや、収穫に、ちょうどよい時期があるように、"],[7,"人のいとなみにも、機がじゅくす、絶妙な時があります。"],[8,"多くの人は、まだ熟していないのに、焦って手を出し、失敗を招きます。"],[9,"まてば、かいろの、ひよりあり。かほうは、寝て待て。"],[13,"かきのみは、青いうちは、固くて渋い。熟せば、甘くなり、自然に落ちてきます。"]]],["sonen","人間は想念次第",[[6,"ですから、常に感謝している人は、自然と、幸せになり、"],[7,"ぐちや、不満ばかり言う人は、不幸になるのです。"],[8,"かんのんさまは、必要に応じて、人を、使い分けられます。"],[10,"観音様は、優しくも、厳格です。見せかけだけの態度は、見透かされ、嫌われます。"],[12,"世の中を救う働きに、名誉心や、自分を見せようとする心が、少しでも混ざると、"],[13,"かえって、自分を空虚にし、結果は、裏目に出てしまいます。"]]],["shu","主の字",[[6,"これまでは、このように、さまざまなものが、分離していました。"],[7,"縦と横が、十の字のように交わり、結ばれることが、大切です。"],[8,"火は、かとも読み、縦に、燃え上がります。"],[9,"水は、みとも読み、横に、流れます。"],[10,"火と水が、結ばれて、か、み。つまり、神となるのです。"],[11,"キリスト教の十字架や、仏教のまんじも、これと同じ、結びを、暗示しています。"]]],["kannon","観音力とは何ぞや",[[4,"この、たてと、よこが、十字の形に、しっかりと結びつくと、"],[5,"そこに、真の力、かんのんりきが、生まれるのです。"],[6,"これまでの世界は、夜の世界でした。"],[7,"いよいよ、夜の世界から、昼の世界、つまり、光の世界へと、変わる時が、来たのです。"],[8,"光は、火と、水とで、できています。"],[9,"そこに、体となる、土が、加わることで、"]]],["shugo","守護神",[[2,"ほんしゅごしんは、人がこの世に生まれる時、神から授けられた、神のぶんれいです。"],[4,"ふくしゅごしんは、にさんさいの、ころから、後から、ひょういする、動物の霊です。"],[6,"その性質は、絶対的な、悪。人間の、じゃねんであり、仏教でいう、ぼんのうにあたります。"],[10,"危ない目にあっても、奇跡的に助かるのは、せいしゅごしんの、働きによるものです。"],[11,"夢知らせや、虫の知らせ、暗示なども、せいしゅごしんが、与えてくれるのです。"],[12,"芸術家や、発明家が、熱中している時に得る、インスピレーションも、そうです。"]]],["jinzo","本医術の施法",[[5,"この、どっけつを、溶かすと、その毒素は、尿と共に、体の外へ、排出されます。"],[6,"このとき、尿に混じって出てくる、たんぱく。"],[7,"この、たんぱくこそが、溶け出した、毒素である、と著者は、述べています。"],[9,"体全体の、じか浄化作用が、活発になります。"],[10,"そして、その結果、あらゆる病気が、治癒に、向かうのです。"],[12,"人間は、腎臓さえ、健康になれば、"]]],["meishin","三大迷信とは何か",[[2,"たしかに、現在は、形だけは、進歩した、文明世界です。"],[13,"それだけでは、目的を、達せられないことは、今日の世相が、よく物語っています。"],[14,"この迷信とは、犯罪の原因である、人間の魂を、無視してきた、誤りです。"],[18,"犯罪のない、理想社会が、出現するのです。"]]],["sandoku","三毒とは",[[5,"次に、にょうどく。にょうどくは、腎臓の、機能低下によって、"],[6,"排泄されなかった、よじょうにょう、による、毒素であります。"],[7,"これが、体の外へ、出られずに、背中や、肩などに、浸透して、固まり、"],[8,"この、りゅうけつが、万病の、原因になると、されます。"],[10,"そして、やくどく。やくどくは、薬によって、引き起こされる、毒素であります。"],[11,"発熱、激しい痛み、下痢、嘔吐、しびれ などは、やくどくが、原因であり、"]]],["toho","東方の光",[[4,"現代の、西洋の、物質文明も、同じく、西から東へと、伝わってきたので あります。"],[5,"しかし、物質が、どれほど発達しても、人々の、不安は、消えず、"],[6,"真の幸福や、理想世界を、もたらすには、至っていないのであります。"],[7,"ただし、宗教の歴史には、例外が あります。それが、にちれん であります。"],[8,"にちれんは、東国に、生まれ、東の、太陽に、向かって、ほけきょうを、唱えました。"],[14,"はしばから、せんぞくちょう、日本橋と、東京の、中でも、西へ移り、"]]],["yakudoku","薬毒",[[6,"もし、日本人が、薬の使用を、一切、やめれば、病人は、半減し、"],[7,"寿命も、大きく、延びるだろうと、著者は、推測しています。"],[9,"そして、枯れ木のように、苦痛なく、安らかに、自然死を、迎えられる、としています。"],[10,"著者、自身も、四十歳まで、きょじゃくで、薬漬けの、体でした。"],[11,"ところが、薬を、断ったことで、見違えるように、健康に、なったといいます。"],[13,"ひとつ。常に、不快感が、ある。あちこちに、おかんや、微熱があり、疲れやすい。"]]],["anshin","安心立命",[[3,"それは、病気、貧乏、争い、という、三つの、さいやくであります。"],[5,"しかし、現実の、世の中は、思い通りに、なりません。"],[6,"常に、病気に、かかる、不安があり、まるで、地獄のような、状態であります。"],[7,"医学の、教えによって、細菌に対する、恐怖が、あおられ、"],[8,"現代人は、手洗いや、うがいなどの、わずらわしい、注意に、しばられて、"],[9,"恐怖の、かちゅうで、生活しているのであります。"]]],["reisen","霊線に就いて",[[6,"争うと、細くなる、というように、感情によっても、変化するのであります。"],[7,"霊線を、通じて、人々の、感情や、思考は、互いに、反映し合います。"],[8,"たとえば、親の思いが、子に、影響を、与えたりするのであります。"],[9,"恋愛などによる、強烈な、じょうねんは、霊線を、極度に、太くし、"],[12,"正神、すなわち、守護霊などは、この霊線を通じて、人間に、危険信号を、送り、"],[13,"事故や、災難から、未然に、救おうと、働くのであります。"]]],["omakase","御任せする",[[7,"取り越し苦労や、過ちへの、後悔も、執着に、あたります。"],[8,"執着の念が、強いほど、神様が、守護しようとしても、霊的な、障害となってしまい、"],[9,"結果として、物事が、思い通りに、進まなくなってしまうのであります。"],[10,"世の中には、皮肉な法則があります。欲しくて、たまらない時は、手に入らず、"],[11,"あきらめて、忘れた頃に、ひょっこりと、手に入るのであります。"],[14,"恋愛においても、一方が、熱烈に、なりすぎると、"]]],["naosu","病気を治す方法",[[8,"ところが、著者は、反対に、病気は、神の、おんけい、であると、説いています。"],[9,"病気は、健康に、なるための、体の、大掃除、じょうか、なのだと、いいます。"],[10,"かぜ、げり、おうと、発熱。こうした、症状は、病の、根本が、治っていく、兆候であり、"],[11,"むしろ、大いに、歓迎すべきこと、なのだ、としています。"],[12,"もし、世界中の、薬剤を、すべて、海へ、捨てたなら、"],[13,"病は、消滅する、と、著者は、断言しています。"]]],["hitotsuki","日と月",[[8,"ひは、昼の、世界。その、働きは、ひき、であると、いいます。"],[9,"じんを、しりぞく。腰を、低くする。"],[10,"それは、負ける、ことであり、すなわち、けんじょう、の、心です。"],[11,"つきと、つきが、ぶつかれば、争いに、なります。"],[12,"けれども、ひきの、ことわりを、行い、負けることを、善と、するならば、"],[13,"そもそも、争いは、起こらない、と、説いています。"]]],["hyoban","評判と感情",[[7,"ささいな、ことで、他人の、感情を、害すると、"],[8,"結局は、自分にとって、大きな、不利益と、なってしまいます。"],[9,"だから、大切なのは、がを、とおさない、ことです。"],[10,"相手が、少し、間違っていても、同調して、あげる、どりょうを、持ちましょう。"],[11,"何事も、勝とうと、するのではなく、負けてやる、という、姿勢が、大切です。"],[12,"絶対に、負けられない、例外を、のぞけば、"]]],["togamu","人を咎むる勿れ",[[3,"人を、とがめるのは、にんげんの、まんしん、なのです。"],[5,"人が、あやまちを、おかしているとき、むりに、やめさせようと、するのは、"],[6,"さかを、ころがりおちる、おおいしを、とちゅうで、とめるような、ものです。"],[7,"とめようとした、じぶんが、けがを、してしまいます。"],[8,"したまで、おちて、ほんにんが、みずから、めを、さますのを、まちましょう。"],[10,"にんげんには、なにが、ほんとうに、よいか、わるいか、かんぺきには、わかりません。"]]],["bijutsukan","大和民族美術館",[[1,"ちょしゃは、にほんの、びじゅつこそ、せかいいちであると、かくしんしています。"],[4,"せいようの、あぶらえに、かたよりがちな、にほんの、げいじゅつかたちを、けいはつし、"],[6,"てんじの、ちゅうしんは、にほん、どくじの、びじゅつです。"],[7,"かいがは、りんぱの、こうりん、そうたつ、ほういつ。そして、とさは、かのうは。"],[12,"にほんの、しんの、せいしんは、ぶきや、せんそうを、きらう、こころに、あります。"],[13,"それが、ぜったい、へいわ、しゅぎ、なのです。"]]],["kumitate","日本は文化の組立工場",[[7,"インドの、ぶっきょう。ちゅうごくの、かんじ。"],[8,"かっこくの、とくちょうが、みな、にほんに、あつめられています。"],[9,"つぎつぎと、とりいれるので、ひょうめんしか、みない、ひとびとは、"],[10,"まねずき、さるまねの、てんさい、と、ひはんします。"],[11,"しかし、それは、にほんの、しんの、しめいを、りかいしていない、からなのです。"],[12,"にほんは、たいようの、くに。なないろの、ひかりを、あつめる、くにです。"]]],["kyubu","九分九厘と一厘",[[6,"れきしじょう、あくが、いちじてきに、せいこうする、ように、みえることも、あります。"],[9,"ちょしゃは、とくに、げんだいいがくを、つよく、ひはんしています。"],[10,"きかいや、くすり、しゅじゅつなど、そとがわの、しゅだんに、たよるだけで、"],[11,"びょうきの、しんの、こんげんを、りかいしていない、と、しゅちょうします。"],[13,"じゃしんの、けいかくは、くぶくりんまで、すすんでいます。"],[14,"けれども、かみには、ぜったいの、いちりんの、ちからが、あります。"]]],["shinzenbi","真善美",[[8,"つぎに、ぜんについて。ぜんは、ゆうしんろんから、うまれる、と、ちょしゃは、いいます。"],[10,"かがくの、しんぽは、うわべだけの、ものだ、といいます。"],[11,"ひとびとは、その、こうせきだけを、たたえて、マイナスめんを、けいし、しました。"],[12,"そのけっか、せいしんてきな、こうふくから、とおざかって、しまったのです。"],[13,"さいごに、びについて。ぶんかが、はったつし、びの、ようそは、ふえました。"],[14,"けれども、それを、きょうじゅ、できるのは、いちぶの、とっけんかいきゅう、だけです。"]]],["eiyou","栄養学",[[2,"アミノさんや、グリコーゲンなどに、ぶんかいして、けいさんするのです。"],[5,"まほうつかいのような、しんぴてきで、いだいな、へんかりょくです。"],[7,"ちゅうしゅつした、ビタミンや、かんゆなどを、じんいてきに、とりすぎると、"],[10,"うしは、くさを、たべるだけで、えいようほうふな、ぎゅうにゅうを、つくりだします。"],[13,"むかしの、のうみんや、にほんの、へいし、にほんアルプスの、ごうりきのように、"],[16,"ぎゅうにゅうは、はの、はえていない、にゅうじには、てきしています。"]]],["tengoku","天国的宗教と地獄的宗教（一）",[[6,"まさに、ちじょうの、てんごくを、たいげんしている、というのです。"],[8,"いっぽう、じゅうらいの、しゅうきょうでは、ねっしんな、しんじゃほど、"],[10,"さっかく、している、と、ちょしゃは、してきしています。"],[11,"ちょしゃは、この、いんうつな、じょうたいを、しんこうじごく、と、よびます。"],[14,"それは、じごくせかい、すなわち、よるの、せかいだ、というのです。"],[15,"きゅうせいきょうの、しめいは、ひとびとの、めを、ひらかせること。"]]],["ikizumari","行詰り",[[5,"ふしが、あるからこそ、がんじょうに、そだつのです。"],[6,"にんげんや、ものごとにとっても、おなじことです。"],[8,"では、なぜ、いきづまって、しまうのでしょうか。"],[10,"ところが、おおくの、ひとは、いきづまって、こまってしまいます。"],[11,"それは、こうすれば、こうなる、という、にんげんの、あさはかな、ちえだけで、"],[12,"さきを、みとおそうと、するからです。"]]],["pragmatism","プラグマチズム",[[5,"そして、じぶんの、しごとや、にちじょうせいかつに、とりいれるよう、つとめました。"],[6,"そのご、ひっしゃは、しゅうきょうを、しんこうするように、なりました。"],[7,"そこで、プラグマチズムの、かんがえかたを、しゅうきょうにも、おうようしました。"],[8,"それが、しゅうきょう、こうい、しゅぎ、です。"],[10,"しゅうきょうてきな、しんねんを、ひびの、こうどうに、あらわせば、"],[11,"せいじつな、しごとや、しゃかいへの、おおきな、こうけんに、つながります。"]]],["ganbari","頑張り（一）",[[7,"じゃしんに、りようされる、きけんが、あります。"],[8,"なによりも、たいせつなのは、こころの、もちかた、なのです。"],[9,"さきの、せんそうも、むりな、がんばりを、つらぬこうとした、けっかです。"],[10,"ヒトラーの、はいぼくも、かえって、ひさんな、けつまつを、まねきました。"],[11,"ただし、スポーツなどは、れいがいと、しています。"],[12,"しぜんかいに、しゅんかしゅうとうや、たねまきの、じきが、あるように、"]]],["sukui","真の救いとは何ぞや",[[6,"しかし、ぶっしつめんを、むしした、せいしんめん、だけの、かいけつでは、"],[7,"げんじつてきな、すくいも、しんの、あんしんも、えることは、できません。"],[8,"うえた、ひとには、たべものが、ひつようです。"],[9,"びょうきの、きょうふには、ほんとうに、なおる、かいけつさくが、ひつようです。"],[12,"どれほど、ちいや、めいよに、めぐまれていても、"],[13,"きんぎんざいほうや、びしょくに、めぐまれていても、"]]],["daigomi","信仰の醍醐味",[[6,"ほんらいの、しんこうとは、つねに、あんしんかんの、なかに、あるものです。"],[7,"せいかつを、たのしみ、かんきに、ひたる、ものです。"],[9,"そして、ばんぶつに、たいする、ふかい、かんしゃと、したしみが、うまれます。"],[10,"にんげんの、なすべき、どりょく、じんじを、つくしたら、"],[11,"あとは、けっかを、しんぶつに、おまかせする。"],[12,"それが、りそうの、きょうちである、と、のべています。"]]],["shujutsu","手術",[[7,"いがくの、むりょくを、しめす、やむをえない、しゅだんに、すぎないのです。"],[8,"しゅじゅつは、いがくの、しんぽ、ではなく、ぎじゅつの、しんぽ、なのです。"],[9,"にんげんは、ぞうぶつしゅ、かみが、つくった、さいこうけっさくです。"],[10,"ごぞうろっぷから、ひふに、いたるまで、むだな、ものは、ひとつも、ありません。"],[11,"もうちょうや、へんとうせんなどを、ふようぶつと、みなす、げんだいの、ふうちょう。"],[12,"あんいに、きりすてるのは、おおいなる、ぼうりょく、である、と、ひなんしています。"]]],["kannonshin","観音心と観音行",[[4,"それは、たましいが、じょうか、された、じょうたい、なのです。"],[5,"かこの、じんるいの、けいけんや、きぞんの、てつがくの、わくに、はまりません。"],[6,"じゅんか、された、あすの、しそう、なのです。"],[9,"しかし、それでは、たえず、へんかする、げんじつに、たいおう、できません。"],[11,"じんるいの、あらゆる、あらそいの、こんげんと、なってしまったのです。"],[12,"ぶっだの、じひ、きりすとの、あい、こうしの、じんりん、もーぜの、かいりつ。"]]],["chuya","霊界に於ける昼夜の転換",[[6,"じかんてきな、おくれ、ちさ、を、ともないながら、あらわれるのです。"],[7,"れいかいの、へんかが、げんかいの、れきしてきな、へんかと、なって、あらわれます。"],[9,"しょうわ、ろくねんの、そのひから、せかいの、てんかんが、はじまったのです。"],[11,"れいかいの、てんかんは、ひとだんらく、します。"],[14,"これまでの、じだいは、よるの、せかい、でした。"],[15,"つきが、しはいする、よるの、じだい、だったのです。"]]],["kofuku","幸福の秘訣",[[0,"こうふくの、ひけつ。たにんを、こうふくに、すること、という、おはなしです。"],[6,"たとえば、ひとを、よろこばせよう、よのなかの、ためになろう、と、することです。"],[13,"もし、みんなが、きを、そろえて、ぜんじを、おこなったと、したら、どうなるでしょう。"],[16,"しょうじょうしんこうは、じぶんが、すくわれようと、するものです。"]]]]; // LINES_END
+const VOICES = [['koe', 'めたん'], ['koe-tsumugi', 'つむぎ'], ['koe-hau', 'はう'], ['koe-sayo', '小夜'],
+  ['koe-tsukuyomi', 'つくよみ'], ['koe-mana', 'MANA'], ['koe-kana', 'KANA'], ['koe-lilin', 'リリン'], ['koe-ameno-kuma', '熊本弁'],
+  ['koe-mao', 'まお'], ['koe-mai', 'まい'], ['koe-kohaku', 'コハク'], ['koe-runa', 'るな'], ['koe-sakurane', '桜音'],
+  ['koe-chuni', '中2'], ['koe-kanon', '花音'], ['koe-himari', 'ひまり'], ['koe-nurserobo', 'ナースロボ']];
+const TOPICS = ['きのう、うれしかったこと', '最近「ありがとう」と思ったこと', '好きな食べ物と、そのわけ', '子どものころの思い出を一つ',
+  '最近おどろいたこと', '朝いちばんにすること', 'おすすめの場所を友だちに紹介する', '大切にしている言葉', '最近がんばったこと',
+  'もし一日だけ自由なら、何をするか', '尊敬している人', '失敗から学んだこと', '好きな季節と、そのわけ', '最近読んだもの・見たもの',
+  '人に親切にされた話', '自分の得意なこと', '元気がないときに、すること', 'きょうの動画の教えを、友だちに説明する',
+  '「喜べば喜び事が来る」と思った体験', 'あせらず待ってよかったこと', '何事も「程」が大切だと思ったこと', '手放して楽になったこと',
+  '健康のために気をつけていること', '家族や友人に伝えたいこと', '一年後の自分への言葉', '最近ふと笑ったこと',
+  '自分の町のいいところ', '人の話を聞くときに大切なこと', 'はじめて会う人への自己紹介', '今いちばん楽しみなこと', 'きょう一日の目標'];
+const GOALS = [
+  ['filler', '「えーと」のかわりに黙る', '言いたくなったら、1秒だまって待つ'],
+  ['slow', 'ゆっくり話す', 'いつもの8割くらいの速さで'],
+  ['short', '文を短く切る', '「〜で、〜で」とつなげず、「。」で止める'],
+  ['first', 'はじめに結論を言う', '最初のひとことで、言いたいことを言う'],
+  ['end', '語尾まで はっきり言う', '文の終わりを、小さくしない'],
+  ['long', '40秒以上 話す', 'たとえ話を一つ足してみる'],
+];
+const RANKS = [[0, '見習い'], [3, '話し出し'], [7, '声の人'], [14, '語り手'], [30, '名語り'], [100, '話しの達人']];
+const KEEP_DAYS = 30, LIMIT = 60;
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const dayNum = d => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const clock = s => `${Math.floor(s / 60)}:${pad(Math.floor(s % 60))}`;
+
+// ---------- 記録（数字は localStorage、録音は IndexedDB。使えないときは、開いている間だけ覚える） ----------
+const STORE = 'hanashi.v1';
+let data = { days: {}, voice: 'mix', sr: false };
+try { const s = JSON.parse(localStorage.getItem(STORE)); if (s && s.days) data = Object.assign(data, s); } catch (e) {}
+const saveData = () => { try { localStorage.setItem(STORE, JSON.stringify(data)); } catch (e) {} };
+const memRec = {};
+function db() {
+  return new Promise((ok, ng) => {
+    try {
+      const r = indexedDB.open('hanashi', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('rec');
+      r.onsuccess = () => ok(r.result); r.onerror = () => ng(r.error);
+    } catch (e) { ng(e); }
+  });
+}
+async function putRec(k, blob) {
+  memRec[k] = blob;
+  try { const d = await db(); await new Promise((ok, ng) => { const t = d.transaction('rec', 'readwrite'); t.objectStore('rec').put(blob, k); t.oncomplete = ok; t.onerror = () => ng(t.error); }); d.close(); } catch (e) {}
+}
+async function getRec(k) {
+  if (memRec[k]) return memRec[k];
+  try { const d = await db(); const b = await new Promise((ok, ng) => { const q = d.transaction('rec').objectStore('rec').get(k); q.onsuccess = () => ok(q.result); q.onerror = () => ng(q.error); }); d.close(); return b || null; } catch (e) { return null; }
+}
+async function pruneRec() {
+  const limit = keyOf(addDays(new Date(), -KEEP_DAYS));
+  try {
+    const d = await db(), t = d.transaction('rec', 'readwrite'), s = t.objectStore('rec'), q = s.getAllKeys();
+    q.onsuccess = () => q.result.forEach(k => { if (String(k).slice(0, 10) < limit) s.delete(k); });
+    t.oncomplete = () => d.close();
+  } catch (e) {}
+}
+
+// ---------- 再生（同時に1つだけ） ----------
+let player = null, playerBtn = null, playerLabel = '', playerUrl = null;
+function stopPlay() {
+  if (player) { player.onended = player.onerror = null; player.pause(); player = null; }
+  if (playerBtn) { playerBtn.textContent = playerLabel; playerBtn = null; }
+  if (playerUrl) { URL.revokeObjectURL(playerUrl); playerUrl = null; }
+}
+function playSrc(src, btn, onEnd, onFail) {
+  const same = playerBtn === btn;
+  stopPlay();
+  if (same) return;
+  playerBtn = btn; playerLabel = btn.textContent; btn.textContent = '■ 止める';
+  if (src instanceof Blob) { playerUrl = URL.createObjectURL(src); src = playerUrl; }
+  const a = player = new Audio(src);
+  const fail = () => { if (player !== a) return; stopPlay(); if (onFail) onFail(); };
+  a.onended = () => { if (player !== a) return; stopPlay(); if (onEnd) onEnd(); };
+  a.onerror = fail;
+  const p = a.play(); if (p) p.catch(fail);
+}
+
+// ---------- 画面 ----------
+const SECS = ['home', 'shadow', 'speak', 'review', 'done'];
+function show(id, step) {
+  SECS.forEach(s => { $(s).hidden = s !== id; });
+  $('steps').hidden = id === 'home';
+  [...$('steps').children].forEach((e, i) => { e.className = i + 1 === step ? 'on' : i + 1 < step ? 'done' : ''; });
+  scrollTo(0, 0);
+}
+let S = null; // きょうの練習の途中の内容
+const today = () => new Date();
+const topicOf = (off = 0) => TOPICS[(dayNum(today()) + off) % TOPICS.length];
+
+function streakNow() {
+  let d = today(), n = 0;
+  if (!data.days[keyOf(d)]) d = addDays(d, -1);
+  while (data.days[keyOf(d)]) { n++; d = addDays(d, -1); }
+  return n;
+}
+const totalDays = () => Object.keys(data.days).length;
+const rankIdx = n => RANKS.reduce((a, r, i) => n >= r[0] ? i : a, 0);
+
+function renderHome() {
+  stopAll(); stopPlay(); S = null;
+  const n = totalDays(), st = streakNow(), r = rankIdx(n), nx = RANKS[r + 1];
+  $('rank').textContent = '位：' + RANKS[r][1];
+  $('streak').textContent = st + '日 連続';
+  $('total').textContent = `合計 ${n}日` + (nx ? `（あと${nx[0] - n}日で「${nx[1]}」）` : '');
+  $('homeTopic').textContent = topicOf();
+  $('startBtn').textContent = data.days[keyOf(today())] ? 'もう一度 練習する' : 'きょうの練習をはじめる';
+  // カレンダー（今週をいちばん下にして5週間）
+  const t = today(), first = addDays(t, -t.getDay() - 28);
+  let h = '日月火水木金土'.split('').map(c => `<b>${c}</b>`).join('');
+  for (let i = 0; i < 35; i++) {
+    const d = addDays(first, i), k = keyOf(d), fut = k > keyOf(t);
+    h += `<i class="${data.days[k] ? 'on' : ''} ${k === keyOf(t) ? 'today' : ''} ${fut ? 'fut' : ''}" aria-label="${d.getMonth() + 1}月${d.getDate()}日${data.days[k] ? ' 練習した' : ''}">${d.getDate()}</i>`;
+  }
+  $('cal').innerHTML = h;
+  renderHist();
+  show('home');
+}
+function renderHist() {
+  const keys = Object.keys(data.days).sort().reverse().slice(0, 10), box = $('hist');
+  $('histPanel').hidden = !keys.length; box.innerHTML = '';
+  keys.forEach(k => {
+    const e = data.days[k], div = document.createElement('div'); div.className = 'hist';
+    const head = document.createElement('div'); head.textContent = `${+k.slice(5, 7)}/${+k.slice(8)}　${e.topic}`;
+    const row = document.createElement('div'); row.className = 'row'; row.style.marginTop = '4px';
+    [['a', '▶ 1回目'], ['b', '▶ 2回目']].forEach(([x, label]) => {
+      const b = document.createElement('button'); b.textContent = label; b.disabled = !e[x] || !e[x].rec;
+      b.onclick = async () => { const blob = await getRec(`${k}-${x}`); if (blob) playSrc(blob, b); else { b.textContent = '録音なし'; b.disabled = true; } };
+      row.appendChild(b);
+    });
+    div.append(head, row); box.appendChild(div);
+  });
+}
+
+// ---------- ① まねして読む ----------
+function todayLines() {
+  const n = dayNum(today()), v = LINES[n % LINES.length], ls = v[2];
+  const start = ls.length >= 6 && Math.floor(n / LINES.length) % 2 ? 3 : 0;
+  return ls.slice(start, start + 3).map(l => ({ dir: v[0], title: v[1], n: l[0], text: l[1] }));
+}
+const voiceFor = i => data.voice === 'mix' ? (dayNum(today()) * 5 + i) % VOICES.length : +data.voice;
+function showLine() {
+  stopPlay();
+  const l = S.lines[S.li], v = VOICES[voiceFor(S.li)];
+  $('lineNum').textContent = `${S.li + 1} / ${S.lines.length}`;
+  $('lineText').textContent = l.text;
+  $('lineWho').textContent = `「${l.title}」より　読み：${v[1]}`;
+  $('nextLine').textContent = S.li + 1 < S.lines.length ? 'つぎの文へ' : '「話す」へ';
+}
+$('hearBtn').onclick = () => {
+  const l = S.lines[S.li], v = VOICES[voiceFor(S.li)];
+  playSrc(`../${l.dir}/${v[0]}/${pad(l.n)}.mp3?v=2`, $('hearBtn'),
+    () => { $('lineWho').textContent = 'つぎは あなたの番。声に出して読みましょう'; },
+    () => { $('lineWho').textContent = '声を読みこめませんでした。文だけ読んでみましょう'; });
+};
+$('nextLine').onclick = () => { if (S.li + 1 < S.lines.length) { S.li++; showLine(); } else toSpeak('a'); };
+$('skipShadow').onclick = () => toSpeak('a');
+$('startBtn').onclick = () => {
+  S = { lines: todayLines(), li: 0, off: 0, topic: topicOf(), goal: null, a: null, b: null };
+  showLine(); show('shadow', 1);
+};
+
+// ---------- ②④ 話す（録音・声の分析はこの端末の中でする） ----------
+let R = null;
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const mobile = /Android|iPhone|iPad|iPod/.test(navigator.userAgent) || navigator.maxTouchPoints > 1;
+const canSR = !!SR && !mobile; // スマホはマイクの取り合いになるので使わない
+const FILLER = /えーっと|えっと|えーと|えと|あのー|あの〜|そのー|えー|あー|まあ|なんか/g;
+
+function toSpeak(round) {
+  stopPlay(); S.round = round;
+  $('spTitle').textContent = round === 'a' ? '② 1分スピーチ' : '④ もう一度 話す';
+  $('spTopic').textContent = S.topic;
+  $('prep').hidden = round === 'b';
+  $('spGoal').hidden = round === 'a';
+  if (round === 'b') $('spGoal').textContent = '直すこと：' + GOALS.find(g => g[0] === S.goal)[1];
+  $('newTopic').hidden = round === 'b';
+  $('time').textContent = clock(LIMIT); $('time').classList.remove('live');
+  $('micMsg').hidden = true; $('noMicBtn').hidden = true;
+  $('recBtn').textContent = '● 録音をはじめる'; $('recBtn').disabled = false;
+  drawMeter(0);
+  show('speak', round === 'a' ? 2 : 4);
+}
+$('newTopic').onclick = () => { S.off++; S.topic = topicOf(S.off); $('spTopic').textContent = S.topic; };
+
+function drawMeter(v) {
+  const c = $('meter'), x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height);
+  const n = Math.round(Math.min(1, v) * 30);
+  for (let i = 0; i < n; i++) { x.fillStyle = i > 25 ? '#ff6b6b' : i > 18 ? '#f0c070' : '#6fe0a0'; x.fillRect(i * 4, 1, 3, 5); }
+}
+function analyze(s) {
+  if (s.length < 10) return { silent: true };
+  const v = s.map(x => x[1]).sort((a, b) => a - b), floor = v[Math.floor(v.length * .1)], peak = v[Math.floor(v.length * .95)];
+  if (peak < .006) return { silent: true };
+  const thr = Math.max(.004, floor + (peak - floor) * .18);
+  let segs = [], cur = null;
+  s.forEach(([t, r]) => { if (r >= thr) { if (cur) cur.e = t; else cur = { s: t, e: t }; } else if (cur) { segs.push(cur); cur = null; } });
+  if (cur) segs.push(cur);
+  const merged = [];
+  segs.forEach(g => { const l = merged[merged.length - 1]; if (l && g.s - l.e < .18) l.e = g.e; else merged.push({ ...g }); });
+  segs = merged.filter(g => g.e - g.s >= .08);
+  if (!segs.length) return { silent: true };
+  const gaps = segs.slice(1).map((g, i) => g.s - segs[i].e);
+  return { sec: Math.max(1, Math.round(segs[segs.length - 1].e - segs[0].s)), pauses: gaps.filter(g => g >= .35).length,
+    longest: Math.round((gaps.length ? Math.max(...gaps) : 0) * 10) / 10 };
+}
+async function startRec() {
+  $('recBtn').disabled = true; $('micMsg').hidden = true;
+  let stream;
+  try {
+    if (!navigator.mediaDevices || !window.MediaRecorder) throw new Error('none');
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+  } catch (e) {
+    $('micMsg').textContent = e && e.name === 'NotAllowedError' ? 'マイクが許可されていません。ブラウザの設定で許可すると録音できます。' : 'マイクが使えませんでした。';
+    $('micMsg').hidden = false; $('noMicBtn').hidden = false; $('recBtn').disabled = false; return;
+  }
+  if (!S || $('speak').hidden) { stream.getTracks().forEach(t => t.stop()); return; }
+  const type = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm'].find(t => MediaRecorder.isTypeSupported(t));
+  const mr = new MediaRecorder(stream, type ? { mimeType: type } : undefined), chunks = [];
+  mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  const AC = window.AudioContext || window.webkitAudioContext, ac = new AC(), an = ac.createAnalyser();
+  an.fftSize = 2048; ac.createMediaStreamSource(stream).connect(an); if (ac.state === 'suspended') ac.resume();
+  const buf = new Float32Array(an.fftSize), samples = [], t0 = performance.now();
+  R = { stream, mr, ac, chunks, samples, text: '', cancelled: false, sr: null, type: mr.mimeType };
+  const me = R;
+  R.iv = setInterval(() => {
+    const t = (performance.now() - t0) / 1000;
+    an.getFloatTimeDomainData(buf);
+    let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+    const rms = Math.sqrt(sum / buf.length); samples.push([t, rms]); drawMeter(rms * 6);
+    $('time').textContent = clock(Math.max(0, Math.ceil(LIMIT - t)));
+    if (t >= LIMIT) stopRec();
+  }, 50);
+  mr.onstop = () => finishRec(me);
+  mr.start(1000);
+  if (canSR && data.sr) startSR(me);
+  $('time').classList.add('live');
+  $('recBtn').textContent = '■ 話しおわった'; $('recBtn').disabled = false;
+}
+function startSR(me) {
+  const r = new SR(); r.lang = 'ja-JP'; r.continuous = true; r.interimResults = false;
+  r.onresult = e => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) me.text += e.results[i][0].transcript; };
+  r.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'network') me.srDead = true; };
+  r.onend = () => { if (R === me && !me.srDead) { try { r.start(); } catch (e) {} } else if (me.srDone) me.srDone(); };
+  me.sr = r; try { r.start(); } catch (e) { me.sr = null; }
+}
+function releaseRec(me) {
+  clearInterval(me.iv); me.stream.getTracks().forEach(t => t.stop());
+  try { me.ac.close(); } catch (e) {}
+}
+function stopRec() {
+  if (!R || R.stopping) return;
+  R.stopping = true; clearInterval(R.iv);
+  $('recBtn').disabled = true; $('recBtn').textContent = 'まとめています…';
+  if (R.mr.state !== 'inactive') R.mr.stop();
+}
+function stopAll() { // 録音の途中でやめたとき
+  if (!R) return;
+  const me = R; me.cancelled = true; R = null;
+  if (me.sr) { try { me.sr.abort(); } catch (e) {} }
+  if (me.mr.state !== 'inactive') me.mr.stop();
+  releaseRec(me);
+}
+async function finishRec(me) {
+  if (me.cancelled) return;
+  releaseRec(me);
+  if (me.sr) { // 最後の文字が届くのを少しだけ待つ
+    await new Promise(ok => { me.srDone = ok; R = null; try { me.sr.stop(); } catch (e) { ok(); } setTimeout(ok, 1500); });
+    if (me.cancelled) return;
+  }
+  R = null;
+  const st = analyze(me.samples);
+  if (me.sr && !st.silent && !me.srDead && me.text) {
+    const txt = me.text.replace(/[\s、。]/g, '');
+    st.cpm = Math.round(txt.length / Math.max(5, st.sec) * 60);
+    st.fillers = (txt.match(FILLER) || []).length;
+  }
+  doneTake({ blob: new Blob(me.chunks, { type: me.type || 'audio/webm' }), st });
+}
+function doneTake(take) {
+  if (!S) return;
+  S[S.round] = take;
+  if (S.round === 'a') toReview(); else finishDay();
+}
+$('recBtn').onclick = () => { if (R) stopRec(); else startRec(); };
+let noMicIv = null;
+$('noMicBtn').onclick = () => {
+  if (noMicIv) { clearInterval(noMicIv); noMicIv = null; $('noMicBtn').textContent = '録音なしで話す（タイマーだけ）'; doneTake({ blob: null, st: null }); return; }
+  const t0 = performance.now(); $('recBtn').disabled = true; $('time').classList.add('live'); $('noMicBtn').textContent = '■ 話しおわった';
+  noMicIv = setInterval(() => {
+    const t = (performance.now() - t0) / 1000; $('time').textContent = clock(Math.max(0, Math.ceil(LIMIT - t)));
+    if ($('speak').hidden || t >= LIMIT) { const go = !$('speak').hidden; clearInterval(noMicIv); noMicIv = null; $('noMicBtn').textContent = '録音なしで話す（タイマーだけ）'; if (go) doneTake({ blob: null, st: null }); }
+  }, 200);
+};
+
+// ---------- ③ 聞く ----------
+function statHtml(st) {
+  if (!st || st.silent) return '';
+  const items = [['話した長さ', st.sec + '秒'], ['間（ま）の数', st.pauses + '回'], ['いちばん長い間', st.longest + '秒']];
+  if (st.cpm != null) items.push(['話す速さ', st.cpm + '字/分'], ['「えーと」など', st.fillers + '回']);
+  return items.map(i => `<div class="stat"><small>${i[0]}</small><span>${i[1]}</span></div>`).join('');
+}
+function suggestGoal(st) {
+  if (!st || st.silent) return 'first';
+  if (st.fillers >= 3) return 'filler';
+  if (st.cpm > 360) return 'slow';
+  if (st.sec < 30) return 'long';
+  if (st.pauses < 3) return 'short';
+  return 'first';
+}
+function renderGoals() {
+  const box = $('goals'); box.innerHTML = '';
+  GOALS.forEach(g => {
+    const b = document.createElement('button'); b.setAttribute('aria-pressed', g[0] === S.goal);
+    b.innerHTML = `${g[1]}<small>${g[2]}</small>`;
+    b.onclick = () => { S.goal = g[0]; renderGoals(); };
+    box.appendChild(b);
+  });
+}
+function toReview() {
+  const { blob, st } = S.a;
+  $('playA').hidden = !blob;
+  $('statsA').innerHTML = statHtml(st);
+  const w = $('revWarn');
+  w.hidden = !(blob && st && st.silent) && !!blob;
+  w.textContent = !blob ? '録音なしの練習です。うまく話せたところと、つまったところを思い出しましょう。' : '声がほとんど聞こえませんでした。マイクに近づいて、やり直してみましょう。';
+  S.goal = suggestGoal(st); renderGoals();
+  show('review', 3);
+}
+$('playA').onclick = () => { if (S && S.a && S.a.blob) playSrc(S.a.blob, $('playA')); };
+$('toRetry').onclick = () => toSpeak('b');
+$('redoA').onclick = () => toSpeak('a');
+
+// ---------- おしまい ----------
+function finishDay() {
+  const k = keyOf(today()), pack = x => x ? Object.assign({ rec: !!x.blob }, x.st || {}) : null;
+  data.days[k] = { topic: S.topic, goal: S.goal, a: pack(S.a), b: pack(S.b) };
+  saveData();
+  ['a', 'b'].forEach(x => { if (S[x] && S[x].blob) putRec(`${k}-${x}`, S[x].blob); });
+  pruneRec();
+  const n = totalDays(), r = rankIdx(n);
+  $('doneStreak').textContent = streakNow() + '日 連続';
+  $('doneRank').textContent = `合計 ${n}日　位：${RANKS[r][1]}`;
+  $('playDoneA').disabled = !S.a.blob; $('playDoneB').disabled = !S.b.blob;
+  const f = (x, p, u) => x && x[p] != null ? x[p] + u : '—';
+  const rows = [['話した長さ', 'sec', '秒'], ['間の数', 'pauses', '回'], ['いちばん長い間', 'longest', '秒'], ['話す速さ', 'cpm', '字/分'], ['「えーと」など', 'fillers', '回']]
+    .filter(r => (S.a.st && S.a.st[r[1]] != null) || (S.b.st && S.b.st[r[1]] != null));
+  $('cmp').innerHTML = rows.length ? '<table><tr><th></th><th>1回目</th><th>2回目</th></tr>' + rows.map(r => `<tr><td>${r[0]}</td><td>${f(S.a.st, r[1], r[2])}</td><td>${f(S.b.st, r[1], r[2])}</td></tr>`).join('') + '</table>' : '';
+  $('doneGoal').textContent = '直したこと：' + GOALS.find(g => g[0] === S.goal)[1] + '。数字より、聞いて「伝わるか」を大事に。';
+  show('done', 5);
+}
+$('playDoneA').onclick = () => { if (S && S.a.blob) playSrc(S.a.blob, $('playDoneA')); };
+$('playDoneB').onclick = () => { if (S && S.b.blob) playSrc(S.b.blob, $('playDoneB')); };
+document.querySelectorAll('[data-home]').forEach(b => { b.onclick = renderHome; });
+
+// ---------- 設定 ----------
+$('voiceSel').innerHTML = '<option value="mix">おまかせ（1文ごとに変わる）</option>' + VOICES.map((v, i) => `<option value="${i}">${v[1]}</option>`).join('');
+$('voiceSel').value = data.voice;
+if ($('voiceSel').selectedIndex < 0) $('voiceSel').value = 'mix';
+$('voiceSel').onchange = () => { data.voice = $('voiceSel').value; saveData(); };
+$('srBox').hidden = !canSR; $('srOn').checked = !!data.sr;
+$('srOn').onchange = () => { data.sr = $('srOn').checked; saveData(); };
+
+// ---------- キャラクター（練習した日数で、持ち物が増える） ----------
+function drawChar(now) {
+  const c = $('charCv'), x = c.getContext('2d'), q = 6, t = now / 1000, r = rankIdx(totalDays());
+  const R2 = (a, b, w, h, col) => { x.fillStyle = col; x.fillRect(Math.round(a * q), Math.round(b * q), Math.round(w * q), Math.round(h * q)); };
+  x.clearRect(0, 0, c.width, c.height);
+  const y = 4 + (Math.floor(t * 2) % 2 ? 0 : -.5) + .0, col = r >= 5 ? '#f0c070' : '#d97757', ox = 1;
+  [2, 4, 7, 9].forEach(a => R2(ox + a, y + 6, 1, 2, col));
+  R2(ox + 2, y, 8, 6, col); R2(ox, y + 2, 2, 2, col); R2(ox + 10, y + 2, 2, 2, col);
+  const bl = (t % 3) > 2.85;
+  R2(ox + 3, y + 1 + (bl ? .6 : 0), 1, bl ? .4 : 1, '#1a1612'); R2(ox + 8, y + 1 + (bl ? .6 : 0), 1, bl ? .4 : 1, '#1a1612');
+  if (r >= 1) { R2(ox + 12, y + .5, 2, 2, '#d8d4e4'); R2(ox + 12.5, y + 2.5, 1, 2, '#78729a'); }  // マイク
+  if (r >= 2) R2(ox + 2, y + 3, 8, 1, '#d8443a');                                                  // はちまき
+  if (r >= 3 && Math.floor(t * 2) % 2) { R2(0, 1, 1, 1, '#f3ead6'); R2(14, 12, 1, 1, '#f3ead6'); }  // きらきら
+  if (r >= 4) { R2(ox + 3, y - 1, 6, 1, '#f0c070'); R2(ox + 3, y - 2, 1, 1, '#f0c070'); R2(ox + 5.5, y - 2, 1, 1, '#f0c070'); R2(ox + 8, y - 2, 1, 1, '#f0c070'); } // 冠
+  requestAnimationFrame(drawChar);
+}
+requestAnimationFrame(drawChar);
+(() => {
+  const c = $('ccTitle'), x = c.getContext('2d'), q = 4;
+  function d(now) {
+    const t = now / 1000 / 1.4, f = Math.floor(t * 6) % 4, up = [f === 1, f === 3, f === 3, f === 1], col = '#d97757';
+    const r = (a, b, w, h, cc) => { x.fillStyle = cc; x.fillRect(Math.round(a * q), Math.round(b * q), Math.round(w * q), Math.round(h * q)); };
+    x.clearRect(0, 0, c.width, c.height);
+    const y0 = 3 + (f % 2 ? -1 : 0);
+    [2, 4, 7, 9].forEach((a, i) => r(a, 9, 1, up[i] ? 1 : 2, col));
+    r(2, y0, 8, 6, col); r(0, y0 + 2, 2, 2, col); r(10, y0 + 2, 2, 2, col);
+    const bl = (t % 3) > 2.85;
+    r(3, y0 + 1 + (bl ? .6 : 0), 1, bl ? .4 : 1, '#1a1612'); r(8, y0 + 1 + (bl ? .6 : 0), 1, bl ? .4 : 1, '#1a1612');
+    requestAnimationFrame(d);
+  }
+  requestAnimationFrame(d);
+})();
+
+renderHome();
+</script>
+</body>
+</html>
