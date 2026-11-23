@@ -64,7 +64,6 @@
 
 <div class="reader" id="reader">
   <div class="bar"><button id="backBtn">◀ 本棚にもどる</button><span id="readTitle"></span></div>
-  <iframe id="frame" title="本"></iframe>
 </div>
 
 <script>
@@ -87,17 +86,23 @@ function render() {
     `<button class="book" data-i="${i}" aria-label="${esc(b[1])}"><img src="${b[4]}" alt=""><span class="n">${esc(b[2])}</span>${read.includes(b[0]) ? '' : '<i class="dot"></i>'}</button>`).join('');
 }
 
-const reader = document.getElementById('reader'), frame = document.getElementById('frame');
+const reader = document.getElementById('reader');
+let frame = null;
 function openBook(b) {
   if (!read.includes(b[0])) { read.push(b[0]); try { localStorage.setItem(KEY, JSON.stringify(read)); } catch (e) {} render(); }
   document.getElementById('readTitle').textContent = b[1];
-  frame.src = b[0];
+  // 本を開くたびに iframe を作り直す（使い回すと、戻る操作が iframe の中だけで動いて白い画面になる）
+  if (frame) frame.remove();
+  frame = document.createElement('iframe');
+  frame.title = b[1]; frame.src = b[0];
+  reader.appendChild(frame);
   reader.classList.add('on'); document.body.style.overflow = 'hidden';
   try { history.pushState({ read: 1 }, ''); } catch (e) {}
 }
-function closeBook() { reader.classList.remove('on'); document.body.style.overflow = ''; frame.removeAttribute('src'); }
+function closeBook() { reader.classList.remove('on'); document.body.style.overflow = ''; if (frame) { frame.remove(); frame = null; } }
 document.addEventListener('click', e => { const t = e.target.closest('[data-i]'); if (t) openBook(BOOKS[+t.dataset.i]); });
-document.getElementById('backBtn').onclick = () => { if (history.state && history.state.read) history.back(); else closeBook(); };
+// 目次を押すと iframe の中に履歴が増えるので、ボタンは履歴にたよらず、そのまま閉じる
+document.getElementById('backBtn').onclick = closeBook;
 window.addEventListener('popstate', () => { if (reader.classList.contains('on')) closeBook(); });
 render();
 
