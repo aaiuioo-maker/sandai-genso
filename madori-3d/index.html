@@ -97,7 +97,7 @@ function fence(g,ax,az,bx,bz){const hor=az===bz,L=Math.abs(hor?bx-ax:bz-az),n=Ma
  [top-.03,.04].forEach(y=>raw(g,cx,cz,hor?L*U:.035,hor?.035:L*U,y,y+.03,M.fence))}
 function floor1(){const g=new THREE.Group();
  B(g,-.7,-1.6,4.7,8.9,-.5,-.1,M.site,false);B(g,-.7,8.9,4.7,10.1,-.56,-.42,mat(0xbdb6a8),false);
- B(g,0,0,1,2,-.08,.01,M.tile);B(g,1,1,4,2,-.08,.02,M.wood);B(g,2.9,.5,4,2,-.08,.02,M.white);
+ B(g,0,0,1,2,-.08,.01,M.tile);B(g,1,1,4,2,-.08,.02,M.wood);B(g,2.9,.5,4,2,-.08,.027,M.tile);
  B(g,0,2,1,5,-.08,.02,M.wood);B(g,1,2,4,5,-.08,.015,M.wood);B(g,0,5,4,6.4,-.08,.03,M.carpetD);B(g,2,6.4,4,7.4,-.08,.03,M.carpetD);B(g,0,6.4,2,7.8,-.1,-.03,M.conc);
  // 畳 4.5帖
  tatami(g,1,2,2,1);tatami(g,3,2,1,2);tatami(g,2,4,2,1);tatami(g,1,3,1,2);tatami(g,2,3,1,1);
@@ -112,8 +112,12 @@ function floor1(){const g=new THREE.Group();
  for(let i=0;i<7;i++){const a=5-(i+1)*1.3/7,b=5-i*1.3/7;B(g,0,a,1,b,0,(i+1)*.15,i%2?st2:st3)}
  // 浴槽
  B(g,.12,.12,.88,1.05,0,.58,M.tub);B(g,.2,.2,.8,.97,.5,.59,M.water,false);
- // トイレ
- const toilet=new THREE.Mesh(new THREE.CylinderGeometry(.21,.17,.38,32),M.white);toilet.scale.z=1.35;toilet.position.set(3.45*U,.2,1.3*U);toilet.castShadow=true;g.add(toilet);B(g,3.15,.56,3.75,.82,0,.82,M.white);
+ // トイレ: 床に埋めた和式。金かくしは北（奥）、水のタンクは北の壁の高いところ
+ {const wc=new THREE.Group(),cy=(r,h,y,z,sz,m)=>{const e=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,32),m);e.scale.z=sz;e.position.set(0,y,z);e.receiveShadow=true;wc.add(e);return e};
+  cy(.18,.05,.025,0,1.75,M.white).castShadow=true;cy(.13,.006,.052,.01,1.8,mat(0xc3ced2,{roughness:.3}));cy(.075,.004,.056,-.12,1.15,mat(0x8fc4d6,{roughness:.15}));
+  const hood=new THREE.Mesh(new THREE.CylinderGeometry(.135,.135,.13,28,1,true,Math.PI/2,Math.PI),mat(0xffffff,{roughness:.3,side:THREE.DoubleSide}));hood.scale.z=.8;hood.position.set(0,.115,-.2);hood.castShadow=true;wc.add(hood);
+  wc.position.set(3.45*U,.02,1.2*U);g.add(wc);
+  B(g,3.24,.57,3.66,.73,.84,1.12,M.white);B(g,3.44,.62,3.46,.64,.15,.84,M.steel);B(g,3.44,.62,3.46,.88,.14,.16,M.steel);B(g,3.66,.63,3.72,.65,1.02,1.04,M.steel)}
  // 洗面: トイレの北側の外、トイレの壁と東の板壁の角につける
  B(g,3.2,-.55,3.96,.44,0,.8,M.counter);B(g,3.32,-.43,3.8,.08,.8,.815,M.steel,false);
  B(g,3.86,-.21,3.93,-.14,.8,1.04,M.steel);B(g,3.58,-.21,3.93,-.14,1.01,1.04,M.steel);
@@ -219,7 +223,7 @@ function floor1(){const g=new THREE.Group();
  sb(.42,.25,-.1,.42,.14,.08,mat(0x555a5d));const muf=add(new THREE.CylinderGeometry(.055,.065,.42,14),silver,.54,.27,.15);muf.rotation.z=Math.PI/2-.08;
  sb(.86,.6,0,.035,.055,.17,mat(0xe0303a,{roughness:.25}));sb(.72,.84,0,.2,.018,.3,rubber);
  sc.position.set(3.25*U,-.42,9.5*U);sc.rotation.y=.1;g.add(sc);label(g,'スクーター',3.25,10.45,-.4,.3);
- [['浴室',.5,1.55],['トイレ',3.45,1.75],['廊下',1.95,1.5],['洗面',2.75,-.25],['押入',.5,2.85],['和室 4.5帖',2.5,3.5],['階段',.5,4.4],['DK',1.35,5.95],['玄関',1.25,7.1],['靴棚',.27,7.1],['台所',3,6.5],['冷蔵庫',3.6,5.45],['テーブル',2.62,5.55],['食器棚',.33,5.95],['テレビ',3.5,3.05],['机・パソコン',3.5,4.86],['チェア',2.58,4.86],['小テーブル',1.6,2.5],['布団',1.5,3.9]].forEach(a=>label(g,a[0],a[1],a[2],1.3,.3));
+ [['浴室',.5,1.55],['トイレ',3.55,2.02],['廊下',1.95,1.5],['洗面',2.75,-.25],['押入',.5,2.85],['和室 4.5帖',2.5,3.5],['階段',.5,4.4],['DK',1.35,5.95],['玄関',1.25,7.1],['靴棚',.27,7.1],['台所',3,6.5],['冷蔵庫',3.6,5.45],['テーブル',2.62,5.55],['食器棚',.33,5.95],['テレビ',3.5,3.05],['机・パソコン',3.5,4.86],['チェア',2.58,4.86],['小テーブル',1.6,2.5],['布団',1.5,3.9]].forEach(a=>label(g,a[0],a[1],a[2],1.3,.3));
  return g}
 
 function floor2(){const g=new THREE.Group();
