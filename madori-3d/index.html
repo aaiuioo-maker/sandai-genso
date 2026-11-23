@@ -116,8 +116,10 @@ function floor1(){const g=new THREE.Group();
  {const wc=new THREE.Group(),cy=(r,h,y,z,sz,m)=>{const e=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,32),m);e.scale.z=sz;e.position.set(0,y,z);e.receiveShadow=true;wc.add(e);return e};
   cy(.18,.05,.025,0,1.75,M.white).castShadow=true;cy(.13,.006,.052,.01,1.8,mat(0xc3ced2,{roughness:.3}));cy(.075,.004,.056,-.12,1.15,mat(0x8fc4d6,{roughness:.15}));
   const hood=new THREE.Mesh(new THREE.CylinderGeometry(.135,.135,.13,28,1,true,Math.PI/2,Math.PI),mat(0xffffff,{roughness:.3,side:THREE.DoubleSide}));hood.scale.z=.8;hood.position.set(0,.115,-.2);hood.castShadow=true;wc.add(hood);
-  wc.position.set(3.45*U,.02,1.2*U);g.add(wc);
-  B(g,3.24,.57,3.66,.73,.84,1.12,M.white);B(g,3.44,.62,3.46,.64,.15,.84,M.steel);B(g,3.44,.62,3.46,.88,.14,.16,M.steel);B(g,3.66,.63,3.72,.65,1.02,1.04,M.steel)}
+  // 便器のところは、入口側から一段上がる
+  B(g,2.95,.55,3.95,1.66,.027,.175,mat(0xe3ecee,{roughness:.6}));B(g,2.95,1.64,3.95,1.67,.027,.182,mat(0x9fb2b8,{roughness:.5}));
+  wc.position.set(3.45*U,.175,1.2*U);g.add(wc);
+  B(g,3.24,.57,3.66,.73,.84,1.12,M.white);B(g,3.44,.62,3.46,.64,.3,.84,M.steel);B(g,3.44,.62,3.46,.88,.29,.31,M.steel);B(g,3.66,.63,3.72,.65,1.02,1.04,M.steel)}
  // 洗面: トイレの北側の外、トイレの壁と東の板壁の角につける
  B(g,3.2,-.55,3.96,.44,0,.8,M.counter);B(g,3.32,-.43,3.8,.08,.8,.815,M.steel,false);
  B(g,3.86,-.21,3.93,-.14,.8,1.04,M.steel);B(g,3.58,-.21,3.93,-.14,1.01,1.04,M.steel);
