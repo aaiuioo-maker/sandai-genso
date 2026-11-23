@@ -19,7 +19,9 @@ canvas{display:block;touch-action:none}
 #bar{position:fixed;left:16px;right:16px;top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 button{font:inherit;font-size:16px;padding:8px 16px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);cursor:pointer}
 button.on{background:var(--on);border-color:var(--on);color:#fff}
-#hint{position:fixed;left:16px;bottom:12px;font-size:14px}
+.brk{flex-basis:100%;height:0}
+#hint{position:fixed;left:16px;right:16px;bottom:12px;font-size:13px;pointer-events:none}
+@media (max-width:520px){button{padding:7px 12px}}
 .shot #bar,.shot #hint{display:none}
 .shot,.shot body{background:#eee8dc}
 </style>
@@ -29,8 +31,14 @@ button.on{background:var(--on);border-color:var(--on);color:#fff}
   <button data-v="both">1階と2階</button>
   <button data-v="1f">1階</button>
   <button data-v="2f">2階</button>
+  <span class="brk"></span>
+  <button data-m="pan">移動</button>
+  <button data-m="rot">回す</button>
+  <button id="zin" aria-label="近づく">＋</button>
+  <button id="zout" aria-label="はなれる">－</button>
+  <button id="reset">戻す</button>
 </div>
-<div id="hint">ドラッグで回す・ホイールやピンチで近づく</div>
+<div id="hint">「移動」で上下左右・「回す」で向きを変える・ピンチや＋－で拡大</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const U=0.91, WALL_H=1.2, T=0.11, GAP=6.2;
@@ -42,7 +50,8 @@ const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:tru
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 document.body.prepend(renderer.domElement);
-const camera=new THREE.PerspectiveCamera(28,1,.1,200);
+const camera=new THREE.PerspectiveCamera(28,1,.03,200);
+const labels=[],labelPos=new THREE.Vector3();
 scene.add(new THREE.HemisphereLight(0xffffff,0xb9a98f,.68));
 const sun=new THREE.DirectionalLight(0xfff1dc,.5);
 sun.position.set(-9,18,12);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);
@@ -79,7 +88,7 @@ function tatami(g,x,z,w,l){const top=.055,e=raw(g,x+w/2,z+l/2,w*U-.018,l*U-.018,
  e.material.map=tatTex;[[0,0,w,.035],[0,l-.035,w,.035],[0,0,.035,l],[w-.035,0,.035,l]].forEach(([a,b,c,d])=>B(g,x+a,z+b,x+a+c,z+b+d,top,top+.004,M.black,false))}
 function label(g,t,x,z,y=.1,size=.52){const c=document.createElement('canvas'),q=c.getContext('2d');q.font='700 76px "Yu Gothic","Meiryo",sans-serif';const w=Math.ceil(q.measureText(t).width)+44;c.width=w;c.height=112;
  q.font='700 76px "Yu Gothic","Meiryo",sans-serif';q.fillStyle='rgba(255,250,240,.9)';q.beginPath();q.roundRect?q.roundRect(0,0,w,112,24):q.rect(0,0,w,112);q.fill();q.fillStyle='#3a3128';q.textAlign='center';q.textBaseline='middle';q.fillText(t,w/2,60);
- const tx=new THREE.CanvasTexture(c);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,depthTest:false,transparent:true}));s.renderOrder=20;s.scale.set(size*w/112,size,1);s.position.set(x*U,y,z*U);g.add(s)}
+ const tx=new THREE.CanvasTexture(c);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,depthTest:false,transparent:true}));s.renderOrder=20;s.userData={h:size*.88,a:w/112};s.scale.set(size*.88*w/112,size*.88,1);s.position.set(x*U,y,z*U);g.add(s);labels.push(s)}
 function stairs(g,x,z1,z2,n,up=true){const dz=(z2-z1)/n;for(let i=0;i<n;i++){const h=up?(i+1)*.15:.06;B(g,x,z1+dz*i,x+1,z1+dz*(i+1),0,h,i%2?M.wood:mat(0xc99a62))}}
 
 // 水色の柵: a〜b の線に、細い縦棒と上下の横棒を並べる
@@ -251,15 +260,32 @@ function setView(v){view=v;const a=v==='both';f1.visible=v!=='2f';f2.visible=v!=
  if(v==='2f'){f2.position.x=0}
  orb={t:new THREE.Vector3(...views[v].t),r:views[v].r,el:views[v].y,az:views[v].x};
  document.querySelectorAll('#bar button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));draw()}
-function draw(){const c=Math.cos(orb.el);camera.position.set(orb.t.x+orb.r*c*Math.sin(orb.az),orb.t.y+orb.r*Math.sin(orb.el),orb.t.z+orb.r*c*Math.cos(orb.az));camera.lookAt(orb.t);renderer.render(scene,camera)}
+function draw(){const c=Math.cos(orb.el);camera.position.set(orb.t.x+orb.r*c*Math.sin(orb.az),orb.t.y+orb.r*Math.sin(orb.el),orb.t.z+orb.r*c*Math.cos(orb.az));camera.lookAt(orb.t);
+ // 文字は近づいても大きくなりすぎないようにする（画面で高さ23pxまで）
+ const k=2*Math.tan(camera.fov*Math.PI/360)/Math.max(innerHeight,1);labels.forEach(s=>{s.getWorldPosition(labelPos);const h=Math.min(s.userData.h,camera.position.distanceTo(labelPos)*k*23);s.scale.set(h*s.userData.a,h,1)});
+ renderer.render(scene,camera)}
 function size(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.fov=w<h?46:28;camera.updateProjectionMatrix();draw()}
 document.querySelectorAll('#bar button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
-const el=renderer.domElement,pts=new Map();let pinch=0;
-el.onpointerdown=e=>{el.setPointerCapture(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);pinch=0};
-el.onpointermove=e=>{const p=pts.get(e.pointerId);if(!p)return;if(pts.size===2){const [a,b]=[...pts.values()];pts.set(e.pointerId,[e.clientX,e.clientY]);const [c,d]=[...pts.values()],n=Math.hypot(c[0]-d[0],c[1]-d[1]);if(pinch)orb.r=Math.min(40,Math.max(4,orb.r*pinch/n));pinch=n;draw();return}
- orb.az-=(e.clientX-p[0])*.006;orb.el=Math.min(1.5,Math.max(.12,orb.el+(e.clientY-p[1])*.005));pts.set(e.pointerId,[e.clientX,e.clientY]);draw()};
-el.onpointerup=el.onpointercancel=e=>{pts.delete(e.pointerId);pinch=0};
-el.addEventListener('wheel',e=>{e.preventDefault();orb.r=Math.min(40,Math.max(4,orb.r*(1+e.deltaY*.001)));draw()},{passive:false});
+const el=renderer.domElement,pts=new Map();let mode='pan';
+const setMode=m=>{mode=m;document.querySelectorAll('[data-m]').forEach(b=>b.classList.toggle('on',b.dataset.m===m))};
+document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>setMode(b.dataset.m));setMode('pan');
+const zoom=f=>{orb.r=Math.min(60,Math.max(1.2,orb.r*f))};
+// 指の動きに合わせて、見ている場所を床の上で動かす
+function pan(dx,dy){const k=2*orb.r*Math.tan(camera.fov*Math.PI/360)/Math.max(innerHeight,1),s=Math.sin(orb.az),c=Math.cos(orb.az),g=k/Math.max(Math.sin(orb.el),.35);
+ orb.t.x+=-dx*k*c-dy*g*s;orb.t.z+=dx*k*s-dy*g*c;
+ orb.t.x=Math.min(view==='both'?GAP+6:6.5,Math.max(-3,orb.t.x));orb.t.z=Math.min(12,Math.max(-4,orb.t.z))}
+const rotate=(dx,dy)=>{orb.az-=dx*.006;orb.el=Math.min(1.56,Math.max(.05,orb.el+dy*.005))};
+el.oncontextmenu=e=>e.preventDefault();
+el.onpointerdown=e=>{el.setPointerCapture(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY])};
+el.onpointermove=e=>{const p=pts.get(e.pointerId);if(!p)return;
+ if(pts.size>=2){const [a,b]=[...pts.values()];pts.set(e.pointerId,[e.clientX,e.clientY]);const [c,d]=[...pts.values()],n0=Math.hypot(a[0]-b[0],a[1]-b[1]),n1=Math.hypot(c[0]-d[0],c[1]-d[1]);if(n0>0&&n1>0)zoom(n0/n1);pan((c[0]+d[0]-a[0]-b[0])/2,(c[1]+d[1]-a[1]-b[1])/2);draw();return}
+ const dx=e.clientX-p[0],dy=e.clientY-p[1];pts.set(e.pointerId,[e.clientX,e.clientY]);
+ ((mode==='pan')!==(e.shiftKey||e.buttons===2)?pan:rotate)(dx,dy);draw()};
+el.onpointerup=el.onpointercancel=e=>{pts.delete(e.pointerId)};
+el.addEventListener('wheel',e=>{e.preventDefault();zoom(1+e.deltaY*.001);draw()},{passive:false});
+document.getElementById('zin').onclick=()=>{zoom(.75);draw()};
+document.getElementById('zout').onclick=()=>{zoom(1/.75);draw()};
+document.getElementById('reset').onclick=()=>setView(view);
 addEventListener('resize',size);setView(view);size();if(shot)setTimeout(size,400);
 </script>
 </body>
