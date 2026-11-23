@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="間取り3D">
+<meta name="theme-color" content="#eee8dc">
+<link rel="apple-touch-icon" href="icon-180.png?v=1">
+<link rel="manifest" href="madori-3d.webmanifest?v=1">
+<title>わが家の間取り 3D</title>
+<style>
+:root{--bg:#eee8dc;--ink:#3a3128;--panel:#fffaf0;--line:#cfc3ae;--on:#b5562b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#25211c;--ink:#f0e8da;--panel:#342e27;--line:#574d40;--on:#e0814f}}
+:root[data-theme="dark"]{--bg:#25211c;--ink:#f0e8da;--panel:#342e27;--line:#574d40;--on:#e0814f}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:"Yu Gothic","Meiryo",sans-serif}
+canvas{display:block;touch-action:none}
+#bar{position:fixed;left:16px;right:16px;top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button{font:inherit;font-size:16px;padding:8px 16px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);cursor:pointer}
+button.on{background:var(--on);border-color:var(--on);color:#fff}
+#hint{position:fixed;left:16px;bottom:12px;font-size:14px}
+.shot #bar,.shot #hint{display:none}
+.shot,.shot body{background:#eee8dc}
+</style>
+</head>
+<body>
+<div id="bar">
+  <button data-v="both">1階と2階</button>
+  <button data-v="1f">1階</button>
+  <button data-v="2f">2階</button>
+</div>
+<div id="hint">ドラッグで回す・ホイールやピンチで近づく</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const U=0.91, WALL_H=1.2, T=0.11, GAP=6.2;
+const shot=location.hash.includes('shot');
+if(shot)document.documentElement.classList.add('shot');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(shot?0xeee8dc:getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.prepend(renderer.domElement);
+const camera=new THREE.PerspectiveCamera(28,1,.1,200);
+scene.add(new THREE.HemisphereLight(0xffffff,0xb9a98f,.68));
+const sun=new THREE.DirectionalLight(0xfff1dc,.5);
+sun.position.set(-9,18,12);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);
+Object.assign(sun.shadow.camera,{left:-16,right:16,top:16,bottom:-16,near:1,far:50});sun.shadow.bias=-.0004;
+sun.target.position.set(0,0,0);scene.add(sun,sun.target);
+
+const mat=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:.82,...o});
+const M={wall:mat(0xf7f2e8),cap:mat(0x4b4037),wood:mat(0xb98952),dark:mat(0x76553a),tile:mat(0xc9d8dc),tub:mat(0xf8fbfb,{roughness:.3}),
+ water:mat(0x7fc4dc,{roughness:.15,transparent:true,opacity:.8}),white:mat(0xffffff,{roughness:.3}),steel:mat(0xb8bec2,{roughness:.3,metalness:.5}),
+ black:mat(0x2d2d2d),fusuma:mat(0xe9dfc8),glass:mat(0x9fd6e8,{transparent:true,opacity:.42,roughness:.1}),site:mat(0xd8d2c4),conc:mat(0xaaa69c),
+ board:mat(0xc9b797),boardLine:mat(0x9c8a6c),fence:mat(0x7fd3ea,{roughness:.45}),shoji:mat(0x34383a),brown:mat(0x6b5a48),carpet:mat(0x9a958c),carpetD:mat(0x6f6c68),veranda:mat(0x9d9a92),void:mat(0x4a3f34),counter:mat(0xe6e2d9)};
+function tatamiTex(){const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#b9bf7d';x.fillRect(0,0,256,256);
+ for(let i=0;i<256;i+=3){x.fillStyle=i%6?'rgba(90,100,40,.10)':'rgba(255,255,210,.10)';x.fillRect(0,i,256,1)}
+ const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t}
+const tatTex=tatamiTex();
+function B(g,x1,z1,x2,z2,y1,y2,m,sh=true){const w=Math.abs(x2-x1)*U||.01,d=Math.abs(z2-z1)*U||.01,h=y2-y1;
+ const e=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);e.position.set((x1+x2)/2*U,(y1+y2)/2,(z1+z2)/2*U);e.castShadow=sh;e.receiveShadow=true;g.add(e);return e}
+function raw(g,cx,cz,w,d,y1,y2,m){const e=new THREE.Mesh(new THREE.BoxGeometry(w,y2-y1,d),m);e.position.set(cx*U,(y1+y2)/2,cz*U);e.castShadow=e.receiveShadow=true;g.add(e);return e}
+// 壁: a〜b の線に、開口 [始,終,種類] をあける
+function wall(g,ax,az,bx,bz,ops=[],H=WALL_H){const hor=az===bz,fix=hor?az:ax,s=Math.min(hor?ax:az,hor?bx:bz),e=Math.max(hor?ax:az,hor?bx:bz);
+ const seg=(p,q,y1,y2,m=M.wall,th=T)=>{if(q-p<=.001)return;const c=(p+q)/2,l=(q-p)*U+(m===M.wall?th:0);
+  const o=hor?raw(g,c,fix,l,th,y1,y2,m):raw(g,fix,c,th,l,y1,y2,m);return o};
+ let p=s;[...ops].sort((a,b)=>a[0]-b[0]).forEach(([a,b,k])=>{seg(p,a,0,H);seg(p,a,H,H+.025,M.cap);
+  const sill=k==='win'?.72:k==='low'?.35:0,head=H;
+  if(sill){seg(a,b,0,sill);seg(a,b,sill,sill+.025,M.cap)}
+  if(k==='win'||k==='low')seg(a,b,sill,head,M.glass,.025);
+  if(k==='fus'){seg(a,(a+b)/2,0,head,M.fusuma,.035)}
+  if(k==='slide'){seg(a,a+(b-a)*.48,0,head,M.dark,.035)}
+  if(k==='glassdoor'||k==='glassdoorHigh'){seg(a,b,0,head,M.glass,.025);const m=(a+b)/2,rail=k==='glassdoorHigh'?(.3+head)/2-.02:.58;[a,m-.025,b-.05].forEach(v=>seg(v,v+.05,0,head,M.dark,.045));[0,rail,head-.04].forEach(y=>seg(a,b,y,y+.04,M.dark,.045))}
+  if(k==='brown')seg(a,b,0,head,M.brown,.05);
+  p=b});
+ seg(p,e,0,H);seg(p,e,H,H+.025,M.cap)}
+function tatami(g,x,z,w,l){const top=.055,e=raw(g,x+w/2,z+l/2,w*U-.018,l*U-.018,.02,top,new THREE.MeshStandardMaterial({map:tatTex,roughness:.9}));
+ e.material.map=tatTex;[[0,0,w,.035],[0,l-.035,w,.035],[0,0,.035,l],[w-.035,0,.035,l]].forEach(([a,b,c,d])=>B(g,x+a,z+b,x+a+c,z+b+d,top,top+.004,M.black,false))}
+function label(g,t,x,z,y=.1,size=.52){const c=document.createElement('canvas'),q=c.getContext('2d');q.font='700 76px "Yu Gothic","Meiryo",sans-serif';const w=Math.ceil(q.measureText(t).width)+44;c.width=w;c.height=112;
+ q.font='700 76px "Yu Gothic","Meiryo",sans-serif';q.fillStyle='rgba(255,250,240,.9)';q.beginPath();q.roundRect?q.roundRect(0,0,w,112,24):q.rect(0,0,w,112);q.fill();q.fillStyle='#3a3128';q.textAlign='center';q.textBaseline='middle';q.fillText(t,w/2,60);
+ const tx=new THREE.CanvasTexture(c);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,depthTest:false,transparent:true}));s.renderOrder=20;s.scale.set(size*w/112,size,1);s.position.set(x*U,y,z*U);g.add(s)}
+function stairs(g,x,z1,z2,n,up=true){const dz=(z2-z1)/n;for(let i=0;i<n;i++){const h=up?(i+1)*.15:.06;B(g,x,z1+dz*i,x+1,z1+dz*(i+1),0,h,i%2?M.wood:mat(0xc99a62))}}
+
+// 水色の柵: a〜b の線に、細い縦棒と上下の横棒を並べる
+function fence(g,ax,az,bx,bz){const hor=az===bz,L=Math.abs(hor?bx-ax:bz-az),n=Math.max(1,Math.round(L/.16)),top=.8,cx=(ax+bx)/2,cz=(az+bz)/2;
+ for(let i=0;i<=n;i++){const t=i/n,post=i%6===0||i===n,w=post?.05:.018;raw(g,ax+(bx-ax)*t,az+(bz-az)*t,w,w,-.1,top+(post?.03:0),M.fence)}
+ [top-.03,.04].forEach(y=>raw(g,cx,cz,hor?L*U:.035,hor?.035:L*U,y,y+.03,M.fence))}
+function floor1(){const g=new THREE.Group();
+ B(g,-.7,-1.6,4.7,8.9,-.5,-.1,M.site,false);B(g,-.7,8.9,4.7,10.1,-.56,-.42,mat(0xbdb6a8),false);
+ B(g,0,0,1,2,-.08,.01,M.tile);B(g,1,1,4,2,-.08,.02,M.wood);B(g,2.9,.5,4,2,-.08,.02,M.white);
+ B(g,0,2,1,5,-.08,.02,M.wood);B(g,1,2,4,5,-.08,.015,M.wood);B(g,0,5,4,6.4,-.08,.03,M.carpetD);B(g,2,6.4,4,7.4,-.08,.03,M.carpetD);B(g,0,6.4,2,7.8,-.1,-.03,M.conc);
+ // 畳 4.5帖
+ tatami(g,1,2,2,1);tatami(g,3,2,1,2);tatami(g,2,4,2,1);tatami(g,1,3,1,2);tatami(g,2,3,1,1);
+ // 外壁・間仕切り
+ wall(g,0,0,1,0);wall(g,0,0,0,7.8);wall(g,1,0,1,2,[[1.1,1.9,'door']]);wall(g,1,1,2.9,1,[[1.25,2.65,'glassdoor']]);
+ wall(g,2.9,.5,4,.5);wall(g,2.9,.5,2.9,2,[[.95,1.8,'door']]);wall(g,4,.5,4,2);
+ wall(g,0,2,4,2,[[1.1,2.9,'glassdoor']]);wall(g,1,2,1,3.7,[[2.15,3.55,'fus']]);wall(g,0,3.7,1,3.7);wall(g,1,3.7,1,4.1);
+ wall(g,0,5,1,5);wall(g,2,5,4,5);wall(g,4,2,4,7.4);wall(g,0,6.4,.2,6.4);wall(g,2,6.4,2,7.8);
+ wall(g,0,7.8,2,7.8,[[.55,1.55,'door']]);wall(g,2,7.4,4,7.4,[[2.35,3.65,'win']]);
+ // 階段: DK の入口の奥から、北へまっすぐ上がる（右側は4畳半に開いている）
+ const st2=M.wood,st3=mat(0x8f6840);
+ for(let i=0;i<7;i++){const a=5-(i+1)*1.3/7,b=5-i*1.3/7;B(g,0,a,1,b,0,(i+1)*.15,i%2?st2:st3)}
+ // 浴槽
+ B(g,.12,.12,.88,1.05,0,.58,M.tub);B(g,.2,.2,.8,.97,.5,.59,M.water,false);
+ // トイレ
+ const toilet=new THREE.Mesh(new THREE.CylinderGeometry(.21,.17,.38,32),M.white);toilet.scale.z=1.35;toilet.position.set(3.45*U,.2,1.3*U);toilet.castShadow=true;g.add(toilet);B(g,3.15,.56,3.75,.82,0,.82,M.white);
+ // 洗面: トイレの北側の外、トイレの壁と東の板壁の角につける
+ B(g,3.2,-.55,3.96,.44,0,.8,M.counter);B(g,3.32,-.43,3.8,.08,.8,.815,M.steel,false);
+ B(g,3.86,-.21,3.93,-.14,.8,1.04,M.steel);B(g,3.58,-.21,3.93,-.14,1.01,1.04,M.steel);
+ // 和室の右下: テーブルとノートパソコン（画面は西向き）
+ B(g,3.05,3.6,3.94,4.92,.66,.7,M.wood);[[3.08,3.63],[3.85,3.63],[3.08,4.83],[3.85,4.83]].forEach(([x,z])=>B(g,x,z,x+.06,z+.06,.015,.66,M.wood));
+ const pcBody=mat(0xc6cacc,{roughness:.3,metalness:.5}),pcScreen=mat(0x6fc0ea,{roughness:.2,emissive:0x1d5f86});
+ // モニター（左寄せ）・キーボード・マウス・本体
+ B(g,3.7,3.88,3.88,4.12,.7,.715,M.black);B(g,3.79,3.97,3.83,4.03,.715,.84,M.black);
+ B(g,3.77,3.68,3.82,4.32,.8,1.2,M.black);B(g,3.76,3.71,3.77,4.29,.83,1.17,pcScreen,false);
+ B(g,3.25,3.75,3.45,4.25,.7,.72,pcBody);B(g,3.27,3.78,3.43,4.22,.72,.724,M.black,false);B(g,3.3,4.33,3.38,4.4,.7,.725,M.white);
+ // テレビ: 和室の右上の角に、台ごと45度ななめ（画面は南西向き）
+ const tv=new THREE.Group(),tvBox=(w,h,d,x,y,z,m)=>{const e=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);e.position.set(x,y,z);e.castShadow=e.receiveShadow=true;tv.add(e)};
+ tvBox(.85,.385,.35,0,.2075,0,M.wood);tvBox(.13,.1,.09,0,.45,-.03,M.black);tvBox(.71,.54,.045,0,.75,-.03,M.black);tvBox(.655,.48,.01,0,.75,-.003,mat(0x31566b,{roughness:.2}));
+ tv.position.set(4*U-.5,0,2*U+.5);tv.rotation.y=-Math.PI/4;g.add(tv);
+ // 食器棚: DK の左の壁ぎわ、ガラス戸は東向き
+ B(g,.07,5.55,.58,6.32,0,1.25,M.wood);const cupGlass=mat(0xb8d6dc,{roughness:.15,metalness:.1});
+ [[5.6,5.92],[5.95,6.27]].forEach(([a,b])=>{B(g,.58,a,.59,b,.68,1.18,cupGlass,false);B(g,.58,a,.59,b,.08,.6,M.counter,false)});
+ // 靴棚: 玄関の左の壁ぎわ、戸は東向き
+ B(g,.07,6.47,.43,7.72,0,.9,M.wood);[[6.52,7.08],[7.11,7.67]].forEach(([a,b])=>B(g,.43,a,.44,b,.06,.85,M.counter,false));
+ // テーブル: 冷蔵庫の左どなり
+ B(g,2.12,5.08,3.16,5.78,.66,.7,M.wood);[[2.15,5.11],[3.07,5.11],[2.15,5.69],[3.07,5.69]].forEach(([x,z])=>B(g,x,z,x+.06,z+.06,0,.66,M.wood));
+ // ゲーミングパソコン本体: 机の下の床、横のクリアガラスを西に向ける
+ const pc=new THREE.Group(),pcFrame=mat(0x15171a,{roughness:.4,metalness:.4}),pcGlow=c=>mat(c,{emissive:c,emissiveIntensity:1,roughness:.35}),pcDark=mat(0x23262b,{roughness:.5}),pcBlade=mat(0x3b4048,{roughness:.4});
+ const pcAdd=(geo,m,x,y,z)=>{const e=new THREE.Mesh(geo,m);e.position.set(x,y,z);pc.add(e);return e},pcBox=(w,h,d,x,y,z,m)=>pcAdd(new THREE.BoxGeometry(w,h,d),m,x,y,z);
+ const pcFan=(y,z,c,R)=>{pcAdd(new THREE.TorusGeometry(R,.006,8,36),pcGlow(c),.05,y,z).rotation.y=Math.PI/2;pcAdd(new THREE.CylinderGeometry(R-.006,R-.006,.005,28),pcDark,.056,y,z).rotation.z=Math.PI/2;
+  for(let k=0;k<5;k++)pcBox(.004,R*1.62,.016,.05,y,z,pcBlade).rotation.x=k*Math.PI/5;pcAdd(new THREE.CylinderGeometry(.014,.014,.01,16),pcGlow(c),.046,y,z).rotation.z=Math.PI/2};
+ pcBox(.01,.46,.46,.105,.23,0,pcFrame);pcBox(.22,.012,.46,0,.006,0,pcFrame);pcBox(.22,.012,.46,0,.454,0,pcFrame);pcBox(.22,.46,.012,0,.23,-.224,pcFrame);pcBox(.22,.46,.012,0,.23,.224,pcFrame);
+ pcBox(.008,.4,.36,.095,.24,.04,mat(0x1d2730,{roughness:.6}));
+ [[.1,0x22e6ff],[.23,0x9b5cff],[.36,0xff3fb4]].forEach(([y,c])=>pcFan(y,-.165,c,.052));pcFan(.33,.06,0x22e6ff,.05);
+ [[.14,0xff3fb4],[.156,0xc04dff],[.172,0x7a6bff],[.188,0x22e6ff]].forEach(([z,c])=>pcBox(.035,.12,.007,.07,.33,z,pcGlow(c)));
+ pcBox(.11,.055,.27,.03,.15,.07,mat(0x2a2d33,{metalness:.5,roughness:.35}));pcBox(.003,.009,.25,-.026,.168,.07,pcGlow(0xff3fb4));pcBox(.003,.009,.25,-.026,.132,.07,pcGlow(0x22e6ff));
+ const pcGlass=pcBox(.004,.44,.44,-.109,.23,0,mat(0xbfe9ff,{transparent:true,opacity:.14,roughness:.05,metalness:.1}));pcGlass.material.depthWrite=false;
+ pc.traverse(o=>{if(o.isMesh&&o!==pcGlass)o.castShadow=true});const pcLight=new THREE.PointLight(0xa070ff,.55,.9);pcLight.position.set(-.02,.25,0);pc.add(pcLight);
+ pc.position.set(3.03,.06,3.66);g.add(pc);
+ // 小さいテーブル: 和室の左上の角
+ B(g,1.12,2.12,1.72,2.67,.31,.35,M.wood);[[1.15,2.15],[1.63,2.15],[1.15,2.58],[1.63,2.58]].forEach(([x,z])=>B(g,x,z,x+.06,z+.06,.015,.31,M.wood));
+ // 布団: 和室の左下の畳1枚ぶん、枕は南
+ B(g,1.08,3.08,1.92,4.92,.015,.09,mat(0xf4f0e6,{roughness:.9}));B(g,1.06,3.06,1.94,4.42,.09,.17,mat(0x6f8fb8,{roughness:.9}));B(g,1.26,4.54,1.74,4.86,.09,.18,M.white);
+ // 冷蔵庫: DK の右上（北東）の角、扉は南向き
+ B(g,3.24,5.06,3.94,5.78,0,1.25,M.white);B(g,3.24,5.78,3.94,5.795,.78,.8,M.dark);
+ B(g,3.3,5.78,3.35,5.815,.86,1.08,M.dark);B(g,3.3,5.78,3.35,5.815,.45,.72,M.dark);
+ // 台所
+ B(g,2.05,6.65,3.95,7.33,0,.85,M.counter);B(g,2.25,6.78,3.05,7.22,.85,.865,M.steel,false);
+ [[3.35,7],[3.72,7]].forEach(([x,z])=>{const r=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,.025,28),M.black);r.position.set(x*U,.875,z*U);g.add(r)});
+ // 外の階段
+ // 玄関の約1m先に2段
+ B(g,0,8.9,2.0667,9.25,-.5,-.21,M.conc);B(g,0,9.25,2.0667,9.6,-.5,-.32,M.conc);
+ // 柵: 台所の角から南へ下り、西へ折れて2段の階段の右端まで
+ fence(g,4,7.4,4,8.86);fence(g,2.0667,8.86,4,8.86);
+ // 左横の柵: 玄関の左の角から、2段の階段の左端まで
+ fence(g,0,7.8,0,8.86);
+ // 奥の仕切り: お風呂の北から約1m
+ const thin=(ax,az,bx,bz)=>{const hor=az===bz,L=Math.abs(hor?bx-ax:bz-az),n=Math.round(L/.4);
+  raw(g,(ax+bx)/2,(az+bz)/2,hor?L*U:.025,hor?.025:L*U,-.1,.92,M.board);
+  for(let i=1;i<n;i++){const t=i/n;raw(g,ax+(bx-ax)*t,az+(bz-az)*t,hor?.012:.034,hor?.034:.012,-.1,.92,M.boardLine)}};
+ thin(0,-1.1,4,-1.1);thin(0,-1.1,0,0);thin(4,-1.1,4,.5);
+ // 洗濯機: 浴室の奥（外壁の裏）
+ B(g,.15,-.85,.81,-.19,-.1,.85,M.white);B(g,.2,-.31,.76,-.22,.85,.93,mat(0xaeb4b8));
+ const lid=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,.02,32),M.steel);lid.position.set(.48*U,.86,-.58*U);lid.castShadow=true;g.add(lid);
+ label(g,'洗濯機',.48,-.55,1.3,.3);
+ // DIY道具: 廊下を出たところ、浴室の外壁ぞいに積む（ガラス戸の前はあけておく）
+ {const y0=-.1,woodA=mat(0xc99a5e,{roughness:.85}),woodB=mat(0xb4834a,{roughness:.85}),cyl=(rt,rb,h,x,y,z,m)=>{const c=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,20),m);c.position.set(x*U,y+h/2,z*U);c.castShadow=true;g.add(c)};
+  for(let l=0;l<3;l++)for(let j=0;j<3-(l>1?1:0);j++)B(g,1.09+j*.085+(l>1?.04:0),-.08+l*.03,1.165+j*.085+(l>1?.04:0),.72-l*.03,y0+l*.07,y0+.065+l*.07,(j+l)%2?woodA:woodB);
+  B(g,1.42,-.04,1.86,.46,y0,.15,mat(0x2f6fa8,{roughness:.55}));B(g,1.4,-.06,1.88,.48,.15,.18,mat(0x24598a,{roughness:.55}));
+  B(g,1.5,.1,1.74,.2,.18,.25,mat(0xf0b92b,{roughness:.45}));B(g,1.74,.13,1.82,.17,.2,.23,M.steel);B(g,1.54,.2,1.61,.34,.18,.23,M.black);
+  B(g,1.13,.0,1.3,.04,y0+.205,y0+.23,woodA);B(g,1.29,-.03,1.33,.07,y0+.2,y0+.25,M.steel);
+  B(g,1.2,.05,1.27,.42,y0+.205,y0+.212,M.steel);B(g,1.19,.42,1.28,.53,y0+.2,y0+.235,mat(0xe06a1f,{roughness:.5}));
+  cyl(.15,.11,.28,2.08,y0,.2,mat(0xe8a13a,{roughness:.55}));
+  label(g,'DIY道具',1.7,-.3,1.3,.3)}
+ // 観葉植物3つ: 台所の下、右の青い柵の内側
+ const plant=(x,z,s,c)=>{const p=new THREE.Group(),leaf=mat(c,{roughness:.6}),pot=new THREE.Mesh(new THREE.CylinderGeometry(.15,.11,.24,18),mat(0xb5653d,{roughness:.8}));pot.position.y=.12;pot.castShadow=true;p.add(pot);
+  for(let i=0;i<12;i++){const a=i*2.4,t=i/11,r=.2*(1-t*.65),l=new THREE.Mesh(new THREE.SphereGeometry(.17,10,8),leaf);l.scale.set(.42,.16,1.25);l.rotation.order='YXZ';l.rotation.y=Math.atan2(Math.cos(a),Math.sin(a));l.rotation.x=-.45-t*.35;l.position.set(Math.cos(a)*r,.34+t*.46,Math.sin(a)*r);l.castShadow=true;p.add(l)}
+  p.position.set(x*U,0,z*U);p.scale.setScalar(s);g.add(p)};
+ plant(3.7,7.68,.72,0x3f8a4a);plant(3.7,8.14,.85,0x2f7a45);plant(3.7,8.6,.68,0x559a4f);label(g,'観葉植物',3.0,8.2,1.1,.3);
+ // ワインレッドの小型スクーター: 青い柵の南の外（前は西向き）
+ const sc=new THREE.Group(),wine=mat(0x6d1228,{roughness:.28,metalness:.18}),rubber=mat(0x191919,{roughness:.8}),silver=mat(0xc6cacc,{roughness:.25,metalness:.65});
+ const add=(geo,m,x=0,y=0,z=0)=>{const e=new THREE.Mesh(geo,m);e.position.set(x,y,z);e.castShadow=e.receiveShadow=true;sc.add(e);return e};
+ const sb=(x,y,z,w,h,d,m)=>add(new THREE.BoxGeometry(w,h,d),m,x,y,z);
+ const side=(pts,width,m,z=0)=>{const s=new THREE.Shape();s.moveTo(pts[0][0],pts[0][1]);pts.slice(1).forEach(p=>p.length===4?s.quadraticCurveTo(p[0],p[1],p[2],p[3]):s.lineTo(p[0],p[1]));s.closePath();
+  const geo=new THREE.ExtrudeGeometry(s,{depth:width,bevelEnabled:true,bevelSize:.018,bevelThickness:.018,bevelSegments:2,curveSegments:10});geo.translate(0,0,-width/2);return add(geo,m,0,0,z)};
+ [-.6,.58].forEach(x=>{const t=add(new THREE.CylinderGeometry(.2,.2,.095,28),rubber,x,.2,0);t.rotation.x=Math.PI/2;const h=add(new THREE.CylinderGeometry(.105,.105,.105,20),silver,x,.2,0);h.rotation.x=Math.PI/2});
+ // 前カバー・低い床・後ろのボディ
+ side([[-.5,.2],[-.6,.5,-.6,.72],[-.59,.84,-.49,.87],[-.39,.86],[-.34,.6,-.29,.37],[-.25,.31,-.17,.31],[.07,.31],[.15,.32,.2,.5],[.22,.6],[.72,.66],[.84,.65,.84,.57],[.74,.42],[.5,.26,.34,.23],[-.18,.15],[-.38,.14,-.5,.2]],.25,wine);
+ side([[-.82,.31],[-.72,.47,-.5,.45],[-.38,.34],[-.43,.3],[-.54,.39,-.68,.37],[-.76,.34,-.79,.28]],.12,wine);
+ side([[.13,.62],[.18,.74],[.45,.76],[.54,.82],[.76,.83],[.86,.79,.83,.71],[.72,.67],[.2,.61]],.27,rubber);
+ sb(-.06,.335,0,.42,.018,.3,rubber);
+ const fork=sb(-.56,.48,0,.045,.62,.11,silver);fork.rotation.z=-.2;
+ const stem=sb(-.5,.95,0,.05,.2,.05,rubber);stem.rotation.z=-.2;
+ // ハンドルまわり・ライト・ミラー
+ side([[-.66,.98],[-.62,1.09,-.5,1.1],[-.4,1.08],[-.38,1.02],[-.48,.98],[-.58,.94,-.66,.98]],.26,wine);
+ sb(-.67,1.015,0,.035,.065,.17,M.white);sb(-.47,1.105,0,.13,.018,.13,rubber);
+ sb(-.49,1.04,0,.05,.032,.72,rubber);[-.34,.34].forEach(z=>{sb(-.49,1.04,z,.06,.045,.13,M.black);sb(-.5,1.2,z*.88,.018,.3,.018,silver);sb(-.51,1.35,z*.88,.035,.075,.13,rubber)});
+ // エンジン・マフラー・テールランプ
+ sb(.42,.25,-.1,.42,.14,.08,mat(0x555a5d));const muf=add(new THREE.CylinderGeometry(.055,.065,.42,14),silver,.54,.27,.15);muf.rotation.z=Math.PI/2-.08;
+ sb(.86,.6,0,.035,.055,.17,mat(0xe0303a,{roughness:.25}));sb(.72,.84,0,.2,.018,.3,rubber);
+ sc.position.set(3.25*U,-.42,9.5*U);sc.rotation.y=.1;g.add(sc);label(g,'スクーター',3.25,10.45,-.4,.3);
+ [['浴室',.5,1.55],['トイレ',3.45,1.75],['廊下',1.95,1.5],['洗面',2.75,-.25],['押入',.5,2.85],['和室 4.5帖',2.5,3.5],['階段',.5,4.4],['DK',1.35,5.95],['玄関',1.25,7.1],['靴棚',.27,7.1],['台所',3,6.5],['冷蔵庫',3.6,5.45],['テーブル',2.62,5.55],['食器棚',.33,5.95],['テレビ',3.5,3.05],['机・パソコン',2.42,4.72],['小テーブル',1.6,2.5],['布団',1.5,3.9]].forEach(a=>label(g,a[0],a[1],a[2],1.3,.3));
+ return g}
+
+function floor2(){const g=new THREE.Group();
+ B(g,1,1,3,2,-.14,-.03,M.veranda);B(g,1,1,3,1.03,-.03,.75,M.steel);B(g,1,1,1.03,2,-.03,.75,M.steel);B(g,2.97,1,3,2,-.03,.75,M.steel);
+ B(g,0,2,4,7,-.14,.012,M.wood);B(g,1,7,4,7.5,-.14,.02,M.wood);
+ // 踊り場・階段
+ B(g,.02,2.02,.98,2.99,.012,.024,mat(0x8f9295,{roughness:.75}),false);
+ B(g,0,3,1,5,-.13,.016,M.void,false);for(let i=0;i<7;i++)B(g,.04,3.04+i*.28,.96,3.22+i*.28,.016,.05-i*.003,M.wood);
+ // 畳
+ tatami(g,1,2,1,2);tatami(g,2,2,2,1);tatami(g,2,3,2,1);
+ tatami(g,1,4,2,1);tatami(g,3,4,1,2);tatami(g,1,5,1,2);tatami(g,2,5,1,1);tatami(g,2,6,2,1);
+ wall(g,0,2,4,2,[[1.1,2.9,'glassdoorHigh']]);wall(g,0,2,0,7);wall(g,4,2,4,7.5);wall(g,1,2,1,4,[[2.15,2.85,'door']]);wall(g,1,4,1,5,[],.6);
+ wall(g,0,5,1,5);wall(g,0,7,1,7);wall(g,1,7,1,7.5);wall(g,3,7,3,7.5);
+ wall(g,1,7.5,4,7.5,[[1.2,2.8,'low']]);B(g,1.06,7.06,2.94,7.45,.015,.34,M.counter);
+ // 押入の中段: 高さの半分で上下2段に仕切る
+ const shelf=mat(0xdcb681,{roughness:.7});B(g,.06,5.06,.97,6.94,.76,.8,shelf);B(g,.93,5.06,.99,6.94,.7,.8,M.wood);
+ // ベランダのガラス戸: 横の壁と同じ面、下の30cmは壁と同じ色の立ち上がり
+ B(g,1.1,1.935,2.9,2.065,-.03,.3,M.wall);
+ // 布団入れ: 押入の北どなり、畳の幅で、上半分だけ和室にあいたスペース（下は階段）
+ B(g,.04,4.03,1.06,4.97,.6,.635,M.wood);B(g,0,3.97,1.06,4.03,.6,1.2,M.wall);B(g,0,3.97,1.06,4.03,1.2,1.225,M.cap);
+ // 布団入れの中: たたんだ布団を5枚重ねる
+ {let fy=.635;[[0xf4f0e6,.1,.98],[0xc98a8f,.09,.92],[0xe8dcc4,.08,.86],[0x7fa58a,.09,.8],[0x5f82b3,.1,.74]].forEach(([c,h,b],i)=>{B(g,.08,4.09+i*.035,b,4.93-i*.035,fy,fy+h,mat(c,{roughness:.92}));fy+=h});
+  const fz1=4.09+4*.035,fz2=4.93-4*.035,fm=mat(0xdfe8f2,{roughness:.9});B(g,.08,(fz1+fz2)/2-.006,.74,(fz1+fz2)/2+.006,fy,fy+.004,mat(0x3f5b84),false);
+  for(let ix=0;ix<4;ix++)for(let iz=0;iz<4;iz++)B(g,.15+ix*.16,fz1+.07+iz*.155,.19+ix*.16,fz1+.11+iz*.155,fy,fy+.004,fm,false)}
+ // 服かけ: 4畳半の右の壁ぎわ。コート・スーツ・カッターシャツなど10着
+ const clRail=new THREE.Mesh(new THREE.CylinderGeometry(.014,.014,2.2,12),M.steel);clRail.rotation.x=Math.PI/2;clRail.position.set(3.33,1.1,5.005);clRail.castShadow=true;g.add(clRail);
+ [3.93,6.08].forEach(z=>{const b=new THREE.Mesh(new THREE.BoxGeometry(.28,.03,.03),M.dark);b.position.set(3.46,1.1,z);b.castShadow=true;g.add(b)});
+ const clTie=mat(0x8d2433),clBtn=mat(0x1f1f1f),clLine=mat(0xd3d9dd);
+ [[0xb98f5a,.95,'coat'],[0x3f444a,.95,'coat'],[0x26344f,.62,'suit'],[0x6b7078,.62,'suit'],[0x25272b,.62,'suit'],[0xf4f4f0,.66,'shirt'],[0xa9cfe8,.66,'shirt'],[0xe7edf3,.66,'shirt'],[0xf0d6d6,.66,'shirt'],[0x6f7550,.8,'coat']].forEach(([c,len,kind],i)=>{
+  const cg=new THREE.Group(),w=.21,sl=Math.min(len-.04,.56),s=new THREE.Shape(),cm=mat(c,{roughness:.85}),cb=(bw,bh,bd,x,y,z,m)=>{const e=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd),m);e.position.set(x,y,z);e.castShadow=true;cg.add(e)};
+  [[-.06,0],[-w,-.05],[-w-.035,-sl],[-w+.035,-sl],[-w+.05,-.16],[-w+.05,-len],[w-.05,-len],[w-.05,-.16],[w-.035,-sl],[w+.035,-sl],[w,-.05],[.06,0]].forEach(([x,y],k)=>k?s.lineTo(x,y):s.moveTo(x,y));s.closePath();
+  const geo=new THREE.ExtrudeGeometry(s,{depth:.05,bevelEnabled:false});geo.translate(0,0,-.025);const body=new THREE.Mesh(geo,cm);body.castShadow=body.receiveShadow=true;cg.add(body);
+  cb(.38,.012,.012,0,.006,0,M.wood);cb(.008,.07,.008,0,.042,0,M.steel);
+  if(kind==='suit'){cb(.075,.15,.004,0,-.085,.027,M.white);cb(.02,.12,.005,0,-.09,.03,clTie)}
+  if(kind==='shirt'){cb(.018,len-.02,.004,0,-len/2,.027,clLine);cb(.11,.035,.012,0,-.015,.028,M.white)}
+  if(kind==='coat'){cb(.13,.05,.012,0,-.025,.028,cm);[-.2,-.35,-.5].forEach(y=>cb(.018,.018,.006,0,y,.028,clBtn))}
+  cg.position.set(3.33,1.03,4.1+i*.2);g.add(cg)});
+ // 床の間: 出窓の横に、同じ高さの段
+ B(g,3.06,7.06,3.94,7.45,.015,.34,M.wood);
+ [['ベランダ',2,1.5],['踊り場',.5,2.5],['和室 3帖',2.5,3.0],['階段',.5,3.55],['布団入れ',.42,4.12],['押入',.5,6],['和室 4.5帖',2.5,5.55],['出窓',2,7.25],['床の間',3.45,7.25],['服かけ',3.0,6.35]].forEach(a=>label(g,a[0],a[1],a[2],1.3,.3));
+ return g}
+
+const f1=floor1(),f2=floor2();scene.add(f1,f2);
+const views={both:{t:[4.6,.2,3.95],r:26.5,y:1.22,x:-.2},'1f':{t:[1.82,.2,3.95],r:16,y:1.22,x:-.24},'2f':{t:[1.82,.2,3.95],r:16,y:1.22,x:-.24}};
+let view=(location.hash.match(/both|1f|2f/)||['both'])[0],orb={};
+function setView(v){view=v;const a=v==='both';f1.visible=v!=='2f';f2.visible=v!=='1f';f1.position.x=0;f2.position.x=a?GAP:0;
+ if(v==='2f'){f2.position.x=0}
+ orb={t:new THREE.Vector3(...views[v].t),r:views[v].r,el:views[v].y,az:views[v].x};
+ document.querySelectorAll('#bar button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));draw()}
+function draw(){const c=Math.cos(orb.el);camera.position.set(orb.t.x+orb.r*c*Math.sin(orb.az),orb.t.y+orb.r*Math.sin(orb.el),orb.t.z+orb.r*c*Math.cos(orb.az));camera.lookAt(orb.t);renderer.render(scene,camera)}
+function size(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.fov=w<h?46:28;camera.updateProjectionMatrix();draw()}
+document.querySelectorAll('#bar button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+const el=renderer.domElement,pts=new Map();let pinch=0;
+el.onpointerdown=e=>{el.setPointerCapture(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);pinch=0};
+el.onpointermove=e=>{const p=pts.get(e.pointerId);if(!p)return;if(pts.size===2){const [a,b]=[...pts.values()];pts.set(e.pointerId,[e.clientX,e.clientY]);const [c,d]=[...pts.values()],n=Math.hypot(c[0]-d[0],c[1]-d[1]);if(pinch)orb.r=Math.min(40,Math.max(4,orb.r*pinch/n));pinch=n;draw();return}
+ orb.az-=(e.clientX-p[0])*.006;orb.el=Math.min(1.5,Math.max(.12,orb.el+(e.clientY-p[1])*.005));pts.set(e.pointerId,[e.clientX,e.clientY]);draw()};
+el.onpointerup=el.onpointercancel=e=>{pts.delete(e.pointerId);pinch=0};
+el.addEventListener('wheel',e=>{e.preventDefault();orb.r=Math.min(40,Math.max(4,orb.r*(1+e.deltaY*.001)));draw()},{passive:false});
+addEventListener('resize',size);setView(view);size();if(shot)setTimeout(size,400);
+</script>
+</body>
+</html>
