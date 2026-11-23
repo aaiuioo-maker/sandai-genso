@@ -152,6 +152,15 @@ function floor1(){const g=new THREE.Group();
  B(g,1.12,2.12,1.72,2.67,.31,.35,M.wood);[[1.15,2.15],[1.63,2.15],[1.15,2.58],[1.63,2.58]].forEach(([x,z])=>B(g,x,z,x+.06,z+.06,.015,.31,M.wood));
  // 布団: 和室の左下の畳1枚ぶん、枕は南
  B(g,1.08,3.08,1.92,4.92,.015,.09,mat(0xf4f0e6,{roughness:.9}));B(g,1.06,3.06,1.94,4.42,.09,.17,mat(0x6f8fb8,{roughness:.9}));B(g,1.26,4.54,1.74,4.86,.09,.18,M.white);
+ // ゲーミングチェア: 机の左（西）で、モニターのある右を向く
+ {const ch=new THREE.Group(),blk=mat(0x1d1e22,{roughness:.55}),gry=mat(0x8d9096,{roughness:.6}),mtl=mat(0x55585e,{roughness:.35,metalness:.5}),box=(w,h,d,x,y,z,m,p=ch)=>{const e=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);e.position.set(x,y,z);e.castShadow=true;p.add(e);return e};
+  for(let i=0;i<5;i++){const a=i/5*Math.PI*2+.3,leg=box(.31,.035,.05,Math.cos(a)*.155,.085,-Math.sin(a)*.155,mtl);leg.rotation.y=a;const w=new THREE.Mesh(new THREE.SphereGeometry(.035,12,10),blk);w.position.set(Math.cos(a)*.3,.035,-Math.sin(a)*.3);w.castShadow=true;ch.add(w)}
+  const post=new THREE.Mesh(new THREE.CylinderGeometry(.03,.04,.3,14),mtl);post.position.y=.24;post.castShadow=true;ch.add(post);
+  box(.5,.09,.5,0,.44,0,blk);box(.46,.012,.15,.01,.491,0,gry);box(.5,.1,.06,0,.46,.24,gry);box(.5,.1,.06,0,.46,-.24,gry);
+  const back=new THREE.Group();back.position.set(-.22,.48,0);back.rotation.z=.14;ch.add(back);
+  box(.1,.68,.46,0,.34,0,blk,back);box(.105,.62,.13,.006,.34,0,gry,back);box(.12,.66,.05,0,.34,.22,gry,back);box(.12,.66,.05,0,.34,-.22,gry,back);box(.12,.14,.3,.012,.75,0,blk,back);box(.13,.09,.2,.018,.75,0,gry,back);box(.07,.1,.2,.075,.17,0,mat(0x2a2b30,{roughness:.8}),back);
+  [-.29,.29].forEach(z=>{box(.04,.2,.04,-.03,.58,z,mtl);box(.28,.03,.08,.02,.69,z,blk)});
+  ch.position.set(2.66*U,.055,4.26*U);ch.rotation.y=.12;g.add(ch)}
  // 冷蔵庫: DK の右上（北東）の角、扉は南向き
  B(g,3.24,5.06,3.94,5.78,0,1.25,M.white);B(g,3.24,5.78,3.94,5.795,.78,.8,M.dark);
  B(g,3.3,5.78,3.35,5.815,.86,1.08,M.dark);B(g,3.3,5.78,3.35,5.815,.45,.72,M.dark);
@@ -210,7 +219,7 @@ function floor1(){const g=new THREE.Group();
  sb(.42,.25,-.1,.42,.14,.08,mat(0x555a5d));const muf=add(new THREE.CylinderGeometry(.055,.065,.42,14),silver,.54,.27,.15);muf.rotation.z=Math.PI/2-.08;
  sb(.86,.6,0,.035,.055,.17,mat(0xe0303a,{roughness:.25}));sb(.72,.84,0,.2,.018,.3,rubber);
  sc.position.set(3.25*U,-.42,9.5*U);sc.rotation.y=.1;g.add(sc);label(g,'スクーター',3.25,10.45,-.4,.3);
- [['浴室',.5,1.55],['トイレ',3.45,1.75],['廊下',1.95,1.5],['洗面',2.75,-.25],['押入',.5,2.85],['和室 4.5帖',2.5,3.5],['階段',.5,4.4],['DK',1.35,5.95],['玄関',1.25,7.1],['靴棚',.27,7.1],['台所',3,6.5],['冷蔵庫',3.6,5.45],['テーブル',2.62,5.55],['食器棚',.33,5.95],['テレビ',3.5,3.05],['机・パソコン',2.42,4.72],['小テーブル',1.6,2.5],['布団',1.5,3.9]].forEach(a=>label(g,a[0],a[1],a[2],1.3,.3));
+ [['浴室',.5,1.55],['トイレ',3.45,1.75],['廊下',1.95,1.5],['洗面',2.75,-.25],['押入',.5,2.85],['和室 4.5帖',2.5,3.5],['階段',.5,4.4],['DK',1.35,5.95],['玄関',1.25,7.1],['靴棚',.27,7.1],['台所',3,6.5],['冷蔵庫',3.6,5.45],['テーブル',2.62,5.55],['食器棚',.33,5.95],['テレビ',3.5,3.05],['机・パソコン',3.5,4.86],['チェア',2.58,4.86],['小テーブル',1.6,2.5],['布団',1.5,3.9]].forEach(a=>label(g,a[0],a[1],a[2],1.3,.3));
  return g}
 
 function floor2(){const g=new THREE.Group();
