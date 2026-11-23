@@ -259,13 +259,13 @@ let view=(location.hash.match(/both|1f|2f/)||['both'])[0],orb={};
 function setView(v){view=v;const a=v==='both';f1.visible=v!=='2f';f2.visible=v!=='1f';f1.position.x=0;f2.position.x=a?GAP:0;
  if(v==='2f'){f2.position.x=0}
  orb={t:new THREE.Vector3(...views[v].t),r:views[v].r,el:views[v].y,az:views[v].x};
- document.querySelectorAll('#bar button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));draw()}
+ document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));draw()}
 function draw(){const c=Math.cos(orb.el);camera.position.set(orb.t.x+orb.r*c*Math.sin(orb.az),orb.t.y+orb.r*Math.sin(orb.el),orb.t.z+orb.r*c*Math.cos(orb.az));camera.lookAt(orb.t);
  // 文字は近づいても大きくなりすぎないようにする（画面で高さ23pxまで）
  const k=2*Math.tan(camera.fov*Math.PI/360)/Math.max(innerHeight,1);labels.forEach(s=>{s.getWorldPosition(labelPos);const h=Math.min(s.userData.h,camera.position.distanceTo(labelPos)*k*23);s.scale.set(h*s.userData.a,h,1)});
  renderer.render(scene,camera)}
 function size(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.fov=w<h?46:28;camera.updateProjectionMatrix();draw()}
-document.querySelectorAll('#bar button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>setView(b.dataset.v));
 const el=renderer.domElement,pts=new Map();let mode='pan';
 const setMode=m=>{mode=m;document.querySelectorAll('[data-m]').forEach(b=>b.classList.toggle('on',b.dataset.m===m))};
 document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>setMode(b.dataset.m));setMode('pan');
