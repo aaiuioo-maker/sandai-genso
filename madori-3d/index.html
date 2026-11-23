@@ -198,11 +198,14 @@ function floor1(){const g=new THREE.Group();
  const thin=(ax,az,bx,bz)=>{const hor=az===bz,L=Math.abs(hor?bx-ax:bz-az),n=Math.round(L/.4);
   raw(g,(ax+bx)/2,(az+bz)/2,hor?L*U:.025,hor?.025:L*U,-.1,.92,M.board);
   for(let i=1;i<n;i++){const t=i/n;raw(g,ax+(bx-ax)*t,az+(bz-az)*t,hor?.012:.034,hor?.034:.012,-.1,.92,M.boardLine)}};
- thin(0,-1.1,4,-1.1);thin(0,-1.1,0,0);thin(4,-.54,4,.5);
- // 勝手口: 洗面の奥のあいたところ、東の板壁につけた戸
- B(g,3.97,-1.1,4.03,-1.06,-.1,.96,M.dark);B(g,3.97,-.58,4.03,-.54,-.1,.96,M.dark);B(g,3.97,-1.1,4.03,-.54,.92,.96,M.dark);
- B(g,3.985,-1.06,4.015,-.58,-.1,.92,mat(0x9a6b40,{roughness:.7}));[.12,.4,.68].forEach(y=>B(g,3.978,-1.02,3.985,-.62,y,y+.16,mat(0x7f5733,{roughness:.7}),false));B(g,3.955,-.67,3.978,-.63,.4,.44,M.steel);
- label(g,'勝手口',3.55,-1.0,1.3,.3);
+ thin(0,-1.1,4,-1.1);thin(0,-1.1,0,0);thin(4,-1.1,4,.5);
+ // 勝手口: 洗面の横、北の板壁につけた戸
+ B(g,3.3,-1.135,3.34,-1.065,-.1,.96,M.dark);B(g,3.88,-1.135,3.92,-1.065,-.1,.96,M.dark);B(g,3.3,-1.135,3.92,-1.065,.92,.96,M.dark);
+ B(g,3.34,-1.125,3.88,-1.075,-.1,.92,mat(0x9a6b40,{roughness:.7}));[.12,.4,.68].forEach(y=>B(g,3.38,-1.075,3.84,-1.068,y,y+.16,mat(0x7f5733,{roughness:.7}),false));B(g,3.39,-1.068,3.43,-1.045,.4,.44,M.steel);
+ label(g,'勝手口',3.6,-1.0,1.3,.3);
+ // 玄関: 横にすべる2枚のガラス引き戸（アルミの枠）
+ {const H=WALL_H,al=mat(0x8f9498,{roughness:.35,metalness:.45});B(g,.55,7.77,1.55,7.83,-.03,.005,al);B(g,.55,7.77,1.55,7.83,H-.05,H,al);B(g,.55,7.77,.58,7.83,-.03,H,al);B(g,1.52,7.77,1.55,7.83,-.03,H,al);
+  [[.58,1.07,7.785,.6],[1.03,1.52,7.815,1.48]].forEach(([a,b,z,h])=>{B(g,a,z-.006,b,z+.006,.005,H-.05,M.glass,false);B(g,a,z-.014,a+.04,z+.014,.005,H-.05,al);B(g,b-.04,z-.014,b,z+.014,.005,H-.05,al);B(g,a,z-.014,b,z+.014,.005,.06,al);B(g,a,z-.014,b,z+.014,H-.11,H-.05,al);B(g,a,z-.014,b,z+.014,.86,.89,al);B(g,h,z+.014,h+.02,z+.024,.78,1.02,M.black,false)})}
  // 洗濯機: 浴室の奥（外壁の裏）
  B(g,.15,-.85,.81,-.19,-.1,.85,M.white);B(g,.16,-.8,.27,-.24,.85,.98,mat(0xaeb4b8));B(g,.268,-.68,.276,-.36,.89,.95,mat(0x24384f,{roughness:.35}),false);[-.75,-.29].forEach(z=>B(g,.268,z-.025,.276,z+.025,.9,.94,M.steel,false));B(g,.808,-.8,.814,-.24,.12,.14,mat(0xc4c9cc),false);
  const lid=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,.02,32),M.steel);lid.position.set(.54*U,.86,-.52*U);lid.castShadow=true;g.add(lid);
