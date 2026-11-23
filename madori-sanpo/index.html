@@ -129,7 +129,7 @@ function floor1(){const g=new THREE.Group();
  // 外壁・間仕切り
  wall(g,0,0,1,0);wall(g,0,0,0,7.8);wall(g,1,0,1,2,[[1.1,1.9,'door']]);wall(g,1,1,2.9,1,[[1.25,2.65,'glassdoor']]);
  wall(g,2.9,.5,4,.5);wall(g,2.9,.5,2.9,2,[[.95,1.8,'door']]);wall(g,4,.5,4,2);
- wall(g,0,2,4,2,[[1.1,2.9,'glassdoor']]);wall(g,1,2,1,3.7,[[2.06,3.64,'open']]);wall(g,0,3.7,1,3.7,[],1.66);wall(g,1,3.7,1,4.1);
+ wall(g,0,2,4,2,[[1.1,2.9,'glassdoor']]);wall(g,1,2,1,3.7,[[2.06,3.64,'open']]);wall(g,0,3.7,1,3.7,[],1.42);wall(g,1,3.7,1,4.1);
  wall(g,0,5,1,5);wall(g,2,5,4,5);wall(g,4,2,4,7.4);wall(g,0,6.4,.2,6.4);wall(g,2,6.4,2,7.8);
  wall(g,0,7.8,2,7.8,[[.55,1.55,'door']]);wall(g,2,7.4,4,7.4,[[2.35,3.65,'win']]);
  // 押入: ふすまなしのフルオープン。2階と同じく、高さの半分に中段
@@ -148,7 +148,7 @@ function floor1(){const g=new THREE.Group();
  })((()=>{const s=new THREE.Group();s.position.z=-.19*U;g.add(s);return s})());
  // 階段: DK の入口の奥から、北へまっすぐ上がる（右側は4畳半に開いている）
  const st2=M.wood,st3=mat(0x8f6840);
- for(let i=0;i<14;i++){const a=5-(i+1)/7,b=5-i/7,h=(i+1)/14*(F2+.03);B(g,.05,a,.95,b,a>=3.7?0:h-.2,h,i%2?st2:st3)}
+ B(g,.02,4.6,.98,4.98,.02,.036,mat(0x8f9295,{roughness:.75}),false);for(let i=0;i<14;i++){const a=4.6-(i+1)*1.6/14,b=4.6-i*1.6/14,h=(i+1)/14*(F2+.03);B(g,.05,a,.95,b,a>=3.7?0:h-.2,h,i%2?st2:st3)}
  // 浴槽
  B(g,.12,.12,.88,1.05,0,.58,M.tub);B(g,.2,.2,.8,.97,.5,.59,M.water,false);
  // トイレ: 床に埋めた和式。金かくしは北（奥）、水のタンクは北の壁の高いところ
@@ -271,7 +271,7 @@ function floor1(){const g=new THREE.Group();
  sb(.42,.25,-.1,.42,.14,.08,mat(0x555a5d));const muf=add(new THREE.CylinderGeometry(.055,.065,.42,14),silver,.54,.27,.15);muf.rotation.z=Math.PI/2-.08;
  sb(.86,.6,0,.035,.055,.17,mat(0xe0303a,{roughness:.25}));sb(.72,.84,0,.2,.018,.3,rubber);
  sc.position.set(3.25*U,-.42,9.5*U);sc.rotation.y=.1;g.add(sc);label(g,'スクーター',3.25,10.45,-.4,.3);
- [['浴室',.5,1.55],['トイレ',3.55,2.02],['廊下',1.95,1.5],['洗面',2.75,-.25],['押入',.5,2.16],['引き出し',.55,2.53],['プリンター',.52,3.19],['和室 4.5帖',2.5,3.5],['階段',.5,4.4],['DK',1.35,5.95],['玄関',1.25,7.1],['靴棚',.27,7.1],['台所',3,6.5],['冷蔵庫',3.6,5.45],['テーブル',2.62,5.55],['食器棚',.33,5.95],['テレビ',3.5,3.05],['机・パソコン',3.5,4.86],['チェア',2.58,4.86],['小テーブル',1.6,2.5],['布団',1.5,3.9]].forEach(a=>label(g,a[0],a[1],a[2],1.3,.3));
+ [['浴室',.5,1.55],['トイレ',3.55,2.02],['廊下',1.95,1.5],['洗面',2.75,-.25],['押入',.5,2.16],['引き出し',.55,2.53],['プリンター',.52,3.19],['和室 4.5帖',2.5,3.5],['階段',.5,4.15],['踊り場',.5,4.8],['DK',1.35,5.95],['玄関',1.25,7.1],['靴棚',.27,7.1],['台所',3,6.5],['冷蔵庫',3.6,5.45],['テーブル',2.62,5.55],['食器棚',.33,5.95],['テレビ',3.5,3.05],['机・パソコン',3.5,4.86],['チェア',2.58,4.86],['小テーブル',1.6,2.5],['布団',1.5,3.9]].forEach(a=>label(g,a[0],a[1],a[2],1.3,.3));
  return g}
 
 function floor2(){const g=new THREE.Group();
@@ -324,7 +324,7 @@ const at=(x,y,z)=>x+N[0]*(y+N[1]*z),inB=(x,y,z)=>x>=0&&y>=0&&z>=0&&x<N[0]&&y<N[1
 function rasterize(mesh){const q=mesh.geometry,m=Array.isArray(mesh.material)?mesh.material[0]:mesh.material;if(!q||m.transparent)return;q.computeBoundingBox();const b=q.boundingBox,c=b.getCenter(new THREE.Vector3()),s=b.getSize(new THREE.Vector3()),hx=Math.max(s.x/2,.051),hy=Math.max(s.y/2,.051),hz=Math.max(s.z/2,.051),w=b.clone().applyMatrix4(mesh.matrixWorld),e=new THREE.Matrix4().copy(mesh.matrixWorld).invert().elements,type=q.type;
  const lo=[cellOf(w.min.x-V/2,0),cellOf(w.min.y-V/2,1),cellOf(w.min.z-V/2,2)],hi=[cellOf(w.max.x+V/2,0),cellOf(w.max.y+V/2,1),cellOf(w.max.z+V/2,2)];
  for(let iz=Math.max(0,lo[2]);iz<=Math.min(N[2]-1,hi[2]);iz++)for(let iy=Math.max(0,lo[1]);iy<=Math.min(N[1]-1,hi[1]);iy++)for(let ix=Math.max(0,lo[0]);ix<=Math.min(N[0]-1,hi[0]);ix++){const x=mid(ix,0),y=mid(iy,1),z=mid(iz,2),dx=(e[0]*x+e[4]*y+e[8]*z+e[12]-c.x)/hx,dy=(e[1]*x+e[5]*y+e[9]*z+e[13]-c.y)/hy,dz=(e[2]*x+e[6]*y+e[10]*z+e[14]-c.z)/hz;if(Math.abs(dx)>1||Math.abs(dy)>1||Math.abs(dz)>1)continue;if(type==='CylinderGeometry'&&dx*dx+dz*dz>1)continue;if(type==='SphereGeometry'&&dx*dx+dy*dy+dz*dz>1)continue;sol[at(ix,iy,iz)]=1}}
-const stairH=(x,z)=>{if(!(x>.03*U&&x<.97*U&&z>3*U&&z<4.96*U))return null;const g=z/U,tp=F2+.055,md=1.5/2*(F2+.03);return g>=3.5?(5-g)/2*(F2+.03):Math.min(tp,md+(3.5-g)/.3*(tp-md))};
+const stairH=(x,z)=>{if(!(x>.03*U&&x<.97*U&&z>3*U&&z<4.96*U))return null;const g=z/U,tp=F2+.055,md=1.1/1.6*(F2+.03);return g>=4.6?.036:g>=3.5?(4.6-g)/1.6*(F2+.03):Math.min(tp,md+(3.5-g)/.3*(tp-md))};
 const stairCap=z=>z>=4*U?F2+.59:F2+2.4;
 // 同じ材料の箱を1つにまとめて、スマホでも軽くする
 const houseMeshes=[];
@@ -335,7 +335,7 @@ function merge(group,fid){const by=new Map();group.traverse(o=>{if(!o.isMesh)ret
 function buildHouse(){const root=new THREE.Group(),f1=floor1(),f2=floor2();f2.position.y=F2;
  const ceil=mat(0xf6f2e9,{roughness:.9});[[0,0,1,3],[0,5,1,7.8],[1,1,4,7.4],[2.9,.5,4,1],[1,7.4,2,7.8]].forEach(r=>B(f1,r[0],r[1],r[2],r[3],2.385,2.41,ceil,false));B(f2,0,2,4,7.5,2.385,2.43,ceil,false);
  root.add(f1,f2);root.updateMatrixWorld(true);root.traverse(o=>{if(o.isMesh)rasterize(o)});
- const z0=3*U,z1=5*U,top=F2+.03;for(let iz=cellOf(z0,2);iz<=cellOf(z1-.07,2);iz++){const z=mid(iz,2),h=Math.min(14,Math.ceil((z1-z)/(z1-z0)*14))/14*top,cp=stairCap(z);for(let ix=cellOf(.07*U,0);ix<=cellOf(.93*U,0);ix++)for(let iy=0;iy<N[1];iy++){const y=mid(iy,1);if(y<cp&&(z>=3.7*U||y>=h-.25))sol[at(ix,iy,iz)]=0}}
+ const z0=3*U,z1=5*U,top=F2+.03;for(let iz=cellOf(z0,2);iz<=cellOf(z1-.07,2);iz++){const z=mid(iz,2),h=Math.max(0,Math.min(14,Math.ceil((4.6*U-z)/(1.6*U)*14)))/14*top,cp=stairCap(z);for(let ix=cellOf(.07*U,0);ix<=cellOf(.93*U,0);ix++)for(let iy=0;iy<N[1];iy++){const y=mid(iy,1);if(y<cp&&(z>=3.7*U||y>=h-.25))sol[at(ix,iy,iz)]=0}}
  // 布団と枕はやわらかいので、上を通れるようにする
  for(let iz=cellOf(3*U,2);iz<=cellOf(5.12*U,2);iz++)for(let ix=cellOf(1.08*U,0);ix<=cellOf(1.95*U,0);ix++)for(let iy=cellOf(.11,1);iy<=cellOf(.62,1);iy++)sol[at(ix,iy,iz)]=0;
  OPEN.forEach(o=>{const base=o.g===f2?F2:0,x0=(o.hor?o.a:o.fix-.09)*U,x1=(o.hor?o.b:o.fix+.09)*U,zA=(o.hor?o.fix-.09:o.a)*U,zB=(o.hor?o.fix+.09:o.b)*U;for(let iz=cellOf(zA,2);iz<=cellOf(zB,2);iz++)for(let ix=cellOf(x0,0);ix<=cellOf(x1,0);ix++)for(let iy=cellOf(base+.04,1);iy<=cellOf(base+1.93,1);iy++)if(inB(ix,iy,iz))sol[at(ix,iy,iz)]=0});
@@ -398,7 +398,7 @@ cv.onpointermove=e=>{const p=ptr.get(e.pointerId);if(!p)return;const dx=e.client
 cv.onpointerup=e=>{const p=ptr.get(e.pointerId);ptr.delete(e.pointerId);if(!p||Math.hypot(e.clientX-p.sx,e.clientY-p.sy)>=9||performance.now()-p.t>450)return;tapGo(e.clientX,e.clientY)};cv.onpointercancel=e=>ptr.delete(e.pointerId);
 function tapGo(cx,cy){const v=new THREE.Vector3(cx/innerWidth*2-1,-(cy/innerHeight)*2+1,.5).unproject(camera).sub(camera.position).normalize(),o=camera.position;let px=null,pz=null;for(let t=.1;t<13;t+=.04){const x=o.x+v.x*t,y=o.y+v.y*t,z=o.z+v.z*t,a=cellOf(x,0),b=cellOf(y,1),c=cellOf(z,2);if(!inB(a,b,c))break;if(sol[at(a,b,c)]||y<-.5){px=x;pz=z;break}}if(px===null)return;
  if(goTo(px,pz,P.y>1.3?1:0)){ring.style.left=cx+'px';ring.style.top=cy+'px';ring.classList.remove('go');void ring.offsetWidth;ring.classList.add('go');fadeHint()}}
-const ROOMS=[[0,[[0,6.4,2,7.8,'玄関'],[0,5,2,6.4,'ダイニング'],[2,5,4,7.4,'台所'],[0,3.7,1,5,'階段'],[0,2,1,3.7,'押入'],[1,2,4,5,'和室 4.5帖'],[1,1,2.9,2,'廊下'],[0,0,1,2,'浴室'],[2.9,.5,4,2,'トイレ'],[0,-1.1,4,1,'裏の洗面']]],[1,[[0,2,1,3,'踊り場'],[0,3,1,5,'階段'],[0,5,1,7,'押入'],[1,1,3,2,'ベランダ'],[1,2,4,4,'和室 3帖'],[1,4,4,7.5,'和室 4.5帖']]]];
+const ROOMS=[[0,[[0,6.4,2,7.8,'玄関'],[0,5,2,6.4,'ダイニング'],[2,5,4,7.4,'台所'],[0,4.6,1,5,'踊り場'],[0,3.7,1,4.6,'階段'],[0,2,1,3.7,'押入'],[1,2,4,5,'和室 4.5帖'],[1,1,2.9,2,'廊下'],[0,0,1,2,'浴室'],[2.9,.5,4,2,'トイレ'],[0,-1.1,4,1,'裏の洗面']]],[1,[[0,2,1,3,'踊り場'],[0,3,1,5,'階段'],[0,5,1,7,'押入'],[1,1,3,2,'ベランダ'],[1,2,4,4,'和室 3帖'],[1,4,4,7.5,'和室 4.5帖']]]];
 const roomEl=document.getElementById('room');let roomNow='';function updateRoom(){const f=P.y>1.75?1:0,x=P.x/U,z=P.z/U,r=ROOMS[f][1].find(a=>x>=a[0]&&x<a[2]&&z>=a[1]&&z<a[3]),t=(f?'2階 ':'1階 ')+(r?r[4]:'外');if(t!==roomNow){roomNow=t;roomEl.textContent=t}}
 const SPOTS=[['1階',[['玄関',1.05,7.25,0],['ダイニング',1.15,5.65,0],['台所',3,6.25,0],['和室',2.4,3.5,0],['廊下',1.95,1.5,0],['浴室',.5,1.5,0],['トイレ',3.4,1.85,0],['裏の洗面',2.3,-.45,0],['玄関の外',1.05,8.45,0]]],['2階',[['踊り場',.5,2.5,1],['和室 3帖',2.5,3,1],['和室 4.5帖',2.5,5.6,1],['ベランダ',2,1.4,1]]]];
 const sheet=document.getElementById('sheet'),list=document.getElementById('list');list.innerHTML=SPOTS.map(([f,s],a)=>`<h2>${f}</h2><div class="grid">${s.map((r,b)=>`<button data-a="${a}" data-b="${b}">${r[0]}</button>`).join('')}</div>`).join('')+'<button id="close">閉じる</button>';

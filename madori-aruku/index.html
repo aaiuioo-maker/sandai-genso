@@ -100,7 +100,7 @@ function floor1(){const g=new THREE.Group();
  })((()=>{const s=new THREE.Group();s.position.z=-.19*U;g.add(s);return s})());
  // 階段: DK の入口の奥から、北へまっすぐ上がる（右側は4畳半に開いている）
  const st2=M.wood,st3=mat(0x8f6840);
- for(let i=0;i<7;i++){const a=5-(i+1)*1.3/7,b=5-i*1.3/7;B(g,0,a,1,b,0,(i+1)*.15,i%2?st2:st3)}
+ B(g,.02,4.6,.98,4.98,.02,.036,mat(0x8f9295,{roughness:.75}),false);for(let i=0;i<7;i++){const a=4.6-(i+1)*.9/7,b=4.6-i*.9/7;B(g,0,a,1,b,0,(i+1)*.15,i%2?st2:st3)}
  // 浴槽
  B(g,.12,.12,.88,1.05,0,.58,M.tub);B(g,.2,.2,.8,.97,.5,.59,M.water,false);
  // トイレ: 床に埋めた和式。金かくしは北（奥）、水のタンクは北の壁の高いところ
@@ -223,7 +223,7 @@ function floor1(){const g=new THREE.Group();
  sb(.42,.25,-.1,.42,.14,.08,mat(0x555a5d));const muf=add(new THREE.CylinderGeometry(.055,.065,.42,14),silver,.54,.27,.15);muf.rotation.z=Math.PI/2-.08;
  sb(.86,.6,0,.035,.055,.17,mat(0xe0303a,{roughness:.25}));sb(.72,.84,0,.2,.018,.3,rubber);
  sc.position.set(3.25*U,-.42,9.5*U);sc.rotation.y=.1;g.add(sc);label(g,'スクーター',3.25,10.45,-.4,.3);
- [['浴室',.5,1.55],['トイレ',3.55,2.02],['廊下',1.95,1.5],['洗面',2.75,-.25],['押入',.5,2.16],['引き出し',.55,2.53],['プリンター',.52,3.19],['和室 4.5帖',2.5,3.5],['階段',.5,4.4],['DK',1.35,5.95],['玄関',1.25,7.1],['靴棚',.27,7.1],['台所',3,6.5],['冷蔵庫',3.6,5.45],['テーブル',2.62,5.55],['食器棚',.33,5.95],['テレビ',3.5,3.05],['机・パソコン',3.5,4.86],['チェア',2.58,4.86],['小テーブル',1.6,2.5],['布団',1.5,3.9]].forEach(a=>label(g,a[0],a[1],a[2],1.3,.3));
+ [['浴室',.5,1.55],['トイレ',3.55,2.02],['廊下',1.95,1.5],['洗面',2.75,-.25],['押入',.5,2.16],['引き出し',.55,2.53],['プリンター',.52,3.19],['和室 4.5帖',2.5,3.5],['階段',.5,4.15],['踊り場',.5,4.8],['DK',1.35,5.95],['玄関',1.25,7.1],['靴棚',.27,7.1],['台所',3,6.5],['冷蔵庫',3.6,5.45],['テーブル',2.62,5.55],['食器棚',.33,5.95],['テレビ',3.5,3.05],['机・パソコン',3.5,4.86],['チェア',2.58,4.86],['小テーブル',1.6,2.5],['布団',1.5,3.9]].forEach(a=>label(g,a[0],a[1],a[2],1.3,.3));
  return g}
 
 function floor2(){const g=new THREE.Group();
@@ -289,13 +289,13 @@ function buildHouse(){const root=new THREE.Group(),f1=floor1(),f2=floor2();f2.po
  [[0,0,1,7.8],[1,1,4,7.4],[2.9,.5,4,1],[1,7.4,2,7.8]].forEach(r=>B(f1,r[0],r[1],r[2],r[3],2.42,2.5,M.wall));B(f2,0,2,4,7.5,2.42,2.52,M.wall);
  root.add(f1,f2);root.updateMatrixWorld(true);root.traverse(o=>{if(o.isMesh)rasterize(o)});
  // 階段: 1階の南から2階の踊り場まで、本物の段にする
- const wood=palette(M.wood),z0=3*U,z1=5*U,top=F2+.03;
- for(let iz=cellOf(z0,2);iz<=cellOf(z1-.07,2);iz++){const z=mid(iz,2),st=Math.min(14,Math.ceil((z1-z)/(z1-z0)*14)),h=st/14*top,ceil=z>=4*U?F2+.59:F2+2.4;
+ const wood=palette(M.wood),gray=palette(mat(0x8f9295,{roughness:.75})),z0=3*U,zs=4.6*U,z1=5*U,top=F2+.03;
+ for(let iz=cellOf(z0,2);iz<=cellOf(z1-.07,2);iz++){const z=mid(iz,2),st=Math.max(0,Math.min(14,Math.ceil((zs-z)/(zs-z0)*14))),h=st?st/14*top:.04,ceil=z>=4*U?F2+.59:F2+2.4;
   for(let ix=cellOf(.07*U,0);ix<=cellOf(.93*U,0);ix++)for(let iy=0;iy<N[1];iy++){const y=mid(iy,1),k=at(ix,iy,iz);
-   if(y<h){if(z>=3.7*U||y>=h-.2)vox[k]=wood}else if(y<ceil)vox[k]=0}}
+   if(y<h){if(z>=3.7*U||y>=h-.2)vox[k]=st?wood:gray}else if(y<ceil)vox[k]=0}}
  for(let i=0;i<vox.length;i++)sol[i]=vox[i]&&!pal[vox[i]].t?1:0;
  // 段の上はなめらかな坂として歩く（段に足を取られないように）
- for(let iz=cellOf(z0,2);iz<=cellOf(z1-.07,2);iz++){const z=mid(iz,2),h=Math.min(14,Math.ceil((z1-z)/(z1-z0)*14))/14*top;for(let ix=cellOf(.07*U,0);ix<=cellOf(.93*U,0);ix++)for(let iy=0;iy<N[1];iy++){const y=mid(iy,1);if(y<h&&(z>=3.7*U||y>=h-.25))sol[at(ix,iy,iz)]=0}}
+ for(let iz=cellOf(z0,2);iz<=cellOf(z1-.07,2);iz++){const z=mid(iz,2),st=Math.max(0,Math.min(14,Math.ceil((zs-z)/(zs-z0)*14))),h=st?st/14*top:.04;for(let ix=cellOf(.07*U,0);ix<=cellOf(.93*U,0);ix++)for(let iy=0;iy<N[1];iy++){const y=mid(iy,1);if(y<h&&(z>=3.7*U||y>=h-.25))sol[at(ix,iy,iz)]=0}}
  // 戸のところは通れるようにする
  OPEN.forEach(o=>{const base=o.g===f2?F2:0,x0=(o.hor?o.a:o.fix-.09)*U,x1=(o.hor?o.b:o.fix+.09)*U,zA=(o.hor?o.fix-.09:o.a)*U,zB=(o.hor?o.fix+.09:o.b)*U;
   for(let iz=cellOf(zA,2);iz<=cellOf(zB,2);iz++)for(let ix=cellOf(x0,0);ix<=cellOf(x1,0);ix++)for(let iy=cellOf(base+.04,1);iy<=cellOf(base+1.93,1);iy++)if(inB(ix,iy,iz))sol[at(ix,iy,iz)]=0})}
@@ -321,9 +321,9 @@ const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:tru
 const camera=new THREE.PerspectiveCamera(72,1,.04,90);camera.rotation.order='YXZ';
 const START={x:1.05*U,y:.4,z:7.25*U,yaw:0,pitch:-.04},P={...START,vy:0},R_=.17,H_=1.42,EYE=1.36;let eyeY=P.y+EYE,dirty=true;
 function hit(x,y,z){const a=cellOf(x-R_,0),b=cellOf(x+R_,0),c=cellOf(y+.02,1),d=cellOf(y+H_,1),e=cellOf(z-R_,2),f=cellOf(z+R_,2),on=stairH(x,z)!==null,sx0=cellOf(.07*U,0),sx1=cellOf(.93*U,0),sz0=cellOf(3*U,2),sz1=cellOf(5*U-.07,2);for(let iz=e;iz<=f;iz++)for(let iy=c;iy<=d;iy++)for(let ix=a;ix<=b;ix++){if(!inB(ix,iy,iz))return true;if(on&&ix>=sx0&&ix<=sx1&&iz>=sz0&&iz<=sz1&&mid(iy,1)<(mid(iz,2)>=4*U?F2+.59:F2+2.4))continue;if(sol[at(ix,iy,iz)])return true}return false}
-const stairH=(x,z)=>x>.03*U&&x<.97*U&&z>3*U&&z<4.96*U?(5*U-z)/(2*U)*(F2+.03):null;
+const stairH=(x,z)=>x>.03*U&&x<.97*U&&z>3*U&&z<4.96*U?(z>=4.6*U?.02:(4.6*U-z)/(1.6*U)*(F2+.03)):null;
 function moveAxis(ax,dv){if(!dv)return;const nx=Math.max(-.6*U,Math.min(4.6*U,P.x+(ax==='x'?dv:0))),nz=Math.max(-1.5*U,Math.min(9.95*U,P.z+(ax==='z'?dv:0))),h1=stairH(nx,nz);if(h1!==null&&stairH(P.x,P.z)===null&&h1-P.y>.75)return;if(!hit(nx,P.y,nz)){P.x=nx;P.z=nz;return}for(const s of [.1,.2,.3])if(!hit(nx,P.y+s,nz)){P.y+=s;P.x=nx;P.z=nz;P.vy=0;return}}
-const ROOMS=[[0,[[0,6.4,2,7.8,'玄関'],[0,5,2,6.4,'ダイニング'],[2,5,4,7.4,'台所'],[0,3.7,1,5,'階段'],[0,2,1,3.7,'押入'],[1,2,4,5,'和室 4.5帖'],[1,1,2.9,2,'廊下'],[0,0,1,2,'浴室'],[2.9,.5,4,2,'トイレ'],[0,-1.1,4,1,'裏の洗面']]],[1,[[0,2,1,3,'踊り場'],[0,3,1,5,'階段'],[0,5,1,7,'押入'],[1,1,3,2,'ベランダ'],[1,2,4,4,'和室 3帖'],[1,4,4,7.5,'和室 4.5帖']]]];
+const ROOMS=[[0,[[0,6.4,2,7.8,'玄関'],[0,5,2,6.4,'ダイニング'],[2,5,4,7.4,'台所'],[0,4.6,1,5,'踊り場'],[0,3.7,1,4.6,'階段'],[0,2,1,3.7,'押入'],[1,2,4,5,'和室 4.5帖'],[1,1,2.9,2,'廊下'],[0,0,1,2,'浴室'],[2.9,.5,4,2,'トイレ'],[0,-1.1,4,1,'裏の洗面']]],[1,[[0,2,1,3,'踊り場'],[0,3,1,5,'階段'],[0,5,1,7,'押入'],[1,1,3,2,'ベランダ'],[1,2,4,4,'和室 3帖'],[1,4,4,7.5,'和室 4.5帖']]]];
 const roomEl=document.getElementById('room');let roomNow='';
 function updateRoom(){const f=P.y>1.75?1:0,x=P.x/U,z=P.z/U,r=ROOMS[f][1].find(a=>x>=a[0]&&x<a[2]&&z>=a[1]&&z<a[3]),t=(f?'2階 ':'1階 ')+(r?r[4]:'外');if(t!==roomNow){roomNow=t;roomEl.textContent=t}}
 const keys={},move={x:0,y:0};
