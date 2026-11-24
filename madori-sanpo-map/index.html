@@ -216,6 +216,26 @@ function floor1(){const g=new THREE.Group();
   .forEach(q=>gunpla(q[0],2.165,0,q[1],q[2],q[3],q[4]));
  [[2.2,0x17181c,0xb82b2f,0xe8622c,{fin:1}],[2.42,0x2b5c42,0x17181c,0xd8d8d0,{w:1}],[2.63,0xc9303a,0xe5e2db,0x24252b,{}],[2.82,0xb9262f,0x4a1418,0xe8e4dc,{w:1}],[3.01,0xcf3440,0xe8e4dc,0x7c1d24,{}],[3.2,0xecebe5,0x3c63a8,0xd33a3a,{}],[3.43,0xe9e7e0,0x6d7078,0xc2303a,{w:1}]]
   .forEach(q=>gunpla(3.84,q[0],-Math.PI/2,q[1],q[2],q[3],q[4]));
+ // 和室（写真）: 茶色の板の天井と竿縁、長押、時計、押入の上の棚の白い箱、インターホン、つかまる取っ手
+ soft(g,d=>{const ceilW=mat(0x7a5232,{map:grainTex,roughness:.6}),sao=mat(0x5e3c22,{map:grainTex,roughness:.55}),nage=mat(0x6b4426,{map:grainTex,roughness:.55}),wh=mat(0xf1efe9,{roughness:.55}),st=mat(0xc8ccce,{roughness:.25,metalness:.8});
+  B(d,1.03,2.03,3.97,4.97,2.36,2.385,ceilW,false);for(let x=1.5;x<3.9;x+=.5)B(d,x,2.03,x+.04,4.97,2.33,2.36,sao,false);B(d,1.03,2.03,3.97,2.08,2.3,2.36,sao,false);B(d,1.03,4.92,3.97,4.97,2.3,2.36,sao,false);
+  // 長押（壁のまわりの横の木）
+  B(d,1.06,2.055,3.94,2.08,1.95,2.03,nage,false);B(d,3.92,2.06,3.945,4.94,1.95,2.03,nage,false);B(d,1.055,2.06,1.08,3.7,1.95,2.03,nage,false);
+  B(d,3.92,3.95,3.945,4.05,0,2.36,nage,false);
+  // 時計: 東の壁の柱の上
+  {const c=drum(d,3.915,2.15,4.0,.17,.05,mat(0x4a2e1c,{roughness:.4}));c.rotation.z=Math.PI/2;const f=drum(d,3.885,2.15,4.0,.145,.012,mat(0xf6f3ea,{roughness:.4}));f.rotation.z=Math.PI/2;
+   [[2.2,.12],[2.1,.12]].forEach(([y,w])=>B(d,3.875,4.0-w/2/U,3.88,4.0+w/2/U,y-.018,y+.018,mat(0x3d4a3f),false));B(d,3.87,3.99,3.875,4.01,2.15,2.26,M.black,false);B(d,3.87,4.0,3.875,4.1,2.145,2.155,M.black,false)}
+  // 押入の前: カーテンのレールだけ（カーテンはなし）
+  pipe(d,[1.1,1.9,2.08],[1.1,1.9,3.66],.012,st);
+  // カーテンの上の棚2つと、白い箱4つ
+  [[2.1,2.95],[3.02,3.62]].forEach(([a,b])=>{B(d,1.06,a,1.48,b,1.98,2.01,mat(0xc89a5f,{map:grainTex}));[a+.03,(a+b)/2+.02].forEach(z=>B(d,1.09,z,1.45,z+(b-a)/2-.06,2.01,2.3,wh))});
+  ball(d,1.3,2.33,2.35,.12,mat(0xb9bcbf,{roughness:.9}),.6);
+  // インターホンと取っ手: 押入の右の柱
+  B(d,1.055,3.72,1.07,3.92,1.3,1.55,wh);B(d,1.07,3.75,1.075,3.89,1.4,1.52,mat(0x22262a,{roughness:.2}),false);
+  B(d,1.055,3.74,1.08,3.9,.7,1.25,mat(0xd9b27a,{map:grainTex}));pipe(d,[1.1,.95,3.75],[1.1,.95,3.89],.018,mat(0xd9a548));
+  // 天井のSフックと、つるした木の棒、トイレットペーパー
+  [[1.8,2.6],[2.6,3.0],[3.2,2.5]].forEach(([x,z])=>pipe(d,[x,2.33,z],[x,2.2,z],.006,st));const bar=B(d,2.3,2.7,2.36,3.6,2.2,2.24,mat(0xe0c08a));
+  pipe(d,[2.95,1.5,2.08],[2.95,1.5,2.2],.01,mat(0x9a6a3a));drum(d,2.95,1.43,2.15,.055,.11,M.white).rotation.x=Math.PI/2});
  // 玄関を入った右手の壁: 板張りの壁に、棚・鍵・カード・ヘルメット・麻のバッグ・ほうき
  soft(g,d=>{const W=(z1,z2,y1,y2,a,b,m,sh=true)=>B(d,1.94-b,z1,1.94-a,z2,y1,y2,m,sh),pa=mat(0xa98f5f,{map:grainTex,roughness:.72}),pb=mat(0x9a8152,{map:grainTex,roughness:.72}),lw=mat(0xd2a86c,{map:grainTex,roughness:.6}),rw=mat(0x8a5a32,{map:grainTex,roughness:.6}),wh=mat(0xf1efe8,{roughness:.4}),bk=mat(0x202226,{roughness:.4}),amber=mat(0x5a3313,{roughness:.2}),cream=mat(0xe8dcc4,{roughness:.8}),chrome=mat(0xd8dde0,{roughness:.15,metalness:.95,envMapIntensity:1.2});
   for(let i=0;i<7;i++){const z=6.72+i*.14;W(z,z+.135,.1,2.02,0,.012,i%2?pa:pb)}W(6.66,6.76,.08,2.02,.012,.03,rw);
@@ -342,27 +362,48 @@ function floor1(){const g=new THREE.Group();
  const thin=(ax,az,bx,bz)=>{const hor=az===bz,L=Math.abs(hor?bx-ax:bz-az),n=Math.round(L/.4);
   raw(g,(ax+bx)/2,(az+bz)/2,hor?L*U:.025,hor?.025:L*U,-.1,.92,M.board);
   for(let i=1;i<n;i++){const t=i/n;raw(g,ax+(bx-ax)*t,az+(bz-az)*t,hor?.012:.034,hor?.034:.012,-.1,.92,M.boardLine)}};
- thin(0,-1.1,4,-1.1);thin(0,-1.1,0,0);thin(4,-1.1,4,.5);
+ // 裏の洗面の小屋（写真）: 北と東はトタンの波板の壁、西はコンクリートの壁、上はトタン屋根
+ {const tinW=mat(0xffffff,{roughness:.5,metalness:.35,map:makeTex((x,s)=>{for(let i=0;i<s;i+=8){const gr=x.createLinearGradient(i,0,i+8,0);gr.addColorStop(0,'#7d858c');gr.addColorStop(.5,'#c3c9ce');gr.addColorStop(1,'#7a8188');x.fillStyle=gr;x.fillRect(i,0,8,s)}for(let k=0;k<40;k++){x.fillStyle=`rgba(140,80,40,${.05+R()*.12})`;x.fillRect(R()*s,R()*s,2+R()*6,6+R()*40)}},256)}),
+   rail=mat(0x8a5a32,{map:grainTex,roughness:.7}),concW=mat(0x9a9a92,{map:roughTex,roughness:.95});
+  B(g,0,-1.13,4,-1.1,-.1,2.3,tinW);B(g,3.97,-1.1,4,.5,-.1,2.3,tinW);B(g,0,-1.1,.03,0,-.1,2.3,concW);
+  [.5,1.35,2.05].forEach(y=>{B(g,.03,-1.1,3.97,-1.06,y,y+.07,rail);B(g,3.93,-1.06,3.97,.5,y,y+.07,rail)});
+  soft(g,d=>{const roofT=mat(0x8f969c,{metalness:.4,roughness:.45,side:THREE.DoubleSide});B(d,-.05,-1.25,4.05,1.0,2.44,2.455,roofT);for(let x=-.03;x<4.05;x+=.08)B(d,x,-1.25,x+.03,1.0,2.455,2.47,roofT,false);[.4,1.4,2.4,3.4].forEach(x=>B(d,x,-1.1,x+.07,1.0,2.36,2.44,rail));
+   // はだか電球
+   pipe(d,[1.55,2.44,-.35],[1.55,2.0,-.35],.006,M.black);ball(d,1.55,1.95,-.35,.06,mat(0xfff6e0,{emissive:new THREE.Color(0xfff1d0),emissiveIntensity:1}))})}
  // 勝手口: 洗面の横、北の板壁につけた戸
- B(g,3.3,-1.135,3.34,-1.065,-.1,.96,M.dark);B(g,3.88,-1.135,3.92,-1.065,-.1,.96,M.dark);B(g,3.3,-1.135,3.92,-1.065,.92,.96,M.dark);
- B(g,3.34,-1.125,3.88,-1.075,-.1,.92,mat(0x9a6b40,{roughness:.7}));[.12,.4,.68].forEach(y=>B(g,3.38,-1.075,3.84,-1.068,y,y+.16,mat(0x7f5733,{roughness:.7}),false));B(g,3.39,-1.068,3.43,-1.045,.4,.44,M.steel);
+ B(g,3.3,-1.135,3.34,-1.065,-.1,1.85,M.dark);B(g,3.88,-1.135,3.92,-1.065,-.1,1.85,M.dark);B(g,3.3,-1.135,3.92,-1.065,1.81,1.85,M.dark);
+ B(g,3.34,-1.125,3.88,-1.07,-.1,1.81,mat(0x9a6b40,{roughness:.7}));[.12,.5,.9,1.3].forEach(y=>B(g,3.38,-1.07,3.84,-1.064,y,y+.28,mat(0x7f5733,{roughness:.7}),false));B(g,3.39,-1.064,3.43,-1.04,.9,.94,M.steel);
  label(g,'勝手口',3.6,-1.0,1.3,.3);
  // 玄関: 横にすべる2枚のガラス引き戸（アルミの枠）
  {const H=1.95,al=mat(0x8f9498,{roughness:.35,metalness:.45});B(g,.55,7.77,1.55,7.83,-.03,.005,al);B(g,.55,7.77,1.55,7.83,H-.05,H,al);B(g,.55,7.77,.58,7.83,-.03,H,al);B(g,1.52,7.77,1.55,7.83,-.03,H,al);
   [[.58,1.07,7.785,.6],[1.03,1.52,7.815,1.48]].forEach(([a,b,z,h])=>{B(g,a,z-.006,b,z+.006,.005,H-.05,M.glass,false);B(g,a,z-.014,a+.04,z+.014,.005,H-.05,al);B(g,b-.04,z-.014,b,z+.014,.005,H-.05,al);B(g,a,z-.014,b,z+.014,.005,.06,al);B(g,a,z-.014,b,z+.014,H-.11,H-.05,al);B(g,a,z-.014,b,z+.014,.86,.89,al);B(g,h,z+.014,h+.02,z+.024,.78,1.02,M.black,false)})}
  // 洗濯機: 浴室の奥（外壁の裏）
- B(g,.15,-.85,.81,-.19,-.1,.85,M.white);B(g,.16,-.8,.27,-.24,.85,.98,mat(0xaeb4b8));B(g,.268,-.68,.276,-.36,.89,.95,mat(0x24384f,{roughness:.35}),false);[-.75,-.29].forEach(z=>B(g,.268,z-.025,.276,z+.025,.9,.94,M.steel,false));B(g,.808,-.8,.814,-.24,.12,.14,mat(0xc4c9cc),false);
+ B(g,.1,-.95,.9,-.1,-.1,-.06,mat(0x8f7a5c,{map:grainTex}));B(g,.15,-.85,.81,-.19,-.06,.02,mat(0x9a9ea2));B(g,.15,-.85,.81,-.19,.02,.85,M.white);
+ // 浴室の北の壁に、すりガラスの窓とコンセント
+ B(g,.18,-.07,.84,-.05,1.05,1.85,mat(0xb9c1b8,{roughness:.6}),false);B(g,.17,-.09,.85,-.05,1.02,1.05,mat(0xc0c4c6,{metalness:.5,roughness:.35}));B(g,.17,-.09,.85,-.05,1.85,1.88,mat(0xc0c4c6,{metalness:.5,roughness:.35}));B(g,.5,-.09,.52,-.05,1.05,1.85,mat(0xc0c4c6,{metalness:.5,roughness:.35}),false);
+ B(g,.9,-.08,.96,-.055,.7,.82,M.white,false);B(g,.16,-.8,.27,-.24,.85,.98,mat(0xaeb4b8));B(g,.268,-.68,.276,-.36,.89,.95,mat(0x24384f,{roughness:.35}),false);[-.75,-.29].forEach(z=>B(g,.268,z-.025,.276,z+.025,.9,.94,M.steel,false));B(g,.808,-.8,.814,-.24,.12,.14,mat(0xc4c9cc),false);
  const lid=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,.02,32),M.steel);lid.position.set(.54*U,.86,-.52*U);lid.castShadow=true;g.add(lid);
  label(g,'洗濯機',.48,-.55,1.3,.3);
- // DIY道具: 廊下を出たところ、浴室の外壁ぞいに積む（ガラス戸の前はあけておく）
- {const y0=-.1,woodA=mat(0xc99a5e,{roughness:.85}),woodB=mat(0xb4834a,{roughness:.85}),cyl=(rt,rb,h,x,y,z,m)=>{const c=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,20),m);c.position.set(x*U,y+h/2,z*U);c.castShadow=true;g.add(c)};
-  for(let l=0;l<3;l++)for(let j=0;j<3-(l>1?1:0);j++)B(g,1.09+j*.085+(l>1?.04:0),-.08+l*.03,1.165+j*.085+(l>1?.04:0),.72-l*.03,y0+l*.07,y0+.065+l*.07,(j+l)%2?woodA:woodB);
-  B(g,1.42,-.04,1.86,.46,y0,.15,mat(0x2f6fa8,{roughness:.55}));B(g,1.4,-.06,1.88,.48,.15,.18,mat(0x24598a,{roughness:.55}));
-  B(g,1.5,.1,1.74,.2,.18,.25,mat(0xf0b92b,{roughness:.45}));B(g,1.74,.13,1.82,.17,.2,.23,M.steel);B(g,1.54,.2,1.61,.34,.18,.23,M.black);
-  B(g,1.13,.0,1.3,.04,y0+.205,y0+.23,woodA);B(g,1.29,-.03,1.33,.07,y0+.2,y0+.25,M.steel);
-  B(g,1.2,.05,1.27,.42,y0+.205,y0+.212,M.steel);B(g,1.19,.42,1.28,.53,y0+.2,y0+.235,mat(0xe06a1f,{roughness:.5}));
-  cyl(.15,.11,.28,2.08,y0,.2,mat(0xe8a13a,{roughness:.55}));
-  label(g,'DIY道具',1.7,-.3,1.3,.3)}
+ // 裏の洗面の中（写真）: 戸を出た左に、すけた収納ケース・青い道具箱・白いかご・青いマットの筒・青い手ぶくろ
+ {const y0=-.1,clr=mat(0xe4eaee,{roughness:.2,transparent:true,opacity:.6}),wh=mat(0xf3f3f0,{roughness:.5}),bl=mat(0x3f8fb0,{roughness:.45}),bk=mat(0x26282b,{roughness:.5}),gr=mat(0x2f7d48,{roughness:.9});
+  // 床の緑のマット
+  soft(g,d=>{B(d,.9,-1.08,3.15,.9,y0,y0+.012,gr,false);for(let x=.95;x<3.15;x+=.12)B(d,x,-1.08,x+.012,.9,y0+.012,y0+.016,mat(0x23633a),false)});
+  B(g,1.08,.05,1.5,.55,y0,y0+.3,clr);B(g,1.1,.07,1.48,.53,y0+.3,y0+.32,mat(0x2a2f4a));B(g,1.08,.05,1.5,.55,y0+.32,y0+.6,clr);B(g,1.1,.07,1.48,.53,y0+.6,y0+.62,bk);
+  B(g,1.52,.1,1.88,.5,y0,y0+.26,clr);B(g,1.52,-.3,1.9,.05,y0,y0+.32,clr);B(g,1.55,-.28,1.87,.03,y0+.32,y0+.47,bl);B(g,1.69,-.28,1.73,.03,y0+.47,y0+.6,bl);
+  B(g,1.12,.12,1.46,.5,y0+.62,y0+.92,wh);B(g,1.08,-.35,1.47,0,y0,y0+.3,bk);B(g,1.4,-.3,1.47,-.22,y0+.15,y0+.3,mat(0xd23a3a),false);
+  soft(g,d=>{[[1.6,.35],[1.7,.42]].forEach(([x,z])=>B(d,x,z,x+.08,z+.2,y0+.26,y0+.3,mat(0x2546a8,{roughness:.6}),false))})}
+ // 北のトタンの壁ぞい（写真）: 青いポリタンク3つ、すだれ、木の棚2段（バケツ・ペンキ・ボウル・長ぐつ）、脚立、段ボール、ごみ箱
+ {const y0=-.1,poly=mat(0x2fa4d8,{roughness:.45}),cap=mat(0xf2f2ee),wd=mat(0xa0703f,{map:grainTex,roughness:.7}),st=mat(0xc8ccce,{roughness:.22,metalness:.85}),al=mat(0xc0c4c6,{roughness:.35,metalness:.6});
+  [1.0,1.37,1.74].forEach(x=>{B(g,x,-1.0,x+.34,-.72,y0,y0+.46,poly);drum(g,x+.08,y0+.5,-.86,.035,.06,cap);B(g,x+.18,-.92,x+.3,-.8,y0+.46,y0+.5,poly)});
+  soft(g,d=>{const sud=mat(0xffffff,{roughness:.9,map:makeTex((x,s)=>{x.fillStyle='#b06a35';x.fillRect(0,0,s,s);for(let i=0;i<s;i+=3){x.fillStyle=`rgba(${60+R()*60},${30+R()*20},10,.5)`;x.fillRect(0,i,s,1)}for(let j=0;j<s;j+=s/6){x.fillStyle='rgba(40,20,5,.7)';x.fillRect(j,0,2,s)}},128)});
+   B(d,.85,-1.06,1.95,-1.05,.9,2.1,sud,false);pipe(d,[.85,2.12,-1.04],[1.95,2.12,-1.04],.015,mat(0xc79a5a))});
+  [.75,1.45].forEach(y=>{B(g,2.0,-1.08,3.1,-.76,y,y+.03,wd)});[2.02,3.06].forEach(x=>B(g,x,-1.08,x+.03,-1.05,.5,1.5,wd));
+  soft(g,d=>{drum(d,2.2,1.6,-.92,.13,.25,mat(0x7f9bc0,{roughness:.4}));[[2.47,.055,0xd8dfe8],[2.6,.05,0xb9bcbf],[2.72,.045,0xe0c33a]].forEach(([x,r,c])=>drum(d,x,1.53,-.92,r,.1+r,mat(c,{roughness:.35,metalness:c===0xb9bcbf?.6:0})));B(d,2.82,-1.0,3.05,-.8,1.48,1.62,mat(0xe9eef1,{transparent:true,opacity:.6,roughness:.2}));
+   drum(d,2.12,.83,-.92,.07,.08,M.white);drum(d,2.35,.84,-.92,.14,.1,st);drum(d,2.6,.87,-.92,.07,.15,st);drum(d,2.85,.84,-.92,.13,.09,mat(0xa9d8cf,{roughness:.4}));B(d,2.78,-1.0,2.95,-.88,.89,1.0,mat(0x56595e),false);B(d,2.0,-1.08,3.1,-.78,.78,.785,mat(0x2f7d48),false)});
+  [2.15,2.45].forEach(x=>B(g,x,-1.0,x+.03,-.75,y0,.72,al));[.1,.4].forEach(y=>B(g,2.15,-1.0,2.48,-.75,y,y+.04,al));
+  B(g,2.55,-1.0,2.86,-.66,y0,y0+.34,mat(0xc69a5c,{roughness:.8}));
+  B(g,2.9,-1.0,3.17,-.62,y0,y0+.6,mat(0xb9bdbf,{roughness:.3,metalness:.6}));B(g,2.88,-1.02,3.19,-.6,y0+.6,y0+.64,mat(0xd9b27a,{map:grainTex}));
+  soft(g,d=>{pipe(d,[3.15,2.2,-1.04],[3.15,.6,-1.0],.012,mat(0x2a8fd0));pipe(d,[3.15,.6,-1.0],[3.05,.5,-.6],.012,mat(0x2a8fd0));[3.08,3.12].forEach(x=>pipe(d,[x,y0,-1.0],[x+.03,1.9,-1.05],.01,M.white));pipe(d,[3.18,y0,-.98],[3.2,1.4,-1.04],.01,mat(0xe85a9a))})}
  // 観葉植物3つ: 台所の下、右の青い柵の内側
  const plant=(x,z,s,c)=>{const p=new THREE.Group(),leaf=mat(c,{roughness:.6}),pot=new THREE.Mesh(new THREE.CylinderGeometry(.15,.11,.24,18),mat(0xb5653d,{roughness:.8}));pot.position.y=.12;pot.castShadow=true;p.add(pot);
   for(let i=0;i<12;i++){const a=i*2.4,t=i/11,r=.2*(1-t*.65),l=new THREE.Mesh(new THREE.SphereGeometry(.17,10,8),leaf);l.scale.set(.42,.16,1.25);l.rotation.order='YXZ';l.rotation.y=Math.atan2(Math.cos(a),Math.sin(a));l.rotation.x=-.45-t*.35;l.position.set(Math.cos(a)*r,.34+t*.46,Math.sin(a)*r);l.castShadow=true;p.add(l)}
