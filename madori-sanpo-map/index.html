@@ -441,8 +441,8 @@ function floor2(){const g=new THREE.Group();
    B(d,1.07,4.33,1.17,4.83,.3,.305,wb,false);[[0xe8c21e,4.4],[0xd8417a,4.52],[0xd23a3a,4.62],[0x2a62c9,4.72]].forEach(([c,z])=>B(d,1.08,z,1.15,z+.05,.3,.38,mat(c),false));
    pipe(d,[1.07,1.0,4.95],[1.07,.75,4.95],.008,mat(0xe39bb5))})}
  // 服かけ: 4畳半の右の壁ぎわ。コート・スーツ・カッターシャツなど10着
- const clRail=new THREE.Mesh(new THREE.CylinderGeometry(.014,.014,2.2,12),M.steel);clRail.rotation.x=Math.PI/2;clRail.position.set(3.33,1.1,5.005);clRail.castShadow=true;g.add(clRail);
- [3.93,6.08].forEach(z=>{const b=new THREE.Mesh(new THREE.BoxGeometry(.28,.03,.03),M.dark);b.position.set(3.46,1.1,z);b.castShadow=true;g.add(b)});
+ const clRail=new THREE.Mesh(new THREE.CylinderGeometry(.014,.014,2.2,12),M.steel);clRail.rotation.x=Math.PI/2;clRail.position.set(3.33,1.75,5.005);clRail.castShadow=true;g.add(clRail);
+ [3.93,6.08].forEach(z=>{const b=new THREE.Mesh(new THREE.BoxGeometry(.28,.03,.03),M.dark);b.position.set(3.46,1.75,z);b.castShadow=true;g.add(b)});
  const clTie=mat(0x8d2433),clBtn=mat(0x1f1f1f),clLine=mat(0xd3d9dd);
  const cloth=(c,len,kind,x,y,z)=>{
   const cg=new THREE.Group(),w=.21,sl=Math.min(len-.04,.56),s=new THREE.Shape(),cm=mat(c,{roughness:.85}),cb=(bw,bh,bd,x,y,z,m)=>{const e=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd),m);e.position.set(x,y,z);e.castShadow=true;cg.add(e)};
@@ -453,7 +453,7 @@ function floor2(){const g=new THREE.Group();
   if(kind==='shirt'){cb(.018,len-.02,.004,0,-len/2,.027,clLine);cb(.11,.035,.012,0,-.015,.028,M.white)}
   if(kind==='coat'){cb(.13,.05,.012,0,-.025,.028,cm);[-.2,-.35,-.5].forEach(y=>cb(.018,.018,.006,0,y,.028,clBtn))}
   cg.position.set(x,y,z);g.add(cg)};
- [[0xb98f5a,.95,'coat'],[0x3f444a,.95,'coat'],[0x26344f,.62,'suit'],[0x6b7078,.62,'suit'],[0x25272b,.62,'suit'],[0xf4f4f0,.66,'shirt'],[0xa9cfe8,.66,'shirt'],[0xe7edf3,.66,'shirt'],[0xf0d6d6,.66,'shirt'],[0x6f7550,.8,'coat']].forEach(([c,len,kind],i)=>cloth(c,len,kind,3.33,1.03,4.1+i*.2));
+ [[0xb98f5a,.95,'coat'],[0x3f444a,.95,'coat'],[0x26344f,.62,'suit'],[0x6b7078,.62,'suit'],[0x25272b,.62,'suit'],[0xf4f4f0,.66,'shirt'],[0xa9cfe8,.66,'shirt'],[0xe7edf3,.66,'shirt'],[0xf0d6d6,.66,'shirt'],[0x6f7550,.8,'coat']].forEach(([c,len,kind],i)=>cloth(c,len,kind,3.33,1.68,4.1+i*.2));
  // 床の間: 出窓の横に、同じ高さの段
  B(g,3.06,7.06,3.94,7.45,.015,.34,M.wood);
  // 床の間の中（写真）: 緑のマット、ビデオデッキ3台、小さいテレビ、除湿機とホース、上に服かけ（色つきハンガー・木のハンガー）とベルト
@@ -467,7 +467,7 @@ function floor2(){const g=new THREE.Group();
    [[3.66,0x5a3a22,.95],[3.7,0x1f1f1f,1.05],[3.74,0x7a5230,1.0],[3.78,0x2c2c2c,1.12]].forEach(([x,c,y])=>B(d,x,7.2,x+.022,7.21,y,1.83,mat(c),false))})}
  // 出窓（写真）: 台に灰色のカーペット、クリーム色と白のカーテン、左のはしに白いファイルボックスと小さい箱
  {const crm=mat(0xefe6cf,{roughness:.95}),lw=mat(0xe9eae6,{roughness:.95}),wh=mat(0xf5f5f3,{roughness:.5});B(g,1.06,7.06,2.94,7.45,.34,.352,mat(0x7c7f82,{map:roughTex,roughness:1}),false);
-  soft(g,d=>{pipe(d,[1.04,1.93,7.33],[2.96,1.93,7.33],.012,M.steel);for(let i=0,x=1.06;x<2.94;i++,x+=.07){const z=7.31+(i%2?.025:0);B(d,x,z,Math.min(x+.07,2.94),z+.012,.37,1.92,x<1.7?lw:crm,false)}});
+  soft(g,d=>pipe(d,[1.04,1.93,7.33],[2.96,1.93,7.33],.012,M.steel));
   B(g,2.78,7.1,2.92,7.28,.352,.66,wh);B(g,2.45,7.1,2.76,7.28,.352,.43,wh);B(g,2.5,7.12,2.72,7.26,.43,.47,wh)}
  // 4.5帖の南の床（写真）: 黒い台車、白い箱、ファイルボックス、木の踏み台、黄色いごみ袋、すけたふた
  {const wh=mat(0xf3f3f1,{roughness:.55}),bk=mat(0x1e1f22,{roughness:.5});
@@ -479,7 +479,7 @@ function floor2(){const g=new THREE.Group();
  {const lace=mat(0xf4f3ee,{roughness:.95}),wh=mat(0xf3f3f1,{roughness:.5}),kr=mat(0xc9a77c,{roughness:.9}),red=mat(0x9b2335),wood=mat(0xd9b27a,{map:grainTex,roughness:.6});
   // 4.5帖とのさかいの鴨居と上の壁
   B(g,1,3.96,4,4.04,1.95,2.0,M.dark);B(g,1,3.97,4,4.03,2.0,2.385,M.wall);
-  soft(g,d=>{pipe(d,[1.08,1.96,2.14],[2.92,1.96,2.14],.012,M.steel);for(let i=0,x=1.1;x<2.5;i++,x+=.07){const z=2.12+(i%2?.02:0);B(d,x,z,x+.07,z+.012,.32,1.94,lace,false)}
+  soft(g,d=>{pipe(d,[1.08,1.96,2.14],[2.92,1.96,2.14],.012,M.steel);
    B(d,1.5,2.06,2.6,2.3,2.0,2.3,wh);B(d,1.52,2.3,2.58,2.305,2.03,2.06,mat(0x9aa0a4),false);
    B(d,2.05,2.85,2.55,3.35,2.02,2.15,mat(0x6b4a2c));B(d,2.08,2.88,2.52,3.32,2.0,2.02,mat(0xfffaf0,{emissive:new THREE.Color(0x6b6550)}),false);pipe(d,[2.3,2.15,3.1],[2.3,2.385,3.1],.008,M.black);pipe(d,[2.4,2.0,3.2],[2.4,1.55,3.2],.003,wh);
    pipe(d,[1.07,.9,2.08],[1.07,1.4,2.08],.012,M.steel);
