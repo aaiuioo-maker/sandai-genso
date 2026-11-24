@@ -373,27 +373,27 @@ function floor1(){const g=new THREE.Group();
  const add=(geo,m,x=0,y=0,z=0)=>{const e=new THREE.Mesh(geo,m);e.position.set(x,y,z);e.castShadow=e.receiveShadow=true;sc.add(e);return e};
  const sb=(x,y,z,w,h,d,m)=>add(new THREE.BoxGeometry(w,h,d),m,x,y,z);
  const side=(pts,width,m,z=0)=>{const s=new THREE.Shape();s.moveTo(pts[0][0],pts[0][1]);pts.slice(1).forEach(p=>p.length===4?s.quadraticCurveTo(p[0],p[1],p[2],p[3]):s.lineTo(p[0],p[1]));s.closePath();
-  const geo=new THREE.ExtrudeGeometry(s,{depth:width,bevelEnabled:true,bevelSize:.018,bevelThickness:.018,bevelSegments:2,curveSegments:10});geo.translate(0,0,-width/2);return add(geo,m,0,0,z)};
+  const geo=new THREE.ExtrudeGeometry(s,{depth:width,bevelEnabled:true,bevelSize:.012,bevelThickness:.012,bevelSegments:3,curveSegments:12});geo.translate(0,0,-width/2);return add(geo,m,0,0,z)};
  // 写真（ヤマハ ジョグ）の横から見た形に合わせる。前は -x、長さ約1.67m
  const matB=mat(0x1c1c1e,{roughness:.6}),gloss=mat(0x222326,{roughness:.35}),eng=mat(0x2b2c2e,{roughness:.5,metalness:.3});
- [-.65,.56].forEach((x,i)=>{const t=add(new THREE.CylinderGeometry(.2,.2,.1,30),rubber,x,.2,0);t.rotation.x=Math.PI/2;const r=add(new THREE.CylinderGeometry(.13,.13,.11,24),gloss,x,.2,0);r.rotation.x=Math.PI/2;
+ [-.65,.56].forEach((x,i)=>{const t=add(new THREE.CylinderGeometry(.2,.2,.085,30),rubber,x,.2,0);t.rotation.x=Math.PI/2;const r=add(new THREE.CylinderGeometry(.13,.13,.095,24),gloss,x,.2,0);r.rotation.x=Math.PI/2;
   for(let k=0;k<5;k++){const sp=sb(x,.2,0,.022,.24,.115,matB);sp.rotation.z=k*Math.PI/5}const h=add(new THREE.CylinderGeometry(.035,.035,.13,12),silver,x,.2,0);h.rotation.x=Math.PI/2;
   if(!i){const d=add(new THREE.CylinderGeometry(.09,.09,.008,24),silver,x,.2,-.065);d.rotation.x=Math.PI/2}});
  // 前のカバー（ワインレッド）と、内側の黒いカバー・低い床
- side([[-.478,.927],[-.351,.871],[-.492,.604],[-.59,.45],[-.773,.43],[-.745,.52],[-.604,.717]],.3,wine);
- side([[-.351,.885],[-.239,.927],[-.323,.576],[-.379,.295],[-.464,.267],[-.492,.436]],.34,matB);
- side([[-.46,.31],[.06,.31],[.13,.34],[.13,.2],[.06,.15],[-.46,.16]],.28,matB);
- side([[-.76,.47],[-.62,.47],[-.56,.4],[-.62,.38],[-.75,.4]],.12,matB);// 前の泥よけ
+ side([[-.478,.927],[-.351,.871],[-.43,.75,-.492,.604],[-.59,.45],[-.773,.43],[-.745,.52],[-.67,.65,-.604,.717]],.19,wine);
+ side([[-.351,.885],[-.239,.927],[-.3,.75,-.323,.576],[-.379,.295],[-.464,.267],[-.492,.436]],.22,matB);
+ side([[-.46,.31],[.06,.31],[.1,.32,.13,.34],[.13,.21],[.06,.19],[-.46,.19]],.22,matB);
+ side([[-.76,.46],[-.62,.46],[-.57,.41],[-.62,.39],[-.75,.41]],.09,matB);// 前の泥よけ
  // 後ろのボディ（ワインレッド）とシート
- side([[-.028,.576],[.042,.683],[.407,.694],[.66,.683],[.703,.618],[.66,.534],[.407,.478],[.239,.407],[.126,.337],[.042,.323],[-.014,.436]],.3,wine);
- side([[-.028,.66],[.014,.745],[.155,.778],[.52,.795],[.576,.759],[.562,.694],[.042,.683]],.27,matB);
- sb(.66,.77,0,.27,.02,.2,matB);[-.09,.09].forEach(z=>sb(.67,.73,z,.25,.02,.02,matB));// 荷台
- sb(.705,.635,0,.03,.07,.2,mat(0xe8742a,{roughness:.3}));// テールランプ
+ side([[-.028,.576],[0,.66,.042,.683],[.407,.694],[.66,.683],[.71,.66,.703,.618],[.69,.55,.66,.534],[.407,.478],[.239,.407],[.126,.337],[.042,.323],[-.03,.38,-.014,.436]],.2,wine);
+ side([[-.028,.66],[.014,.745],[.06,.77,.155,.778],[.52,.79],[.58,.78,.576,.745],[.562,.694],[.042,.683]],.2,matB);
+ sb(.66,.77,0,.27,.016,.15,matB);[-.07,.07].forEach(z=>sb(.67,.73,z,.25,.016,.016,matB));// 荷台
+ sb(.705,.635,0,.03,.06,.14,mat(0xe8742a,{roughness:.3}));// テールランプ
  const fd=sb(.75,.42,0,.03,.3,.12,matB);fd.rotation.z=.7;// 後ろの泥よけ
  // 前のフォーク・ハンドルまわり（ライトのカバー）・ミラー
  const fork=sb(-.57,.56,0,.05,.66,.1,matB);fork.rotation.z=-.2;
- side([[-.497,.969],[-.45,1.059],[-.323,1.068],[-.267,.998],[-.323,.899],[-.464,.885]],.26,wine);
- sb(-.5,.95,0,.03,.06,.16,mat(0xf4f4f0,{roughness:.15}));
+ side([[-.497,.969],[-.49,1.04,-.45,1.059],[-.323,1.068],[-.26,1.04,-.267,.998],[-.323,.899],[-.464,.885]],.17,wine);
+ sb(-.505,.95,0,.03,.05,.12,mat(0xf4f4f0,{roughness:.15}));
  sb(-.25,.96,0,.05,.03,.64,matB);[-.3,.3].forEach(z=>{sb(-.24,.96,z,.06,.045,.12,matB);const st=sb(-.33,1.12,z*.75,.016,.3,.016,matB);st.rotation.z=.15;sb(-.36,1.27,z*.8,.03,.09,.12,matB)});
  // エンジン・後ろのショック・マフラー
  side([[.15,.44],[.5,.44],[.58,.36],[.58,.14],[.35,.13],[.15,.2]],.16,eng,-.04);
