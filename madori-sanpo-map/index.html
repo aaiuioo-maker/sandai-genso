@@ -529,7 +529,12 @@ function floor2(){const g=new THREE.Group();
   B(g,3.86,6.55,3.93,7.0,.055,.62,bk);[[6.62,.1],[6.93,.1],[6.62,.55],[6.93,.55]].forEach(([z,y])=>drum(g,3.82,y,z,.035,.03,bk));
   B(g,3.25,6.7,3.75,6.98,.055,.3,wh);B(g,3.3,6.62,3.72,6.7,.3,.36,mat(0xd8c29c),false);
   B(g,2.95,6.72,3.12,6.98,.055,.42,wh);B(g,3.13,6.74,3.23,6.98,.055,.48,mat(0x2c4f9a));B(g,2.75,6.62,2.92,6.92,.055,.26,mat(0xb98952,{map:grainTex}));
-  soft(g,d=>{ball(d,2.55,.32,6.85,.2,mat(0xf1d43a,{roughness:.6}),1.4);B(d,1.9,6.0,2.35,6.35,.055,.065,mat(0xdfe6ea,{transparent:true,opacity:.55,roughness:.2}),false)})}
+  soft(g,d=>{
+   // 天井のまん中に丸いシーリングライト（リモコンつき）、リモコンは東の壁のホルダーに
+   drum(d,2.5,2.37,5.75,.27,.03,mat(0xf4f4f2,{roughness:.5}));ball(d,2.5,2.35,5.75,.29,mat(0xffffff,{roughness:.35,emissive:new THREE.Color(0xfff8ec),emissiveIntensity:.55}),.22);
+   drum(d,2.5,2.34,5.75,.295,.012,mat(0xc9c9c6,{roughness:.4}));drum(d,2.5,2.29,5.75,.03,.006,mat(0xd8d8d4,{roughness:.4}));
+   B(d,3.955,4.24,3.985,4.38,1.18,1.4,wh);B(d,3.94,4.26,3.955,4.36,1.22,1.44,mat(0xeceae4,{roughness:.4}),false);[1.38,1.33,1.28].forEach(y=>B(d,3.936,4.28,3.94,4.34,y,y+.025,mat(0x8a8d90),false));
+   B(d,1.9,6.0,2.35,6.35,.055,.065,mat(0xdfe6ea,{transparent:true,opacity:.55,roughness:.2}),false)})}
  // 3帖（写真）: ガラス戸にレースのカーテン、上にエアコン、四角い和風の電気、右に木の柱つきの服かけ、下に水の箱・トイレットペーパー・黒いふくろ
  {const lace=mat(0xf4f3ee,{roughness:.95}),wh=mat(0xf3f3f1,{roughness:.5}),kr=mat(0xc9a77c,{roughness:.9}),red=mat(0x9b2335),wood=mat(0xd9b27a,{map:grainTex,roughness:.6});
   // 4.5帖とのさかいの鴨居と上の壁
@@ -545,7 +550,6 @@ function floor2(){const g=new THREE.Group();
   [[2.75,3.12],[3.13,3.5]].forEach(([z1,z2])=>[[.055,.37],[.37,.69]].forEach(([y1,y2])=>{B(g,3.38,z1,3.95,z2,y1,y2,kr);B(g,3.37,z1+.04,3.38,z2-.04,y1+.08,y2-.08,mat(0xdfeaf3),false)}));
   B(g,3.4,2.3,3.9,2.72,.055,.52,M.white);B(g,3.39,2.35,3.4,2.67,.25,.38,mat(0xd9432f),false);B(g,3.45,2.35,3.85,2.65,.52,.8,mat(0xfbf8f2));
   B(g,3.42,2.08,3.95,2.22,.055,.55,mat(0xb7cbe0));
-  ball(g,3.72,.3,3.62,.24,mat(0x17181a,{roughness:.25}),1.1);
   // 左: 空気清浄機・木の踏み台、まん中: 白いかご・木の腰かけ
   B(g,1.12,3.35,1.42,3.62,.055,.82,wh);B(g,1.14,3.37,1.4,3.6,.82,.84,M.black);B(g,1.06,2.95,1.3,3.3,.055,.22,wood);
   B(g,1.5,2.18,1.85,2.45,.055,.33,wh);B(g,1.95,2.18,2.35,2.55,.43,.47,wood);[[1.97,2.2],[2.3,2.2],[1.97,2.5],[2.3,2.5]].forEach(([x,z])=>B(g,x,z,x+.04,z+.04,.055,.43,M.black))}
