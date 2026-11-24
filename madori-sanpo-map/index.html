@@ -38,7 +38,7 @@ button{font:inherit;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:
 #close{width:100%;margin-top:14px;font-size:16px;padding:11px;border-radius:10px;background:transparent;border:1px solid var(--line)}
 #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);color:#2f2820;font-size:18px;font-weight:700}
 #right{display:flex;gap:8px;pointer-events:auto}
-#timeBtn{font-size:17px;font-weight:700;padding:8px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--line)}
+#timeBtn,#outBtn{font-size:17px;font-weight:700;padding:8px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--line)}
 #mini{position:fixed;left:16px;top:calc(64px + env(safe-area-inset-top));width:84px;height:173px;padding:0;border:1px solid #cfc3ae;border-radius:10px;background:#fffaf0;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.25)}
 #mini svg,#bigMap svg{display:block;width:100%;height:100%}
 .me circle{fill:rgba(214,69,43,.2)}.me path{fill:#d6452b;stroke:#fff;stroke-width:.035}
@@ -55,7 +55,7 @@ button{font:inherit;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:
 </style>
 </head>
 <body>
-<div id="top"><span id="room">玄関</span><span id="right"><button id="timeBtn">昼</button><button id="goBtn">行き先</button></span></div>
+<div id="top"><span id="room">玄関</span><span id="right"><button id="outBtn" aria-label="家の外から見る">外へ</button><button id="timeBtn">昼</button><button id="goBtn">行き先</button></span></div>
 <button id="mini" aria-label="地図を大きくする"></button>
 <div id="mapSheet"><div id="mapTabs"><button data-f="1f">1階</button><button data-f="2f">2階</button><button id="mapClose">閉じる</button></div><div id="mapNote">行きたい場所を押すと、歩いて行きます</div><div id="bigMap"></div></div>
 <div id="hint">行きたい床を押すと、そこまで歩きます</div>
@@ -554,13 +554,16 @@ function clearLine(a,b){const [ax,az,aL]=dec(a),[bx,bz,bL]=dec(b);if(aL!==bL)ret
 function smoothPath(r){const out=[];let i=0;while(i<r.length-1){let j=Math.min(r.length-1,i+45);while(j>i+1&&!clearLine(r[i],r[j]))j--;const [ax,az,aL]=dec(r[i]),[bx,bz,bL]=dec(r[j]),x0=mid(ax,0),z0=mid(az,2),x1=mid(bx,0),z1=mid(bz,2),m=Math.max(1,Math.ceil(Math.hypot(x1-x0,z1-z0)/.05));for(let s=1;s<=m;s++){const t=s/m,x=x0+(x1-x0)*t,z=z0+(z1-z0)*t,c=aL===bL?navY[nk(cellOf(x,0),cellOf(z,2),aL)]:NaN;out.push({x,z,y:isNaN(c)?navY[r[i]]+(navY[r[j]]-navY[r[i]])*t:c})}i=j}return out}
 let faceYaw=null,wantFace=false;const freeAhead=a=>{const s=-Math.sin(a),c=-Math.cos(a);let d=.1;while(d<5&&!hit(P.x+s*d,P.y+.12,P.z+c*d))d+=.1;return d};function openYaw(){if(!wantFace)return null;let best=P.yaw,bd=0;for(let i=0;i<16;i++){const a=i/16*Math.PI*2,d=freeAhead(a);if(d>bd){bd=d;best=a}}return best}
 const startNode=()=>nearest(P.x,P.z,stairH(P.x,P.z)!==null||P.y<1.3?0:1);
-function goTo(x,z,L){const s=startNode(),g=nearest(x,z,stairH(x,z)!==null?0:L);if(s<0||g<0)return false;if(s===g){path=null;return true}const r=route(s,g);if(!r)return false;path=smoothPath(r);faceYaw=null;wantFace=SPOTS.some(g=>g[1].some(s=>Math.abs(s[1]*U-x)<.01&&Math.abs(s[2]*U-z)<.01&&s[3]===L));stuck=0;lookHold=0;return true}
+function goTo(x,z,L){if(outside)setOutside(false);const s=startNode(),g=nearest(x,z,stairH(x,z)!==null?0:L);if(s<0||g<0)return false;if(s===g){path=null;return true}const r=route(s,g);if(!r)return false;path=smoothPath(r);faceYaw=null;wantFace=SPOTS.some(g=>g[1].some(s=>Math.abs(s[1]*U-x)<.01&&Math.abs(s[2]*U-z)<.01&&s[3]===L));stuck=0;lookHold=0;return true}
 
 // ---------- 光: きれい版と同じ、午後の日ざしとやわらかい光 ----------
 const PT={n:0},lightC=new THREE.Vector3(1.8,1.3,3.9);
 [[sunL,-9,17,11],[fillA,10,15,-7],[fillB,7,18,12]].forEach(([l,x,y,z])=>{l.position.copy(lightC).add(new THREE.Vector3(x,y,z).normalize().multiplyScalar(24));l.target.position.copy(lightC);l.target.updateMatrixWorld()});
-let castF=-1;function applyCast(){const k=P.y>1.25?1:0;if(k===castF)return;castF=k;houseMeshes.forEach(e=>{e.castShadow=e.userData.c&&e.userData.f===k});renderer.shadowMap.needsUpdate=true;PT.n=0}
-function applyCam(){camera.position.set(P.x,eyeY,P.z);camera.rotation.set(P.pitch,P.yaw,0);camera.updateMatrixWorld()}
+let castF=-1;function applyCast(){const k=outside?2:P.y>1.25?1:0;if(k===castF)return;castF=k;houseMeshes.forEach(e=>{e.castShadow=e.userData.c&&(k===2||e.userData.f===k)});renderer.shadowMap.needsUpdate=true;PT.n=0}
+// 外から見る: 家のまわりを回るカメラ（なぞると回る、2本指・ホイール・▲▼で近づく／離れる）
+let outside=false;const orb={yaw:.75,pitch:.42,dist:13},ORB_C=new THREE.Vector3(2*U,2.3,3.7*U);
+function applyCam(){if(outside){const cp=Math.cos(orb.pitch);camera.position.set(ORB_C.x+Math.sin(orb.yaw)*cp*orb.dist,ORB_C.y+Math.sin(orb.pitch)*orb.dist,ORB_C.z+Math.cos(orb.yaw)*cp*orb.dist);camera.lookAt(ORB_C);camera.updateMatrixWorld();return}
+ camera.position.set(P.x,eyeY,P.z);camera.rotation.set(P.pitch,P.yaw,0);camera.updateMatrixWorld()}
 function present(){applyCam();renderer.render(scene,camera);drawMe();PT.n=1}
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.fov=innerWidth<innerHeight?78:64;camera.updateProjectionMatrix();PT.n=0}
 addEventListener('resize',resize);
@@ -572,8 +575,16 @@ addEventListener('keydown',e=>{if(/^(Arrow|Space)/.test(e.code))e.preventDefault
 document.querySelectorAll('#pad button').forEach(b=>{const k=b.dataset.k,off=()=>{hold[k]=0;b.classList.remove('on')};b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);hold[k]=1;b.classList.add('on');path=null;fadeHint()};b.onpointerup=b.onpointercancel=b.onlostpointercapture=off;b.oncontextmenu=e=>e.preventDefault()});
 const cv=renderer.domElement,ptr=new Map(),ring=document.getElementById('ring');cv.oncontextmenu=e=>e.preventDefault();
 cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,t:performance.now()})};
-cv.onpointermove=e=>{const p=ptr.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;if(Math.hypot(e.clientX-p.sx,e.clientY-p.sy)<9)return;P.yaw+=dx*.0042;P.pitch=Math.max(-1.3,Math.min(1.3,P.pitch+dy*.0036));lookHold=1.6;PT.n=0};
-cv.onpointerup=e=>{const p=ptr.get(e.pointerId);ptr.delete(e.pointerId);if(!p||Math.hypot(e.clientX-p.sx,e.clientY-p.sy)>=9||performance.now()-p.t>450)return;tapGo(e.clientX,e.clientY)};cv.onpointercancel=e=>ptr.delete(e.pointerId);
+cv.onpointermove=e=>{const p=ptr.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;
+ if(outside){const q=[...ptr.values()];if(q.length>=2){const o=q.find(v=>v!==p),d0=Math.hypot(p.x-o.x,p.y-o.y),d1=Math.hypot(e.clientX-o.x,e.clientY-o.y);if(d0>0&&d1>0)zoomOrb(d0/d1)}else{orb.yaw-=dx*.006;orb.pitch=Math.max(.06,Math.min(1.4,orb.pitch+dy*.004))}p.x=e.clientX;p.y=e.clientY;PT.n=0;return}
+ p.x=e.clientX;p.y=e.clientY;if(Math.hypot(e.clientX-p.sx,e.clientY-p.sy)<9)return;P.yaw+=dx*.0042;P.pitch=Math.max(-1.3,Math.min(1.3,P.pitch+dy*.0036));lookHold=1.6;PT.n=0};
+cv.onpointerup=e=>{const p=ptr.get(e.pointerId);ptr.delete(e.pointerId);if(outside||!p||Math.hypot(e.clientX-p.sx,e.clientY-p.sy)>=9||performance.now()-p.t>450)return;tapGo(e.clientX,e.clientY)};cv.onpointercancel=e=>ptr.delete(e.pointerId);
+function zoomOrb(k){orb.dist=Math.max(5,Math.min(28,orb.dist*k));PT.n=0}
+cv.addEventListener('wheel',e=>{if(!outside)return;e.preventDefault();zoomOrb(1+Math.max(-.3,Math.min(.3,e.deltaY*.0015)))},{passive:false});
+const outBtn=document.getElementById('outBtn'),padB=[...document.querySelectorAll('#pad button')],padL={f:['前へ','近づく'],b:['後ろへ','離れる'],l:['左を向く','左へ回る'],r:['右を向く','右へ回る']};
+function setOutside(on){outside=on;if(on&&!setOutside.done){setOutside.done=1;orb.dist=innerWidth<innerHeight?20:13}path=null;outBtn.textContent=on?'中へ':'外へ';outBtn.setAttribute('aria-label',on?'家の中にもどる':'家の外から見る');padB.forEach(b=>b.setAttribute('aria-label',padL[b.dataset.k][on?1:0]));
+ roomNow='';if(on){roomEl.textContent='外から見る';hintEl.textContent='なぞると家のまわりを回ります。▲▼で近づく・離れる';hintEl.style.opacity=1;hintGone=true;clearTimeout(setOutside.t);setOutside.t=setTimeout(()=>{hintEl.style.opacity=0},4500)}else updateRoom();applyCast();PT.n=0}
+outBtn.onclick=()=>setOutside(!outside);
 function tapGo(cx,cy){const v=new THREE.Vector3(cx/innerWidth*2-1,-(cy/innerHeight)*2+1,.5).unproject(camera).sub(camera.position).normalize(),o=camera.position;let px=null,pz=null;for(let t=.1;t<13;t+=.04){const x=o.x+v.x*t,y=o.y+v.y*t,z=o.z+v.z*t,a=cellOf(x,0),b=cellOf(y,1),c=cellOf(z,2);if(!inB(a,b,c))break;if(sol[at(a,b,c)]||y<-.5){px=x;pz=z;break}}if(px===null)return;
  if(goTo(px,pz,P.y>1.3?1:0)){ring.style.left=cx+'px';ring.style.top=cy+'px';ring.classList.remove('go');void ring.offsetWidth;ring.classList.add('go');fadeHint()}}
 const ROOMS=[[0,[[0,6.4,2,7.8,'玄関'],[0,5,2,6.4,'ダイニング'],[2,5,4,7.4,'台所'],[0,4.4,1,5,'踊り場'],[0,3.7,1,4.4,'階段'],[0,2,1,3.7,'押入'],[1,2,4,5,'和室 4.5帖'],[1,1,2.9,2,'廊下'],[0,0,1,2,'浴室'],[2.9,.5,4,2,'トイレ'],[0,-1.1,4,1,'裏の洗面']]],[1,[[0,2,1,3,'踊り場'],[0,3,1,5,'階段'],[0,5,1,7,'押入'],[1,1,3,2,'ベランダ'],[1,2,4,4,'和室 3帖'],[1,4,4,7.5,'和室 4.5帖']]]];
@@ -609,7 +620,8 @@ function setTime(i){timeI=i;const t=TIMES[i];sunL.position.copy(lightC).add(new 
  if(!envBase){envBase=new Map();houseMeshes.forEach(e=>{if(!envBase.has(e.material))envBase.set(e.material,e.material.envMapIntensity)})}envBase.forEach((v,m)=>{m.envMapIntensity=v*t.env});
  timeBtn.textContent=t.n;timeBtn.setAttribute('aria-label','時間帯: '+t.n+'（押すと変わります）');renderer.shadowMap.needsUpdate=true;PT.n=0}
 timeBtn.onclick=()=>setTime((timeI+1)%TIMES.length);
-function update(dt){const x0=P.x,y0=P.y,z0=P.z,yaw0=P.yaw,pitch0=P.pitch,eye0=eyeY;lookHold=Math.max(0,lookHold-dt);
+function update(dt){if(outside){const t=hold.l-hold.r+(isKey('ArrowLeft','KeyA')?1:0)-(isKey('ArrowRight','KeyD')?1:0),z=hold.f-hold.b+(isKey('KeyW','ArrowUp')?1:0)-(isKey('KeyS','ArrowDown')?1:0);if(t)orb.yaw-=t*1.1*dt;if(z)zoomOrb(1-z*dt*.9);return !!(t||z)}
+ const x0=P.x,y0=P.y,z0=P.z,yaw0=P.yaw,pitch0=P.pitch,eye0=eyeY;lookHold=Math.max(0,lookHold-dt);
  const fw=hold.f-hold.b+(isKey('KeyW','ArrowUp')?1:0)-(isKey('KeyS','ArrowDown')?1:0),turn=hold.l-hold.r+(isKey('ArrowLeft')?1:0)-(isKey('ArrowRight')?1:0),str=(isKey('KeyD')?1:0)-(isKey('KeyA')?1:0);if(fw||turn||str){path=null;faceYaw=null}if(lookHold)faceYaw=null;if(faceYaw!==null){let df=faceYaw-P.yaw;df=Math.atan2(Math.sin(df),Math.cos(df));if(Math.abs(df)<.01){P.yaw=faceYaw;faceYaw=null}else P.yaw+=df*Math.min(1,dt*3.5)}P.yaw+=turn*1.45*dt;
  const sp=(isKey('ShiftLeft','ShiftRight')?3:1.75)*dt;let dx=0,dz=0;
  const rail=!!(path&&path.length);if(rail){const a=path[Math.min(6,path.length-1)],ax=a.x-P.x,az=a.z-P.z;if(!lookHold&&Math.hypot(ax,az)>.04){const want=Math.atan2(-ax,-az);let df=want-P.yaw;df=Math.atan2(Math.sin(df),Math.cos(df));P.yaw+=df*Math.min(1,dt*5.5);P.pitch+=(-.07-P.pitch)*Math.min(1,dt*2.5)}let left=sp,ty=P.y;while(path.length&&left>0){const w=path[0],wx=w.x-P.x,wz=w.z-P.z,d=Math.hypot(wx,wz);ty=w.y;if(d<=left){P.x=w.x;P.z=w.z;left-=d;path.shift()}else{P.x+=wx/d*left;P.z+=wz/d*left;left=0}}P.vy=0;if(path.length)P.y+=(ty-P.y)*Math.min(1,dt*14);else{P.y=ty;path=null;faceYaw=openYaw()}}
